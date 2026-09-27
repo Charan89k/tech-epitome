@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, CheckCircle2, Circle, CircleDot, Clock, Lock } from "lucide-react";
+import { ArrowRight, CheckCircle2, Circle, CircleDot, Clock } from "lucide-react";
 
 import { EmptyState } from "@/components/common/empty-state";
 import { PageHeader } from "@/components/common/page-header";
@@ -15,7 +15,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { lockStateFor } from "@/lib/auth/access";
 import { getCurrentUser } from "@/lib/auth/session";
 import { TRACK_LABELS } from "@/lib/tracks";
 import { cn, route } from "@/lib/utils";
@@ -135,7 +134,6 @@ export default async function CoursePage({
 
               <ul className="border-border divide-border divide-y overflow-hidden rounded-lg border">
                 {section.chapters.map((chapter) => {
-                  const lock = lockStateFor(user, chapter.access);
 
                   return (
                     <li key={chapter.id}>
@@ -159,12 +157,6 @@ export default async function CoursePage({
                             >
                               {chapter.title}
                             </span>
-                            {lock.locked && (
-                              <Lock
-                                className="text-muted-foreground/60 size-3 shrink-0"
-                                aria-label="Pro"
-                              />
-                            )}
                           </div>
                           {chapter.summary && (
                             <p className="text-muted-foreground mt-0.5 truncate text-xs">

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { closeDb, makePro } from "./db";
+import { closeDb } from "./db";
 
 /**
  * Journey 3: System Design.
@@ -101,8 +101,7 @@ test("an exercise withholds its reference architecture until submission", async 
 
 test("full journey: draw, save, submit, reveal, review", async ({ page }) => {
   test.slow();
-  const email = await signUp(page, "journey");
-  await makePro(email);
+  await signUp(page, "journey");
   await page.reload();
 
   await page.goto(EXERCISE_URL);
@@ -166,8 +165,7 @@ test("full journey: draw, save, submit, reveal, review", async ({ page }) => {
 test("an empty design cannot be submitted to reveal the answer", async ({
   page,
 }) => {
-  const email = await signUp(page, "empty");
-  await makePro(email);
+  await signUp(page, "empty");
   await page.reload();
 
   await page.goto(EXERCISE_URL);

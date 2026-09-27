@@ -21,7 +21,6 @@ export type ExerciseSeed = {
   title: string;
   tagline: string;
   difficulty: Difficulty;
-  access?: "FREE" | "PRO";
   functionalRequirements: string[];
   nonFunctionalRequirements: string[];
   /** Worked estimates, shown as reasoning rather than as facts. */
@@ -235,7 +234,6 @@ export const SYSTEM_DESIGN_EXERCISES: ExerciseSeed[] = [
     title: "Notification Delivery",
     tagline: "Fan one event out to many people across several channels, exactly once enough.",
     difficulty: "MEDIUM",
-    access: "PRO",
     functionalRequirements: [
       "Accept an event and deliver it to the right recipients",
       "Support several channels: in-app, email, push",

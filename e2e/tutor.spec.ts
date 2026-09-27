@@ -1,12 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { closeDb, makePro, tutorMessageCountFor, tutorUsageFor } from "./db";
+import { closeDb, tutorMessageCountFor, tutorUsageFor } from "./db";
 
 /**
  * The AI tutor, end to end.
  *
  * The provider is `src/lib/ai/mock.ts`, wired in by `playwright.config.ts`.
- * Everything else is real: the route handler, the Pro gate, the rate
+ * Everything else is real: the route handler, the sign-in gate, the rate
  * limiter, the context builder, the escalation ladder and the database.
  * Only the token source is fake, which is what makes these assertions
  * meaningful — a real model would answer differently every run and could
@@ -16,9 +16,9 @@ import { closeDb, makePro, tutorMessageCountFor, tutorUsageFor } from "./db";
  * test can assert that the learner's failing test actually reached the
  * prompt rather than hoping it did.
  *
- * Each test registers its own account and buys Pro through `makePro`,
- * because the tutor is a paid entitlement and weakening that to make it
- * testable would test a product that does not exist.
+ * Each test registers its own account through the real signup flow. The
+ * tutor is free but not anonymous - conversations are per-user rows - so a
+ * session is the one thing a test still has to earn honestly.
  */
 
 const PASSWORD = "forge-e2e-password";
@@ -27,8 +27,8 @@ function uniqueEmail(tag: string): string {
   return `e2e-tutor-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@codeforge.test`;
 }
 
-/** Registers, upgrades to Pro, and reloads so the new plan is in session. */
-async function signUpAsPro(page: Page, tag: string): Promise<string> {
+/** Registers a fresh learner and lands them signed in. */
+async function signUpAsLearner(page: Page, tag: string): Promise<string> {
   const email = uniqueEmail(tag);
 
   await page.goto("/signup");
@@ -37,10 +37,8 @@ async function signUpAsPro(page: Page, tag: string): Promise<string> {
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
   await page.waitForURL("**/dashboard", { timeout: 30_000 });
-
-  await makePro(email);
-  // The plan is resolved per request from the subscription row, never from
-  // the JWT, so a reload is all that is needed to pick it up.
+  // Authorization is resolved per request from the database, never from the
+  // JWT, so a reload is enough to see the signed-in surface.
   await page.reload();
 
   return email;
@@ -111,29 +109,40 @@ test.afterAll(async () => {
 
 // ---------------------------------------------------------------------------
 
-test("a free learner is offered the plan rather than the tutor", async ({ page }) => {
-  const email = uniqueEmail("free");
+test("an ordinary account reaches the tutor, with nothing to buy", async ({
+  page,
+}) => {
+  // CodeForge is free. A plain account - no plan, no upgrade, nothing
+  // purchased - must land in the working tutor, not in an offer. This test
+  // exists because the previous one asserted the opposite.
+  await signUpAsLearner(page, "plain");
+  await openTutorPage(page);
 
-  await page.goto("/signup");
-  await page.getByLabel("Name").fill("Free Learner");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL("**/dashboard", { timeout: 30_000 });
+  const body = (await page.locator("body").innerText()).toLowerCase();
+  for (const word of ["upgrade", "see plans", "subscription", "pricing"]) {
+    expect(body, `tutor page still says "${word}"`).not.toContain(word);
+  }
+});
 
-  await page.goto("/ai-tutor");
+test("a signed-out visitor is asked to sign in, never to upgrade", async ({
+  page,
+}) => {
+  // The launcher is deliberately visible signed out: the visitor should be
+  // able to see the tutor exists. What they must never see is a price.
+  await openChapter(page);
+  await page.getByTestId("tutor-open").click();
 
-  // Locked, but never a dead end: the page says what it is and how to get it.
   await expect(
-    page.getByRole("heading", { name: /AI tutor is part of Pro/i })
+    page.getByRole("heading", { name: "Sign in to use the tutor" })
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "See plans" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /plans|pricing|upgrade/i })).toHaveCount(0);
 });
 
 test("chapter tutor: shows chapter context and streams an answer", async ({
   page,
 }) => {
-  const email = await signUpAsPro(page, "chapter");
+  const email = await signUpAsLearner(page, "chapter");
   await openChapter(page);
   await openTutor(page);
 
@@ -162,7 +171,7 @@ test("chapter tutor: shows chapter context and streams an answer", async ({
 test("chapter tutor: a quick action sends a structured request", async ({
   page,
 }) => {
-  await signUpAsPro(page, "quickaction");
+  await signUpAsLearner(page, "quickaction");
   await openChapter(page);
   await openTutor(page);
 
@@ -179,7 +188,7 @@ test("chapter tutor: a quick action sends a structured request", async ({
 test("problem tutor: shows pattern context and escalates hints one rung at a time", async ({
   page,
 }) => {
-  await signUpAsPro(page, "hints");
+  await signUpAsLearner(page, "hints");
 
   await openProblem(page);
   await openTutor(page);
@@ -204,7 +213,7 @@ test("problem tutor: shows pattern context and escalates hints one rung at a tim
 test("problem tutor: asking to be told jumps to the final rung", async ({
   page,
 }) => {
-  await signUpAsPro(page, "giveup");
+  await signUpAsLearner(page, "giveup");
 
   await openProblem(page);
   await openTutor(page);
@@ -224,7 +233,7 @@ test("problem tutor: asking to be told jumps to the final rung", async ({
 });
 
 test("code-aware tutor: the failing run reaches the tutor", async ({ page }) => {
-  const email = await signUpAsPro(page, "code");
+  const email = await signUpAsLearner(page, "code");
 
   await openProblem(page);
 
@@ -271,7 +280,7 @@ test("a learner cannot reach another learner's tutor conversation", async ({
   browser,
 }) => {
   // Alice holds a conversation.
-  const alice = await signUpAsPro(page, "alice");
+  const alice = await signUpAsLearner(page, "alice");
   await openTutorPage(page);
   await page.getByLabel("Message the tutor").fill("alice's private question");
   await page.getByRole("button", { name: "Send message" }).click();
@@ -298,7 +307,7 @@ test("a learner cannot reach another learner's tutor conversation", async ({
   // Bob, in a separate browser context, names Alice's conversation id.
   const context = await browser.newContext();
   const bobPage = await context.newPage();
-  await signUpAsPro(bobPage, "bob");
+  await signUpAsLearner(bobPage, "bob");
 
   const status = await bobPage.evaluate(async (id) => {
     const response = await fetch("/api/tutor/stream", {
@@ -348,7 +357,7 @@ test("the tutor works on a phone without overflowing", async ({ page }) => {
     "This assertion is about the mobile layout."
   );
 
-  await signUpAsPro(page, "mobile");
+  await signUpAsLearner(page, "mobile");
   await openTutorPage(page);
 
   await page.getByLabel("Message the tutor").fill("How do I start?");
@@ -374,7 +383,7 @@ test("the tutor streams without console or hydration errors", async ({ page }) =
   });
   page.on("pageerror", (error) => errors.push(error.message.slice(0, 300)));
 
-  await signUpAsPro(page, "health");
+  await signUpAsLearner(page, "health");
   await openTutorPage(page);
 
   await page.getByLabel("Message the tutor").fill("What should I study next?");
@@ -407,7 +416,7 @@ test("the tutor streams without console or hydration errors", async ({ page }) =
 test("a double-clicked quick action does not spend two hint rungs", async ({
   page,
 }) => {
-  await signUpAsPro(page, "doubleclick");
+  await signUpAsLearner(page, "doubleclick");
   await openProblem(page);
   await openTutor(page);
 

@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
-import type { AccessTier, Difficulty, Track } from "@/generated/prisma/enums";
+import type {Difficulty, Track} from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 import { chapterHref } from "@/lib/tracks";
 
@@ -22,7 +22,6 @@ export type ChapterSummary = {
   summary: string | null;
   readingMinutes: number;
   order: number;
-  access: AccessTier;
   status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
   percent: number;
   problemCount: number;
@@ -47,7 +46,6 @@ export type CourseSummary = {
   description: string;
   track: Track;
   icon: string | null;
-  access: AccessTier;
   estimatedHours: number;
   totalChapters: number;
   completedChapters: number;
@@ -71,7 +69,6 @@ export const listCourses = cache(
         description: true,
         track: true,
         icon: true,
-        access: true,
         estimatedHours: true,
         sections: {
           where: { status: "PUBLISHED" },
@@ -107,7 +104,6 @@ export const listCourses = cache(
         description: course.description,
         track: course.track,
         icon: course.icon,
-        access: course.access,
         estimatedHours: course.estimatedHours,
         totalChapters: ids.length,
         completedChapters: ids.filter((id) => completedSet.has(id)).length,
@@ -129,7 +125,6 @@ export const getCourse = cache(
         description: true,
         track: true,
         icon: true,
-        access: true,
         estimatedHours: true,
         sections: {
           where: { status: "PUBLISHED" },
@@ -150,7 +145,6 @@ export const getCourse = cache(
                 summary: true,
                 readingMinutes: true,
                 order: true,
-                access: true,
                 _count: { select: { problems: true } },
               },
             },
@@ -183,7 +177,6 @@ export const getCourse = cache(
           summary: chapter.summary,
           readingMinutes: chapter.readingMinutes,
           order: chapter.order,
-          access: chapter.access,
           status: progress?.status ?? "NOT_STARTED",
           percent: progress?.percent ?? 0,
           problemCount: chapter._count.problems,
@@ -212,7 +205,6 @@ export const getCourse = cache(
       description: course.description,
       track: course.track,
       icon: course.icon,
-      access: course.access,
       estimatedHours: course.estimatedHours,
       totalChapters: allChapters.length,
       completedChapters: allChapters.filter((c) => c.status === "COMPLETED").length,
@@ -236,7 +228,6 @@ export type ChapterDetail = {
   objectives: string[];
   keyTakeaways: string[];
   readingMinutes: number;
-  access: AccessTier;
   section: { id: string; slug: string; title: string };
   course: { id: string; slug: string; title: string; track: Track };
   patterns: { id: string; slug: string; name: string; tagline: string }[];
@@ -280,7 +271,6 @@ export const getChapter = cache(
         objectives: true,
         keyTakeaways: true,
         readingMinutes: true,
-        access: true,
         order: true,
         section: {
           select: {
@@ -347,7 +337,6 @@ export const getChapter = cache(
       objectives: chapter.objectives,
       keyTakeaways: chapter.keyTakeaways,
       readingMinutes: chapter.readingMinutes,
-      access: chapter.access,
       section: {
         id: chapter.section.id,
         slug: chapter.section.slug,

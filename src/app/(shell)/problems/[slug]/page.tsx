@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CheckCircle2, Lock, Target } from "lucide-react";
+import { CheckCircle2, Target } from "lucide-react";
 
 import { DifficultyBadge } from "@/components/common/difficulty-badge";
 import { ContentRenderer, type ContentResources } from "@/components/learning/content-renderer";
@@ -12,9 +12,8 @@ import {
   type SolutionView,
 } from "@/components/problems/solution-panel";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { canAccess, FEATURES, lockStateFor } from "@/lib/auth/access";
+import { canAccess, FEATURES } from "@/lib/auth/access";
 import { labelFor } from "@/lib/tutor/context";
 import {
   CODE_QUICK_ACTIONS,
@@ -51,26 +50,6 @@ export default async function ProblemPage({
 
   if (!problem) notFound();
 
-  const lock = lockStateFor(user, problem.access);
-  if (lock.locked) {
-    return (
-      <div className="mx-auto max-w-lg px-4 py-20 text-center">
-        <Lock className="text-muted-foreground mx-auto size-6" aria-hidden="true" />
-        <h1 className="mt-3 text-lg font-semibold">This problem is part of Pro</h1>
-        <p className="text-muted-foreground mt-2 text-sm">
-          {lock.reason === "signin"
-            ? "Sign in to check whether your plan includes it."
-            : "Upgrade to unlock the full problem set."}
-        </p>
-        <Button asChild className="mt-6">
-          <Link href={lock.reason === "signin" ? "/login" : "/pricing"}>
-            {lock.reason === "signin" ? "Sign in" : "See plans"}
-          </Link>
-        </Button>
-      </div>
-    );
-  }
-
   const statement: ContentBlock[] = parseContent(
     problem.statement,
     `problem:${problem.slug}`
@@ -83,7 +62,7 @@ export default async function ProblemPage({
   //
   // The gate is applied to the query result, before it is serialised, so the
   // withheld approaches never reach the client at all.
-  const canSeeAllApproaches = canAccess(user, FEATURES.SOLUTIONS_ALL);
+  const canSeeAllApproaches = canAccess(user, FEATURES.SOLUTIONS);
   const solutionRows = await prisma.solution.findMany({
     where: { problem: { slug } },
     orderBy: { order: "asc" },
@@ -297,7 +276,7 @@ export default async function ProblemPage({
       tutor={{
         label: tutorLabel,
         quickActions: [...PROBLEM_QUICK_ACTIONS, ...CODE_QUICK_ACTIONS],
-        access: !user ? "signin" : tutorAllowed ? "allowed" : "upgrade",
+        enabled: tutorAllowed,
       }}
     />
   );

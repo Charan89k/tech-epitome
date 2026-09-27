@@ -38,9 +38,10 @@ export const authConfig = {
   callbacks: {
     /**
      * Copies the stable identity claims onto the token. Anything that can
-     * change mid-session (subscription tier, progress) is deliberately NOT
-     * cached here - it is read from the database per request, because a stale
-     * JWT claim is how paywall bypasses happen.
+     * change mid-session (role, progress) is deliberately NOT cached here -
+     * it is read from the database per request, because a stale JWT claim is
+     * how an authorization bypass happens. A demoted admin must lose the
+     * admin surface on their next request, not on their next sign-in.
      */
     jwt({ token, user, trigger, session }) {
       if (user) {

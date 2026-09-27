@@ -2,12 +2,9 @@ import "server-only";
 
 import { cache } from "react";
 
-import type {
-  AccessTier,
-  Difficulty,
+import type {Difficulty,
   Language,
-  ProblemStatus,
-} from "@/generated/prisma/enums";
+  ProblemStatus} from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -38,7 +35,6 @@ export type ProblemListItem = {
   slug: string;
   title: string;
   difficulty: Difficulty;
-  access: AccessTier;
   patterns: { slug: string; name: string }[];
   topics: { slug: string; name: string }[];
   status: ProblemStatus;
@@ -137,7 +133,6 @@ export async function listProblems(
         slug: true,
         title: true,
         difficulty: true,
-        access: true,
         patterns: {
           select: { pattern: { select: { slug: true, name: true } } },
           orderBy: { patternId: "asc" },
@@ -176,7 +171,6 @@ export async function listProblems(
       slug: row.slug,
       title: row.title,
       difficulty: row.difficulty,
-      access: row.access,
       patterns: row.patterns.map((p) => p.pattern),
       topics: row.topics.map((t) => t.topic),
       status:
@@ -241,7 +235,6 @@ export type ProblemDetail = {
   learningObjective: string | null;
   constraints: string[];
   difficulty: Difficulty;
-  access: AccessTier;
   starterCode: Record<string, string>;
   timeLimitMs: number;
   memoryLimitMb: number;
@@ -275,7 +268,6 @@ export const getProblem = cache(
         learningObjective: true,
         constraints: true,
         difficulty: true,
-        access: true,
         starterCode: true,
         timeLimitMs: true,
         memoryLimitMb: true,
@@ -333,7 +325,6 @@ export const getProblem = cache(
       learningObjective: problem.learningObjective,
       constraints: problem.constraints,
       difficulty: problem.difficulty,
-      access: problem.access,
       starterCode: (problem.starterCode ?? {}) as Record<string, string>,
       timeLimitMs: problem.timeLimitMs,
       memoryLimitMb: problem.memoryLimitMb,

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { closeDb, makePro } from "./db";
+import { closeDb } from "./db";
 
 /**
  * Journey 5: Mock interview.
@@ -20,7 +20,7 @@ function uniqueEmail(tag: string): string {
   return `e2e-iv-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@codeforge.test`;
 }
 
-async function signUpAsPro(page: Page, tag: string): Promise<string> {
+async function signUpAsLearner(page: Page, tag: string): Promise<string> {
   const email = uniqueEmail(tag);
   await page.goto("/signup");
   await page.getByLabel("Name").fill("Candidate");
@@ -28,7 +28,6 @@ async function signUpAsPro(page: Page, tag: string): Promise<string> {
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
   await page.waitForURL("**/dashboard", { timeout: 30_000 });
-  await makePro(email);
   await page.reload();
   return email;
 }
@@ -51,26 +50,30 @@ test.afterAll(async () => {
 
 // ---------------------------------------------------------------------------
 
-test("a free learner is offered the plan rather than the interviewer", async ({
+test("an ordinary account can start an interview, with nothing to buy", async ({
   page,
 }) => {
-  const email = uniqueEmail("free");
+  // CodeForge is free: a plain account reaches the interviewer directly.
   await page.goto("/signup");
-  await page.getByLabel("Name").fill("Free");
-  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Name").fill("Plain");
+  await page.getByLabel("Email").fill(uniqueEmail("plain"));
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
   await page.waitForURL("**/dashboard", { timeout: 30_000 });
 
   await page.goto("/interviews");
   await expect(
-    page.getByRole("heading", { name: /Mock interviews are part of Pro/i })
+    page.getByRole("heading", { name: "Start an interview" })
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Start interview" })).toHaveCount(0);
+
+  const body = (await page.locator("body").innerText()).toLowerCase();
+  for (const word of ["upgrade", "see plans", "part of pro"]) {
+    expect(body, `interviews page still says "${word}"`).not.toContain(word);
+  }
 });
 
 test("the dashboard shows real counts, starting at zero", async ({ page }) => {
-  await signUpAsPro(page, "counts");
+  await signUpAsLearner(page, "counts");
   await page.goto("/interviews");
 
   // Every tile is an aggregate over this user's own rows. Scoped to
@@ -86,7 +89,7 @@ test("full journey: start, respond, advance, finish, feedback, history", async (
   page,
 }) => {
   test.slow();
-  await signUpAsPro(page, "journey");
+  await signUpAsLearner(page, "journey");
   await startInterview(page);
 
   const room = page.getByTestId("interview-room");
@@ -151,7 +154,7 @@ test("full journey: start, respond, advance, finish, feedback, history", async (
 });
 
 test("the client cannot skip the interview to the end", async ({ page }) => {
-  await signUpAsPro(page, "skip");
+  await signUpAsLearner(page, "skip");
   await startInterview(page);
 
   const sessionId = page.url().split("/").pop()!;
@@ -184,13 +187,13 @@ test("the client cannot skip the interview to the end", async ({ page }) => {
 test("one candidate cannot reach another's interview", async ({ page, browser }) => {
   test.slow();
 
-  await signUpAsPro(page, "alice");
+  await signUpAsLearner(page, "alice");
   await startInterview(page);
   const aliceSession = page.url().split("/").pop()!;
 
   const context = await browser.newContext();
   const bobPage = await context.newPage();
-  await signUpAsPro(bobPage, "bob");
+  await signUpAsLearner(bobPage, "bob");
 
   // Bob gets the not-found page, not Alice's interview.
   //
@@ -238,7 +241,7 @@ test("the interview room works on a phone", async ({ page }) => {
   test.skip(!isNarrow(page), "This assertion is about the mobile layout.");
   test.slow();
 
-  await signUpAsPro(page, "mobile");
+  await signUpAsLearner(page, "mobile");
   await startInterview(page);
 
   // Mobile gets tabs rather than a side-by-side editor.

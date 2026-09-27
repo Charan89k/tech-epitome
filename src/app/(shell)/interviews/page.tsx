@@ -1,20 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  ArrowRight,
-  CheckCircle2,
-  Clock,
-  Lock,
-  MessagesSquare,
-} from "lucide-react";
+import { ArrowRight, CheckCircle2, Clock, MessagesSquare } from "lucide-react";
 
 import { EmptyState } from "@/components/common/empty-state";
 import { NewInterviewForm } from "@/components/interview/new-interview-form";
 import { PageHeader } from "@/components/common/page-header";
 import { StatTile } from "@/components/common/stat-tile";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { canAccess, FEATURES } from "@/lib/auth/access";
 import { requireUser } from "@/lib/auth/session";
 import { STAGE_LABELS } from "@/lib/interview/types";
 import { route } from "@/lib/utils";
@@ -34,7 +26,6 @@ function formatDuration(seconds: number): string {
 
 export default async function InterviewsPage() {
   const user = await requireUser("/interviews");
-  const allowed = canAccess(user, FEATURES.AI_MOCK_INTERVIEW);
 
   // Every number below is an aggregate over this user's own rows.
   // Nothing here is hardcoded and nothing is estimated.
@@ -57,30 +48,14 @@ export default async function InterviewsPage() {
         <StatTile label="In progress" value={stats.inProgress} />
       </div>
 
-      {!allowed ? (
-        <div className="border-border bg-card mt-8 rounded-lg border p-6 text-center">
-          <Lock className="text-muted-foreground mx-auto size-5" aria-hidden="true" />
-          <h2 className="mt-3 text-sm font-semibold">
-            Mock interviews are part of Pro
-          </h2>
-          <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
-            A full interview loop with an AI interviewer, and written feedback
-            with evidence from your own transcript.
-          </p>
-          <Button asChild size="sm" className="mt-5">
-            <Link href="/pricing">See plans</Link>
-          </Button>
+      <section aria-labelledby="start" className="mt-8">
+        <h2 id="start" className="text-sm font-semibold">
+          Start an interview
+        </h2>
+        <div className="mt-3">
+          <NewInterviewForm />
         </div>
-      ) : (
-        <section aria-labelledby="start" className="mt-8">
-          <h2 id="start" className="text-sm font-semibold">
-            Start an interview
-          </h2>
-          <div className="mt-3">
-            <NewInterviewForm />
-          </div>
-        </section>
-      )}
+      </section>
 
       <section aria-labelledby="history" className="mt-10">
         <h2 id="history" className="text-sm font-semibold">
@@ -88,7 +63,7 @@ export default async function InterviewsPage() {
         </h2>
 
         {sessions.length === 0 ? (
-          <div className="border-border mt-3 rounded-lg border border-dashed">
+          <div className="mt-3 rounded-lg border border-dashed border-border">
             <EmptyState
               icon={MessagesSquare}
               title="No interviews yet"
@@ -101,7 +76,7 @@ export default async function InterviewsPage() {
               <li key={session.id}>
                 <Link
                   href={route(`/interviews/${session.id}`)}
-                  className="border-border bg-card hover:border-ember-500/35 group flex items-center gap-4 rounded-lg border p-4 transition-colors"
+                  className="group flex items-center gap-4 rounded-lg border border-border bg-card p-4 transition-colors hover:border-ember-500/35"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -115,13 +90,13 @@ export default async function InterviewsPage() {
                         {session.difficulty.toLowerCase()}
                       </Badge>
                       {session.hasFeedback && (
-                        <Badge className="border-success/35 bg-success/12 text-success gap-1 border">
+                        <Badge className="gap-1 border border-success/35 bg-success/12 text-success">
                           <CheckCircle2 className="size-3" aria-hidden="true" />
                           Feedback
                         </Badge>
                       )}
                     </div>
-                    <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                       <span>{session.startedAt.toLocaleDateString()}</span>
                       <span>{STAGE_LABELS[session.stage]}</span>
                       {session.durationSeconds > 0 && (
@@ -133,7 +108,7 @@ export default async function InterviewsPage() {
                     </div>
                   </div>
                   <ArrowRight
-                    className="text-muted-foreground group-hover:text-ember-500 size-4 shrink-0 transition-colors"
+                    className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-ember-500"
                     aria-hidden="true"
                   />
                 </Link>
@@ -143,10 +118,10 @@ export default async function InterviewsPage() {
         )}
       </section>
 
-      <p className="text-muted-foreground/70 mt-8 text-xs leading-relaxed">
-        Feedback here is generated by a language model reading your transcript.
-        It is a practice tool — useful for noticing habits, not a measurement,
-        and not equivalent to a real company interview.
+      <p className="mt-8 text-xs leading-relaxed text-muted-foreground/70">
+        Feedback here is generated by a language model reading your transcript. It is a
+        practice tool — useful for noticing habits, not a measurement, and not
+        equivalent to a real company interview.
       </p>
     </div>
   );

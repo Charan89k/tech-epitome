@@ -20,7 +20,6 @@ export type LLDExerciseSeed = {
   title: string;
   tagline: string;
   difficulty: Difficulty;
-  access?: "FREE" | "PRO";
   requirements: string[];
   constraints: string[];
   objectives: string[];
@@ -394,7 +393,6 @@ public final class VendingMachine {
     tagline:
       "Write log events to several destinations, filtered by level, without the caller knowing where they go.",
     difficulty: "EASY",
-    access: "FREE",
     requirements: [
       "Accept a message at one of several severity levels",
       "Write to more than one destination — console and file at minimum",

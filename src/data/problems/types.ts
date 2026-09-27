@@ -1,4 +1,4 @@
-import type { AccessTier, Difficulty } from "@/generated/prisma/enums";
+import type {Difficulty} from "@/generated/prisma/enums";
 import type { Signature } from "@/lib/code-execution/signature";
 import type { ContentBlock } from "@/types/content";
 
@@ -42,7 +42,6 @@ export type ProblemSeed = {
   slug: string;
   title: string;
   difficulty: Difficulty;
-  access?: AccessTier;
   /** One sentence: what this problem exists to teach. */
   learningObjective: string;
   /** Topic slugs, created on demand by the seeder. */

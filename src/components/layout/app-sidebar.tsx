@@ -8,7 +8,6 @@ import { Logo } from "@/components/brand/logo";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -25,7 +24,7 @@ import { cn, route } from "@/lib/utils";
 
 type AppSidebarProps = {
   /** Minimal shape - the shell only needs enough to resolve feature gates. */
-  user: { role: "USER" | "ADMIN"; isPro: boolean } | null;
+  user: { role: "USER" | "ADMIN" } | null;
 };
 
 export function AppSidebar({ user }: AppSidebarProps) {
@@ -106,19 +105,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="px-3 pb-3">
-        {user && !user.isPro && user.role !== "ADMIN" && (
-          <Link
-            href="/pricing"
-            className="border-ember-500/25 bg-ember-500/8 hover:bg-ember-500/12 block rounded-lg border p-3 transition-colors group-data-[collapsible=icon]:hidden"
-          >
-            <p className="text-foreground text-sm font-medium">Unlock Pro</p>
-            <p className="text-muted-foreground mt-0.5 text-xs leading-snug">
-              Full curriculum, AI tutor and mock interviews.
-            </p>
-          </Link>
-        )}
-      </SidebarFooter>
 
       <SidebarRail />
     </Sidebar>

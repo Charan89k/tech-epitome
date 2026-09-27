@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
-import type { AccessTier, Difficulty } from "@/generated/prisma/enums";
+import type {Difficulty} from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 import { parseDiagram } from "@/lib/diagram/schema";
 import type { Diagram } from "@/lib/diagram/types";
@@ -26,7 +26,6 @@ export type SystemDesignListItem = {
   title: string;
   tagline: string;
   difficulty: Difficulty;
-  access: AccessTier;
   /** The learner's own state, when signed in. */
   status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
 };
@@ -43,7 +42,6 @@ export async function listSystemDesignProblems(
       title: true,
       tagline: true,
       difficulty: true,
-      access: true,
     },
   });
 
@@ -62,7 +60,6 @@ export async function listSystemDesignProblems(
     title: problem.title,
     tagline: problem.tagline,
     difficulty: problem.difficulty,
-    access: problem.access,
     status: byProblem.get(problem.id) ?? "NOT_STARTED",
   }));
 }
@@ -73,7 +70,6 @@ export type SystemDesignDetail = {
   title: string;
   tagline: string;
   difficulty: Difficulty;
-  access: AccessTier;
   functionalRequirements: string[];
   nonFunctionalRequirements: string[];
   scaleEstimate: Record<string, string>;
@@ -115,7 +111,6 @@ export const getSystemDesignProblem = cache(
         title: true,
         tagline: true,
         difficulty: true,
-        access: true,
         functionalRequirements: true,
         nonFunctionalRequirements: true,
         scaleEstimate: true,
@@ -155,7 +150,6 @@ export const getSystemDesignProblem = cache(
       title: problem.title,
       tagline: problem.tagline,
       difficulty: problem.difficulty,
-      access: problem.access,
       functionalRequirements: problem.functionalRequirements,
       nonFunctionalRequirements: problem.nonFunctionalRequirements,
       scaleEstimate: scale,

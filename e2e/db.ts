@@ -161,35 +161,6 @@ export function dueAtMs(row: ReviewItemRow): number {
   return Date.parse(row.dueAtIso);
 }
 
-/**
- * Puts a freshly registered account on the Pro plan.
- *
- * The AI tutor is a Pro entitlement, and every end-to-end account is born
- * on the free plan through the real signup flow. Rather than weaken the
- * entitlement so the tests can reach the feature — which would test a
- * product nobody ships — the test buys the plan the only way a test can,
- * by writing the subscription row a checkout would have written.
- *
- * `currentPeriodEnd` is set well ahead because `getCurrentUser` treats an
- * elapsed period as not-Pro, which is exactly the behaviour under test
- * everywhere else.
- */
-export async function makePro(email: string): Promise<void> {
-  const userId = await userIdFor(email);
-  await withRetry(() =>
-    pool().query(
-      `INSERT INTO subscriptions (id, "userId", plan, status, "currentPeriodEnd", "createdAt", "updatedAt")
-            VALUES ($1, $2, 'PRO_MONTHLY', 'ACTIVE', now() + interval '30 days', now(), now())
-       ON CONFLICT ("userId")
-         DO UPDATE SET plan = 'PRO_MONTHLY',
-                       status = 'ACTIVE',
-                       "currentPeriodEnd" = now() + interval '30 days',
-                       "updatedAt" = now()`,
-      [`e2e-sub-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`, userId]
-    )
-  );
-}
-
 /** How many tutor messages a learner has, for asserting persistence. */
 export async function tutorMessageCountFor(email: string): Promise<number> {
   const userId = await userIdFor(email);

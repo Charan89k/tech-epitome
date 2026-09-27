@@ -17,7 +17,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { lockStateFor } from "@/lib/auth/access";
 import { getCurrentUser } from "@/lib/auth/session";
 import {
   getProblemFilterOptions,
@@ -166,10 +165,7 @@ export default async function ProblemsPage({
                 <ul className="divide-border divide-y">
                   {result.items.map((problem) => (
                     <li key={problem.id}>
-                      <ProblemRow
-                        problem={problem}
-                        locked={lockStateFor(user, problem.access).locked}
-                      />
+                      <ProblemRow problem={problem} />
                     </li>
                   ))}
                 </ul>

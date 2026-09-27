@@ -50,10 +50,6 @@ const serverSchema = z.object({
   CODE_EXECUTION_API_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
   CODE_EXECUTION_API_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
 
-  STRIPE_SECRET_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
-  STRIPE_WEBHOOK_SECRET: z.preprocess(emptyToUndefined, z.string().optional()),
-  STRIPE_PRO_MONTHLY_PRICE_ID: z.preprocess(emptyToUndefined, z.string().optional()),
-  STRIPE_PRO_YEARLY_PRICE_ID: z.preprocess(emptyToUndefined, z.string().optional()),
 
   SEED_ADMIN_EMAIL: z.string().email().default("admin@codeforge.local"),
   SEED_ADMIN_PASSWORD: z.string().min(8).default("forge-admin-dev"),
@@ -143,8 +139,3 @@ export function isGoogleAuthEnabled(): boolean {
   return Boolean(e.AUTH_GOOGLE_ID && e.AUTH_GOOGLE_SECRET);
 }
 
-/** True when billing can actually be transacted. Gates the upgrade flow. */
-export function isBillingEnabled(): boolean {
-  const e = getEnv();
-  return Boolean(e.STRIPE_SECRET_KEY && e.STRIPE_WEBHOOK_SECRET);
-}

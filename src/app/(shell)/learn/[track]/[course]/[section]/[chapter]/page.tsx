@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, ChevronRight, List, Lock } from "lucide-react";
+import { ChevronLeft, ChevronRight, List } from "lucide-react";
 
 import { ChapterCompletion } from "@/components/learning/chapter-completion";
 import { ChapterHeader } from "@/components/learning/chapter-header";
@@ -22,7 +22,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { TutorLauncher } from "@/components/tutor/tutor-launcher";
-import { canAccess, FEATURES, lockStateFor } from "@/lib/auth/access";
+import { canAccess, FEATURES } from "@/lib/auth/access";
 import { getCurrentUser } from "@/lib/auth/session";
 import { labelFor } from "@/lib/tutor/context";
 import { CHAPTER_QUICK_ACTIONS } from "@/lib/tutor/types";
@@ -71,13 +71,12 @@ export default async function ChapterPage({ params }: Params) {
 
   if (!chapter || !courseDetail) notFound();
 
-  const lock = lockStateFor(user, chapter.access);
-
   // Content is validated on read. A malformed row degrades this one chapter
   // rather than taking the page down.
-  const blocks: ContentBlock[] = lock.locked
-    ? []
-    : parseContent(chapter.content, `chapter:${chapter.slug}`);
+  const blocks: ContentBlock[] = parseContent(
+    chapter.content,
+    `chapter:${chapter.slug}`
+  );
 
   const referenced = await resolveContentResources(blocks, user?.id);
 
@@ -129,10 +128,10 @@ export default async function ChapterPage({ params }: Params) {
   // Derived from the same bundle the tutor is given, so the header cannot
   // claim context the model did not receive. Skipped entirely when the
   // learner cannot use the tutor — there is no reason to read and flatten
-  // a chapter body for a panel that will render a paywall.
+  // a chapter body for a panel that will only ask them to sign in.
   const tutorAllowed = canAccess(user, FEATURES.AI_TUTOR);
   const tutorBundle =
-    user && tutorAllowed && !lock.locked
+    user && tutorAllowed
       ? await loadContextBundle(
           {
             kind: "CHAPTER",
@@ -166,7 +165,7 @@ export default async function ChapterPage({ params }: Params) {
             }
       }
       quickActions={CHAPTER_QUICK_ACTIONS}
-      access={!user ? "signin" : tutorAllowed ? "allowed" : "upgrade"}
+      enabled={tutorAllowed}
     />
   );
 
@@ -241,54 +240,28 @@ export default async function ChapterPage({ params }: Params) {
               {/* Rendered once, not once per breakpoint: two launchers would
                   mean two independent open states and two identical buttons
                   in the accessibility tree. */}
-              {!lock.locked && (
-                <div className="mt-4 flex justify-end">{tutor}</div>
-              )}
+              <div className="mt-4 flex justify-end">{tutor}</div>
 
-              {lock.locked ? (
-                <div className="border-border bg-card mt-8 rounded-lg border p-8 text-center">
-                  <Lock
-                    className="text-muted-foreground mx-auto size-6"
-                    aria-hidden="true"
-                  />
-                  <h2 className="mt-3 text-sm font-semibold">
-                    This chapter is part of Pro
-                  </h2>
-                  <p className="text-muted-foreground mx-auto mt-1.5 max-w-sm text-sm">
-                    {lock.reason === "signin"
-                      ? "Sign in to check whether your plan includes it."
-                      : "Upgrade to read this chapter and the rest of the advanced curriculum."}
-                  </p>
-                  <Button asChild className="mt-5">
-                    <Link href={lock.reason === "signin" ? "/login" : "/pricing"}>
-                      {lock.reason === "signin" ? "Sign in" : "See plans"}
-                    </Link>
-                  </Button>
+                <div className="mt-8 space-y-4">
+                  <ContentRenderer blocks={blocks} resources={resources} />
                 </div>
-              ) : (
-                <>
-                  <div className="mt-8 space-y-4">
-                    <ContentRenderer blocks={blocks} resources={resources} />
-                  </div>
 
-                  {footerProblems.length > 0 && (
-                    <ProblemListBlock
-                      problems={footerProblems}
-                      title="Practice for this chapter"
-                    />
-                  )}
-
-                  <ChapterCompletion
-                    chapterId={chapter.id}
-                    keyTakeaways={chapter.keyTakeaways}
-                    initiallyComplete={chapter.progress.status === "COMPLETED"}
-                    signedIn={Boolean(user)}
-                    next={chapter.next}
-                    hasQuiz={chapter.quizSlugs.length > 0}
-                    problemCount={chapter.problems.length}
+                {footerProblems.length > 0 && (
+                  <ProblemListBlock
+                    problems={footerProblems}
+                    title="Practice for this chapter"
                   />
-                </>
-              )}
+                )}
+
+                <ChapterCompletion
+                  chapterId={chapter.id}
+                  keyTakeaways={chapter.keyTakeaways}
+                  initiallyComplete={chapter.progress.status === "COMPLETED"}
+                  signedIn={Boolean(user)}
+                  next={chapter.next}
+                  hasQuiz={chapter.quizSlugs.length > 0}
+                  problemCount={chapter.problems.length}
+                />
 
               {/* Previous / next */}
               <nav
@@ -335,7 +308,7 @@ export default async function ChapterPage({ params }: Params) {
           </main>
 
           {/* Right: table of contents */}
-          {toc.length > 0 && !lock.locked && (
+          {toc.length > 0 && (
             <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 overflow-y-auto py-8 pr-6 lg:block xl:w-64">
               <ChapterToc entries={toc} />
             </aside>

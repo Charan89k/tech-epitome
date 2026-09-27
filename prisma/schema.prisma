@@ -55,13 +55,6 @@ enum ContentStatus {
   ARCHIVED
 }
 
-/// Gate used by canAccess(). Content declares the tier it needs; the
-/// authorization service decides, never the component.
-enum AccessTier {
-  FREE
-  PRO
-}
-
 enum Difficulty {
   EASY
   MEDIUM
@@ -189,20 +182,6 @@ enum TutorMode {
   QUIZ_MASTER
 }
 
-enum PlanTier {
-  FREE
-  PRO_MONTHLY
-  PRO_YEARLY
-}
-
-enum SubscriptionStatus {
-  ACTIVE
-  TRIALING
-  PAST_DUE
-  CANCELED
-  INCOMPLETE
-}
-
 enum AchievementKind {
   PROBLEMS_SOLVED
   DIFFICULTY_MILESTONE
@@ -232,7 +211,6 @@ model User {
   accounts     Account[]
   sessions     Session[]
   profile      Profile?
-  subscription Subscription?
 
   chapterProgress   UserChapterProgress[]
   problemProgress   UserProblemProgress[]
@@ -333,28 +311,6 @@ model Profile {
   @@map("profiles")
 }
 
-model Subscription {
-  id                   String             @id @default(cuid())
-  userId               String             @unique
-  plan                 PlanTier           @default(FREE)
-  status               SubscriptionStatus @default(ACTIVE)
-  currentPeriodEnd     DateTime?
-  cancelAtPeriodEnd    Boolean            @default(false)
-  /// Stripe identifiers. Written only by the webhook handler - subscription
-  /// state is never trusted from the client.
-  stripeCustomerId     String?            @unique
-  stripeSubscriptionId String?            @unique
-  stripePriceId        String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([status])
-  @@map("subscriptions")
-}
-
 // ===========================================================================
 // CURRICULUM
 // ===========================================================================
@@ -369,7 +325,6 @@ model Course {
   /// Lucide icon name, resolved through a whitelist at render time.
   icon           String?
   status         ContentStatus @default(DRAFT)
-  access         AccessTier    @default(FREE)
   order          Int           @default(0)
   estimatedHours Int           @default(0)
 
@@ -426,7 +381,6 @@ model Chapter {
   difficulty     Difficulty    @default(EASY)
   order          Int           @default(0)
   status         ContentStatus @default(DRAFT)
-  access         AccessTier    @default(FREE)
 
   /// Full-text search vector maintained by a Postgres trigger (see the
   /// search migration). Kept Unsupported so Prisma does not try to manage it.
@@ -443,7 +397,7 @@ model Chapter {
 
   @@unique([sectionId, slug])
   @@index([sectionId, order])
-  @@index([status, access])
+  @@index([status])
   @@index([searchVector], type: Gin)
   @@map("chapters")
 }
@@ -476,7 +430,6 @@ model Pattern {
   difficulty Difficulty    @default(MEDIUM)
   order      Int           @default(0)
   status     ContentStatus @default(DRAFT)
-  access     AccessTier    @default(FREE)
 
   searchVector Unsupported("tsvector")?
 
@@ -549,7 +502,6 @@ model Problem {
   learningObjective String?       @db.Text
   constraints       String[]
   difficulty        Difficulty
-  access            AccessTier    @default(FREE)
   status            ContentStatus @default(DRAFT)
 
   /// Per-language function signature + starter body.
@@ -744,7 +696,6 @@ model Quiz {
   chapterId   String?
   passScore   Int           @default(70)
   status      ContentStatus @default(DRAFT)
-  access      AccessTier    @default(FREE)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1090,8 +1041,9 @@ model AIMessage {
   @@map("ai_messages")
 }
 
-/// Per-call usage. Exists from day one so metering and billing can be added
-/// without backfilling history.
+/// Per-call usage of the AI provider. Nobody is billed for this - CodeForge
+/// is free - but knowing what the free features cost to run, and spotting
+/// abuse, both need real history rather than a backfill.
 model AIUsageRecord {
   id               String  @id @default(cuid())
   userId           String
@@ -1212,7 +1164,6 @@ model SystemDesignProblem {
   title      String
   tagline    String
   difficulty Difficulty
-  access     AccessTier    @default(FREE)
   status     ContentStatus @default(DRAFT)
   order      Int           @default(0)
 
@@ -1281,7 +1232,6 @@ model LLDProblem {
   title      String
   tagline    String
   difficulty Difficulty
-  access     AccessTier    @default(FREE)
   status     ContentStatus @default(DRAFT)
   order      Int           @default(0)
 

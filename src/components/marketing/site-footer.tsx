@@ -16,7 +16,7 @@ const COLUMNS = [
   {
     heading: "Product",
     links: [
-      { title: "Pricing", href: "/pricing" },
+      { title: "Everything included", href: "/features" },
       { title: "Sign in", href: "/login" },
       { title: "Create account", href: "/signup" },
     ],

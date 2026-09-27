@@ -69,11 +69,6 @@ export default async function ProfilePage() {
               <h2 className="truncate text-lg font-semibold">
                 {user.name ?? "Unnamed"}
               </h2>
-              {user.isPro && (
-                <Badge className="bg-ember-500/15 text-ember-400 border-ember-500/30 border">
-                  Pro
-                </Badge>
-              )}
               {user.role === "ADMIN" && <Badge variant="outline">Admin</Badge>}
             </div>
             <p className="text-muted-foreground truncate text-sm">{user.email}</p>

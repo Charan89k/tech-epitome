@@ -1,4 +1,4 @@
-import type { AccessTier, Difficulty } from "@/generated/prisma/enums";
+import type {Difficulty} from "@/generated/prisma/enums";
 import type { Diagram, NodeKind } from "@/lib/diagram/types";
 import type { ContentBlock, InlineNode } from "@/types/content";
 
@@ -26,7 +26,6 @@ export type ChapterSeed = {
   summary: string;
   difficulty: Difficulty;
   readingMinutes: number;
-  access?: AccessTier;
   /** What the reader should be able to do afterwards. Shown before the body. */
   objectives: string[];
   /** Restated at the end, as the recap. */

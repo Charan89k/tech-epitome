@@ -78,7 +78,7 @@ export const primaryNav: NavGroup[] = [
         title: "Patterns",
         href: "/patterns",
         icon: Shapes,
-        feature: FEATURES.PATTERNS_BROWSE,
+        feature: FEATURES.PATTERNS,
         description: "Recognise the shape of a problem",
       },
       {
@@ -97,7 +97,7 @@ export const primaryNav: NavGroup[] = [
         title: "Visualize",
         href: "/visualize",
         icon: PlayCircle,
-        feature: FEATURES.VISUALIZE_CORE,
+        feature: FEATURES.VISUALIZE,
         description: "Step through algorithms frame by frame",
       },
     ],
@@ -172,7 +172,7 @@ export const marketingNav = [
   { title: "Learn", href: "/learn/dsa" },
   { title: "Patterns", href: "/patterns" },
   { title: "Problems", href: "/problems" },
-  { title: "Pricing", href: "/pricing" },
+  { title: "Features", href: "/features" },
 ] as const;
 
 /**

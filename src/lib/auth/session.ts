@@ -6,16 +6,19 @@ import { forbidden, redirect, unauthorized } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { route } from "@/lib/utils";
-import type { PlanTier, Role, SubscriptionStatus } from "@/generated/prisma/enums";
+import type { Role } from "@/generated/prisma/enums";
 
 /**
  * The single definition of "who is asking" for the whole application.
  *
  * Everything server-side goes through here rather than calling `auth()`
  * directly, so swapping the auth provider later touches this file and not the
- * hundreds of call sites. It is also the only place that resolves the
- * subscription tier, which must never be read from the JWT - a token minted
- * before an upgrade or a cancellation would be wrong for up to 30 days.
+ * hundreds of call sites.
+ *
+ * CodeForge is free, so there is no plan to resolve here. The role is
+ * read from the database rather than the JWT for the same reason a plan
+ * would have been: a token minted before a role change would be stale,
+ * and role is the one thing that actually gates anything.
  */
 
 export type CurrentUser = {
@@ -24,10 +27,6 @@ export type CurrentUser = {
   name: string | null;
   image: string | null;
   role: Role;
-  plan: PlanTier;
-  subscriptionStatus: SubscriptionStatus | null;
-  /** True when the plan is a paid tier AND the subscription is in good standing. */
-  isPro: boolean;
 };
 
 /**
@@ -46,9 +45,6 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       name: true,
       image: true,
       role: true,
-      subscription: {
-        select: { plan: true, status: true, currentPeriodEnd: true },
-      },
     },
   });
 
@@ -56,20 +52,12 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   // rather than crashing the render.
   if (!user) return null;
 
-  const sub = user.subscription;
-  const paidPlan = sub?.plan === "PRO_MONTHLY" || sub?.plan === "PRO_YEARLY";
-  const goodStanding = sub?.status === "ACTIVE" || sub?.status === "TRIALING";
-  const notExpired = !sub?.currentPeriodEnd || sub.currentPeriodEnd > new Date();
-
   return {
     id: user.id,
     email: user.email,
     name: user.name,
     image: user.image,
     role: user.role,
-    plan: sub?.plan ?? "FREE",
-    subscriptionStatus: sub?.status ?? null,
-    isPro: Boolean(paidPlan && goodStanding && notExpired),
   };
 });
 

@@ -65,7 +65,7 @@ type Props = {
   tutor: {
     label: TutorContextLabel;
     quickActions: TutorQuickAction[];
-    access: "allowed" | "signin" | "upgrade";
+    enabled: boolean;
   };
 };
 
@@ -208,7 +208,7 @@ export function ProblemWorkspace({
       label={tutor.label}
       quickActions={tutor.quickActions}
       getCode={getTutorCode}
-      access={tutor.access}
+      enabled={tutor.enabled}
       variant="ghost"
     />
   );

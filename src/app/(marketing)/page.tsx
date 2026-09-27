@@ -98,7 +98,7 @@ export default function LandingPage() {
             </div>
 
             <p className="text-muted-foreground mt-4 text-xs">
-              Free to start. No card required.
+              Free. Every track, every exercise, both AI features. No card.
             </p>
           </div>
 

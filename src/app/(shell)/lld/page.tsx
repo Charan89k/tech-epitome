@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Boxes, CheckCircle2, Lock, PenLine } from "lucide-react";
+import { ArrowRight, Boxes, CheckCircle2, PenLine } from "lucide-react";
 
 import { DifficultyBadge } from "@/components/common/difficulty-badge";
 import { EmptyState } from "@/components/common/empty-state";
 import { PageHeader } from "@/components/common/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { lockStateFor } from "@/lib/auth/access";
 import { getCurrentUser } from "@/lib/auth/session";
 import { route } from "@/lib/utils";
 import { listLLDProblems } from "@/services/lld";
@@ -40,10 +39,7 @@ export default async function LLDIndexPage() {
         </div>
       ) : (
         <ul className="mt-8 space-y-3">
-          {problems.map((problem) => {
-            const lock = lockStateFor(user, problem.access);
-
-            return (
+          {problems.map((problem) => (
               <li key={problem.slug}>
                 <Link
                   href={route(`/lld/${problem.slug}`)}
@@ -64,15 +60,6 @@ export default async function LLDIndexPage() {
                         <Badge variant="secondary" className="gap-1">
                           <PenLine className="size-3" aria-hidden="true" />
                           Draft
-                        </Badge>
-                      )}
-                      {lock.locked && (
-                        <Badge
-                          variant="outline"
-                          className="text-muted-foreground h-5 gap-1 px-1.5 text-[0.65rem]"
-                        >
-                          <Lock className="size-2.5" aria-hidden="true" />
-                          Pro
                         </Badge>
                       )}
                     </div>
@@ -101,15 +88,14 @@ export default async function LLDIndexPage() {
                   />
                 </Link>
               </li>
-            );
-          })}
+          ))}
         </ul>
       )}
 
       {!user && problems.length > 0 && (
         <div className="border-border bg-card mt-8 flex flex-col items-start gap-3 rounded-lg border p-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-muted-foreground text-sm">
-            Sign in to save your designs and unlock the reference solutions.
+            Sign in to save your designs and see the reference solutions.
           </p>
           <Button asChild size="sm">
             <Link href="/signup">Create account</Link>

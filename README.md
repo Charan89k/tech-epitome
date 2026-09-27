@@ -31,7 +31,7 @@ See → Understand → Recognise → Attempt → Struggle → Hint
 | 7 | System Design: curriculum, diagram engine, design workspace, AI review | **Complete, verified** |
 | 8 | Low-Level Design: curriculum, class-diagram engine, design workspace, AI review | **Complete, verified** |
 | 9 | Mock interviews: DSA interviewer, server-owned state machine, banded feedback | **Partial** — see below |
-| 10 | Admin, billing, production hardening | Not started |
+| 10 | Admin, content management, production hardening | Not started |
 
 **Phase 9 is partial and the table says so.** What is implemented and
 verified: DSA mock interviews end to end — session creation, an AI
@@ -57,7 +57,7 @@ then schedules it for spaced revision, and `/review` brings it back the day
 after — recall first, answer second, graded on a four-point ladder that sets
 the next interval. That entire loop is covered end to end by browser tests.
 
-On Pro, an AI tutor sits alongside all of that. It reads the chapter being
+An AI tutor sits alongside all of that. It reads the chapter being
 studied or the problem being solved — including the code in the editor and
 the last failing test — and works the learner towards the answer rather than
 supplying it: a hint ladder that climbs one rung per ask, from a conceptual
@@ -131,8 +131,8 @@ Seeded accounts (change these before any deploy — they are set in `.env`):
 
 | Account | Email | Password | Role |
 |---|---|---|---|
-| Admin | `admin@codeforge.local` | `forge-admin-dev` | ADMIN, Pro |
-| Demo | `demo@codeforge.local` | `forge-demo-dev` | USER, Free |
+| Admin | `admin@codeforge.local` | `forge-admin-dev` | ADMIN |
+| Demo | `demo@codeforge.local` | `forge-demo-dev` | USER |
 
 ### Without Docker
 
@@ -173,7 +173,7 @@ Put that URL in `.env` and set `DATABASE_POOL_MAX=1` — see
 ```
 src/
 ├── app/
-│   ├── (marketing)/     public pages: landing, pricing
+│   ├── (marketing)/     public pages: landing, features
 │   ├── (auth)/          login, signup
 │   ├── (shell)/         the sidebar application shell
 │   └── api/
@@ -186,7 +186,7 @@ src/
 ├── lib/
 │   ├── ai/              provider adapters: ollama, anthropic, mock
 │   ├── tutor/           request types, Socratic policy, context builder
-│   └── …                env, db, auth, billing, rate-limit, validation
+│   └── …                env, db, auth, rate-limit, validation
 ├── services/            data access, one module per domain
 ├── types/               shared domain types
 └── data/                seed content
@@ -204,10 +204,16 @@ One function decides everything:
 canAccess(user, FEATURES.AI_TUTOR)   // → boolean
 ```
 
-Components never test `user.plan === "PRO_MONTHLY"`. Subscription state is
-read from the database per request, never from the JWT — a token minted
-before an upgrade or a cancellation would otherwise be wrong for up to 30
-days.
+**CodeForge is free, and `canAccess` is where that is enforced.** There is
+no plan, no tier and no paid feature, so the function answers only two
+questions: is this readable without an account, and is this an
+administrative capability? Everything else is available to every signed-in
+user. Authorization is not monetization — a role is a permission boundary,
+never a price.
+
+Roles are read from the database per request, never from the JWT: a token
+minted before a demotion would otherwise keep the admin surface open for the
+life of the session.
 
 There are three layers, and only the last two are security:
 
@@ -397,7 +403,6 @@ list.
 | `AI_PROVIDER` | no | `ollama` (default), `anthropic`, or `mock` (tests only; rejected in production) |
 | `AI_API_KEY` | conditional | Required when `AI_PROVIDER=anthropic` |
 | `CODE_EXECUTION_DRIVER` | no | `local` \| `docker` \| `remote` |
-| `STRIPE_*` | no | Blank disables checkout; the pricing page says so |
 | `DATABASE_POOL_MAX` | no | Defaults to 10 |
 
 ---
@@ -443,7 +448,7 @@ of the local `prisma dev` stand-in, not of the tests — see
 `VITEST_FILE_PARALLELISM=true` to get the parallelism back.
 
 Unit tests cover the logic where a wrong answer is a security or data problem:
-authorization tiers, rate-limit policies, auth and quiz validation, content
+authorization boundaries, rate-limit policies, auth and quiz validation, content
 document validation, search query sanitisation, quiz scoring, and UTC calendar
 arithmetic for streaks.
 
@@ -492,7 +497,7 @@ suite is repeatable and parallel-safe.
 
 `e2e/tutor.spec.ts` streams from `src/lib/ai/mock.ts`, a deterministic
 provider wired in by `playwright.config.ts`. Everything else in the path is
-real — the route handler, the Pro gate, the rate limiter, the context
+real — the route handler, the sign-in gate, the rate limiter, the context
 builder, the escalation ladder and the database. Only the token source is
 fake, which is what makes the assertions meaningful: the mock echoes a fixed
 summary of the context it received, so a test can prove the learner's failing
@@ -513,9 +518,11 @@ These are real and currently true. None of them are hidden behind a
 2. **`experimental.authInterrupts` is enabled** so `unauthorized()` and
    `forbidden()` return real 401/403 responses. Still flagged experimental in
    Next 16.x.
-3. **Billing is not wired up.** Plan entitlements are live and enforced; there
-   is no checkout. The pricing page states this rather than showing a button
-   that does nothing.
+3. **There is no billing, by decision, not by omission.** CodeForge is
+   free. There is no plan, subscription, paid tier, paywall, checkout or
+   payment provider, and none is planned. Rate limits on the AI features
+   exist to keep them affordable to run and say so in those words — they
+   are never an offer to buy more.
 4. **Concurrency is unverified against real PostgreSQL.** Development here
    used Prisma's PGlite-backed `prisma dev` stand-in, which cannot service
    concurrent connections and desynchronises the wire protocol under parallel
@@ -606,9 +613,11 @@ These are real and currently true. None of them are hidden behind a
     are present from Phase 1 and unused; there is no `/admin` route and
     no admin-only query. There is therefore nothing for an ordinary user
     to bypass — but equally, none of Phase 10's admin work is done.
-25. **Billing is not wired up** (unchanged from Phase 1). Entitlements
-    are enforced; there is no checkout, no webhook handler and no
-    payment provider. `STRIPE_*` variables are read and unused.
+25. **There is no billing** — see limitation 3. As of the free
+    refactor this is a product decision rather than unfinished work:
+    the `Subscription` model, the `AccessTier` column on every content
+    table, the `STRIPE_*` variables and the pricing page have all been
+    removed, and `/pricing` permanently redirects to `/features`.
 26. **`notFound()` after streaming returns HTTP 200.** Next commits the
     status when it starts streaming the shell, so a page that calls
     `notFound()` later renders the not-found UI under a 200. Verified

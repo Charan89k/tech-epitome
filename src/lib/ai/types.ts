@@ -8,7 +8,9 @@
  *
  * The database models (AIConversation, AIMessage, AIUsageRecord) already
  * exist, so usage has somewhere to go from the first call rather than
- * needing a backfill once billing matters.
+ * needing a backfill. CodeForge is free, so the ledger is not a meter for
+ * charging anyone - it is how we know what the free tutor actually costs to
+ * run, and it is what the abuse rate limits are reasoned about against.
  */
 
 export type AIRole = "system" | "user" | "assistant";

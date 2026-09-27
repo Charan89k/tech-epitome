@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Lock, Scale, Target, TrendingUp } from "lucide-react";
+import { Scale, Target, TrendingUp } from "lucide-react";
 
 import { ArchitectureDiagram } from "@/components/diagram/architecture-diagram";
 import { DifficultyBadge } from "@/components/common/difficulty-badge";
@@ -9,7 +9,7 @@ import { DesignWorkspace } from "@/components/system-design/design-workspace";
 import { TutorLauncher } from "@/components/tutor/tutor-launcher";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { canAccess, FEATURES, lockStateFor } from "@/lib/auth/access";
+import { canAccess, FEATURES } from "@/lib/auth/access";
 import { getCurrentUser } from "@/lib/auth/session";
 import { DESIGN_QUICK_ACTIONS } from "@/lib/tutor/types";
 import { getSystemDesignProblem } from "@/services/system-design";
@@ -36,26 +36,6 @@ export default async function SystemDesignExercisePage({
   const problem = await getSystemDesignProblem(slug, user?.id);
 
   if (!problem) notFound();
-
-  const lock = lockStateFor(user, problem.access);
-  if (lock.locked) {
-    return (
-      <div className="mx-auto max-w-lg px-4 py-20 text-center">
-        <Lock className="text-muted-foreground mx-auto size-6" aria-hidden="true" />
-        <h1 className="mt-3 text-lg font-semibold">This exercise is part of Pro</h1>
-        <p className="text-muted-foreground mt-2 text-sm">
-          {lock.reason === "signin"
-            ? "Sign in to check whether your plan includes it."
-            : "Upgrade to unlock the full set of design exercises."}
-        </p>
-        <Button asChild className="mt-6">
-          <Link href={lock.reason === "signin" ? "/login" : "/pricing"}>
-            {lock.reason === "signin" ? "Sign in" : "See plans"}
-          </Link>
-        </Button>
-      </div>
-    );
-  }
 
   const tutorAllowed = canAccess(user, FEATURES.AI_TUTOR);
   const scaleRows = Object.entries(problem.scaleEstimate);
@@ -87,7 +67,7 @@ export default async function SystemDesignExercisePage({
               ],
             }}
             quickActions={DESIGN_QUICK_ACTIONS}
-            access={!user ? "signin" : tutorAllowed ? "allowed" : "upgrade"}
+            enabled={tutorAllowed}
           />
         </div>
       </header>

@@ -11,7 +11,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 const ROUTES = [
   "/",
-  "/pricing",
+  "/features",
   "/login",
   "/signup",
   "/learn/dsa",

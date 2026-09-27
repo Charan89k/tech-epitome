@@ -65,14 +65,12 @@ async function seedUsers() {
       password: process.env.SEED_ADMIN_PASSWORD ?? "forge-admin-dev",
       name: "CodeForge Admin",
       role: "ADMIN" as const,
-      plan: "PRO_YEARLY" as const,
     },
     {
       email: (process.env.SEED_DEMO_EMAIL ?? "demo@codeforge.local").toLowerCase(),
       password: process.env.SEED_DEMO_PASSWORD ?? "forge-demo-dev",
       name: "Demo Learner",
       role: "USER" as const,
-      plan: "FREE" as const,
     },
   ];
 
@@ -99,12 +97,6 @@ async function seedUsers() {
       create: { userId: user.id },
       update: {},
     });
-
-    await prisma.subscription.upsert({
-      where: { userId: user.id },
-      create: { userId: user.id, plan: account.plan, status: "ACTIVE" },
-      update: { plan: account.plan, status: "ACTIVE" },
-    });
   }
 
   console.log(`  users          ${accounts.length}`);
@@ -127,8 +119,8 @@ async function seedPatterns(): Promise<Map<string, string>> {
   for (const pattern of PATTERNS) {
     const row = await prisma.pattern.upsert({
       where: { slug: pattern.slug },
-      create: { ...pattern, status: "PUBLISHED", access: "FREE" },
-      update: { ...pattern, status: "PUBLISHED", access: "FREE" },
+      create: { ...pattern, status: "PUBLISHED" },
+      update: { ...pattern, status: "PUBLISHED" },
       select: { id: true },
     });
     bySlug.set(pattern.slug, row.id);
@@ -180,7 +172,6 @@ async function seedProblems(
         learningObjective: problem.learningObjective,
         constraints: problem.constraints,
         difficulty: problem.difficulty,
-        access: problem.access ?? "FREE",
         status: "PUBLISHED",
         starterCode,
         // The harness is regenerated from the signature at execution time,
@@ -196,7 +187,6 @@ async function seedProblems(
         learningObjective: problem.learningObjective,
         constraints: problem.constraints,
         difficulty: problem.difficulty,
-        access: problem.access ?? "FREE",
         status: "PUBLISHED",
         starterCode,
         harnessCode: { signature: problem.signature } as object,
@@ -301,7 +291,6 @@ async function seedCourse(
       track,
       icon: seed.icon,
       status: "PUBLISHED",
-      access: "FREE",
       order,
       estimatedHours: seed.estimatedHours,
     },
@@ -356,7 +345,6 @@ async function seedCourse(
           difficulty: chapter.difficulty,
           order: chapterIndex * 10,
           status: "PUBLISHED",
-          access: chapter.access ?? "FREE",
         },
         update: {
           title: chapter.title,
@@ -368,7 +356,6 @@ async function seedCourse(
           difficulty: chapter.difficulty,
           order: chapterIndex * 10,
           status: "PUBLISHED",
-          access: chapter.access ?? "FREE",
         },
         select: { id: true },
       });
@@ -426,7 +413,6 @@ async function seedQuizzes(chapterIds: Map<string, string>) {
         chapterId,
         passScore: quiz.passScore ?? 70,
         status: "PUBLISHED",
-        access: "FREE",
       },
       update: {
         title: quiz.title,
@@ -473,7 +459,6 @@ async function seedSystemDesignExercises() {
       title: exercise.title,
       tagline: exercise.tagline,
       difficulty: exercise.difficulty,
-      access: exercise.access ?? ("FREE" as const),
       status: "PUBLISHED" as const,
       order: index * 10,
       functionalRequirements: exercise.functionalRequirements,
@@ -510,7 +495,6 @@ async function seedLLDExercises() {
       title: exercise.title,
       tagline: exercise.tagline,
       difficulty: exercise.difficulty,
-      access: exercise.access ?? ("FREE" as const),
       status: "PUBLISHED" as const,
       order: index * 10,
       requirements: exercise.requirements,

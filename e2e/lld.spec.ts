@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { closeDb, makePro } from "./db";
+import { closeDb } from "./db";
 
 /**
  * Journey 4: Low-Level Design.
@@ -133,8 +133,7 @@ test("no reference material reaches the browser before submission", async ({
   // exercise page is a Server Component that serialises props into the
   // RSC payload, so a reference field passed by mistake would be in the
   // HTML even with nothing rendered.
-  const email = await signUp(page, "payload");
-  await makePro(email);
+  await signUp(page, "payload");
   await page.reload();
   await page.goto(EXERCISE_URL);
   await expect(page.getByRole("main").getByTestId("lld-workspace")).toBeVisible({ timeout: 30_000 });
@@ -177,8 +176,7 @@ test("full journey: design, relate, save, reload, submit, review", async ({
   page,
 }) => {
   test.slow();
-  const email = await signUp(page, "journey");
-  await makePro(email);
+  await signUp(page, "journey");
   await page.reload();
 
   await page.goto(EXERCISE_URL);
@@ -261,8 +259,7 @@ test("full journey: design, relate, save, reload, submit, review", async ({
 });
 
 test("a design that is barely started cannot be submitted", async ({ page }) => {
-  const email = await signUp(page, "empty");
-  await makePro(email);
+  await signUp(page, "empty");
   await page.reload();
 
   await page.goto(EXERCISE_URL);
@@ -280,8 +277,7 @@ test("a design that is barely started cannot be submitted", async ({ page }) => 
 test("a class diagram is readable as text, not only as a picture", async ({
   page,
 }) => {
-  const email = await signUp(page, "a11y");
-  await makePro(email);
+  await signUp(page, "a11y");
   await page.reload();
 
   await page.goto(EXERCISE_URL);
@@ -316,8 +312,7 @@ test("one learner cannot reach another's LLD design", async ({ page, browser }) 
   test.slow();
 
   // Alice saves a design with a distinctive rationale.
-  const alice = await signUp(page, "alice");
-  await makePro(alice);
+  await signUp(page, "alice");
   await page.reload();
   await page.goto(EXERCISE_URL);
 
@@ -333,8 +328,7 @@ test("one learner cannot reach another's LLD design", async ({ page, browser }) 
   // Bob opens the same exercise in a separate browser context.
   const context = await browser.newContext();
   const bobPage = await context.newPage();
-  const bob = await signUp(bobPage, "bob");
-  await makePro(bob);
+  await signUp(bobPage, "bob");
   await bobPage.reload();
   await bobPage.goto(EXERCISE_URL);
 

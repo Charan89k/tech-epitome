@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, Settings, Sparkles, User as UserIcon } from "lucide-react";
+import { LogOut, Settings, User as UserIcon } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,6 @@ export type UserMenuUser = {
   name: string | null;
   email: string;
   image: string | null;
-  isPro: boolean;
   role: "USER" | "ADMIN";
 };
 
@@ -63,15 +62,11 @@ export function UserMenu({ user }: { user: UserMenuUser }) {
               <span className="truncate text-sm font-medium">
                 {user.name ?? "Your account"}
               </span>
-              {user.role === "ADMIN" ? (
+              {user.role === "ADMIN" && (
                 <Badge variant="outline" className="h-5 px-1.5 text-[0.65rem]">
                   Admin
                 </Badge>
-              ) : user.isPro ? (
-                <Badge className="bg-ember-500/15 text-ember-400 border-ember-500/25 h-5 border px-1.5 text-[0.65rem]">
-                  Pro
-                </Badge>
-              ) : null}
+              )}
             </div>
             <span className="text-muted-foreground truncate text-xs">
               {user.email}
@@ -94,14 +89,6 @@ export function UserMenu({ user }: { user: UserMenuUser }) {
           </Link>
         </DropdownMenuItem>
 
-        {!user.isPro && user.role !== "ADMIN" && (
-          <DropdownMenuItem asChild>
-            <Link href="/pricing">
-              <Sparkles className="text-ember-500 size-4" />
-              Upgrade to Pro
-            </Link>
-          </DropdownMenuItem>
-        )}
 
         <DropdownMenuSeparator />
 

@@ -47,6 +47,13 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  // `/pricing` shipped in an earlier iteration. CodeForge is free, so the
+  // route is gone — but a dead link is a worse answer than a page that says
+  // there is nothing to pay, so it lands on the features page instead.
+  async redirects() {
+    return [{ source: "/pricing", destination: "/features", permanent: true }];
+  },
+
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Lock, Scale, Sparkles, Target } from "lucide-react";
+import { Scale, Sparkles, Target } from "lucide-react";
 
 import { ClassDiagramView } from "@/components/class-diagram/class-diagram-view";
 import { CodeBlock } from "@/components/learning/code-block";
@@ -10,7 +10,7 @@ import { LLDWorkspace } from "@/components/lld/lld-workspace";
 import { TutorLauncher } from "@/components/tutor/tutor-launcher";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { canAccess, FEATURES, lockStateFor } from "@/lib/auth/access";
+import { canAccess, FEATURES } from "@/lib/auth/access";
 import { getCurrentUser } from "@/lib/auth/session";
 import { LLD_QUICK_ACTIONS } from "@/lib/tutor/types";
 import { getLLDProblem } from "@/services/lld";
@@ -37,26 +37,6 @@ export default async function LLDExercisePage({
   const problem = await getLLDProblem(slug, user?.id);
 
   if (!problem) notFound();
-
-  const lock = lockStateFor(user, problem.access);
-  if (lock.locked) {
-    return (
-      <div className="mx-auto max-w-lg px-4 py-20 text-center">
-        <Lock className="text-muted-foreground mx-auto size-6" aria-hidden="true" />
-        <h1 className="mt-3 text-lg font-semibold">This exercise is part of Pro</h1>
-        <p className="text-muted-foreground mt-2 text-sm">
-          {lock.reason === "signin"
-            ? "Sign in to check whether your plan includes it."
-            : "Upgrade to unlock the full set of design exercises."}
-        </p>
-        <Button asChild className="mt-6">
-          <Link href={lock.reason === "signin" ? "/login" : "/pricing"}>
-            {lock.reason === "signin" ? "Sign in" : "See plans"}
-          </Link>
-        </Button>
-      </div>
-    );
-  }
 
   const tutorAllowed = canAccess(user, FEATURES.AI_TUTOR);
   const referenceCode = problem.reference?.code ?? {};
@@ -89,7 +69,7 @@ export default async function LLDExercisePage({
               ],
             }}
             quickActions={LLD_QUICK_ACTIONS}
-            access={!user ? "signin" : tutorAllowed ? "allowed" : "upgrade"}
+            enabled={tutorAllowed}
           />
         </div>
       </header>

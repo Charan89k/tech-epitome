@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, ChevronRight, Circle, CircleDot, Lock } from "lucide-react";
+import { CheckCircle2, ChevronRight, Circle, CircleDot } from "lucide-react";
 
 import {
   Collapsible,
@@ -124,12 +124,6 @@ export function ChapterNav({
                             <span className="min-w-0 flex-1 truncate">
                               {chapter.title}
                             </span>
-                            {chapter.access === "PRO" && (
-                              <Lock
-                                className="text-muted-foreground/60 size-3 shrink-0"
-                                aria-label="Pro"
-                              />
-                            )}
                           </Link>
                         </li>
                       );

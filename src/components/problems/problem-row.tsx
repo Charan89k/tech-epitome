@@ -1,18 +1,12 @@
 import Link from "next/link";
-import { Bookmark, CheckCircle2, Circle, CircleDashed, Lock } from "lucide-react";
+import { Bookmark, CheckCircle2, Circle, CircleDashed } from "lucide-react";
 
 import { DifficultyBadge } from "@/components/common/difficulty-badge";
 import type { ProblemListItem } from "@/services/problems";
 import { cn, route } from "@/lib/utils";
 
 /** One row in the problem catalogue. Server-rendered; no client JS. */
-export function ProblemRow({
-  problem,
-  locked,
-}: {
-  problem: ProblemListItem;
-  locked: boolean;
-}) {
+export function ProblemRow({ problem }: { problem: ProblemListItem }) {
   return (
     <Link
       href={route(`/problems/${problem.slug}`)}
@@ -36,12 +30,6 @@ export function ProblemRow({
           >
             {problem.title}
           </span>
-          {locked && (
-            <Lock
-              className="text-muted-foreground/60 size-3 shrink-0"
-              aria-label="Pro"
-            />
-          )}
           {problem.bookmarked && (
             <Bookmark
               className="text-ember-500 size-3 shrink-0 fill-current"

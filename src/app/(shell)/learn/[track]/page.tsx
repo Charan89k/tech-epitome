@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, BookOpen, Clock, Lock } from "lucide-react";
+import { ArrowRight, BookOpen, Clock } from "lucide-react";
 
 import { EmptyState } from "@/components/common/empty-state";
 import { PageHeader } from "@/components/common/page-header";
 import { ProgressRing } from "@/components/common/progress-ring";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/session";
-import { lockStateFor } from "@/lib/auth/access";
 import { READER_TRACKS, trackForSegment } from "@/lib/tracks";
 import { route } from "@/lib/utils";
 import { listCourses } from "@/services/curriculum";
@@ -94,7 +92,6 @@ export default async function TrackRoadmapPage({
       ) : (
         <ul className="mt-8 space-y-3">
           {courses.map((course) => {
-            const lock = lockStateFor(user, course.access);
             const percent =
               course.totalChapters > 0
                 ? Math.round(
@@ -120,15 +117,6 @@ export default async function TrackRoadmapPage({
                       <h2 className="truncate text-base font-medium">
                         {course.title}
                       </h2>
-                      {lock.locked && (
-                        <Badge
-                          variant="outline"
-                          className="text-muted-foreground h-5 gap-1 px-1.5 text-[0.65rem]"
-                        >
-                          <Lock className="size-2.5" aria-hidden="true" />
-                          Pro
-                        </Badge>
-                      )}
                     </div>
 
                     {course.subtitle && (

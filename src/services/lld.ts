@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
-import type { AccessTier, Difficulty, Language } from "@/generated/prisma/enums";
+import type {Difficulty, Language} from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 import { parseClassDiagram } from "@/lib/class-diagram/schema";
 import type { ClassDiagram } from "@/lib/class-diagram/types";
@@ -30,7 +30,6 @@ export type LLDListItem = {
   title: string;
   tagline: string;
   difficulty: Difficulty;
-  access: AccessTier;
   designPatterns: string[];
   status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
 };
@@ -45,7 +44,6 @@ export async function listLLDProblems(userId?: string): Promise<LLDListItem[]> {
       title: true,
       tagline: true,
       difficulty: true,
-      access: true,
       designPatterns: true,
     },
   });
@@ -64,7 +62,6 @@ export async function listLLDProblems(userId?: string): Promise<LLDListItem[]> {
     title: problem.title,
     tagline: problem.tagline,
     difficulty: problem.difficulty,
-    access: problem.access,
     designPatterns: problem.designPatterns,
     status: byProblem.get(problem.id) ?? "NOT_STARTED",
   }));
@@ -78,7 +75,6 @@ export type LLDDetail = {
   title: string;
   tagline: string;
   difficulty: Difficulty;
-  access: AccessTier;
   requirements: string[];
   constraints: string[];
   objectives: string[];
@@ -121,7 +117,6 @@ export const getLLDProblem = cache(
         title: true,
         tagline: true,
         difficulty: true,
-        access: true,
         requirements: true,
         constraints: true,
         objectives: true,
@@ -162,7 +157,6 @@ export const getLLDProblem = cache(
       title: problem.title,
       tagline: problem.tagline,
       difficulty: problem.difficulty,
-      access: problem.access,
       requirements: problem.requirements,
       constraints: problem.constraints,
       objectives: problem.objectives,

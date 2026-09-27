@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
-import type { AccessTier, Difficulty, Track } from "@/generated/prisma/enums";
+import type {Difficulty, Track} from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 
 /**
@@ -20,7 +20,6 @@ export type PatternSummary = {
   name: string;
   tagline: string;
   difficulty: Difficulty;
-  access: AccessTier;
   problemCount: number;
   /** 0-100, or null when the user has never attempted this pattern. */
   mastery: number | null;
@@ -38,7 +37,6 @@ export const listPatterns = cache(
         name: true,
         tagline: true,
         difficulty: true,
-        access: true,
         _count: { select: { problems: true } },
       },
     });
@@ -59,7 +57,6 @@ export const listPatterns = cache(
         name: pattern.name,
         tagline: pattern.tagline,
         difficulty: pattern.difficulty,
-        access: pattern.access,
         problemCount: pattern._count.problems,
         // Null rather than 0 for an unattempted pattern: "not started" and
         // "tried and struggled" are different things and must look different.
@@ -84,7 +81,6 @@ export type PatternDetail = {
   timeComplexity: string | null;
   spaceComplexity: string | null;
   difficulty: Difficulty;
-  access: AccessTier;
   mastery: number | null;
   problems: {
     slug: string;
@@ -121,7 +117,6 @@ export const getPattern = cache(
         timeComplexity: true,
         spaceComplexity: true,
         difficulty: true,
-        access: true,
         problems: {
           orderBy: [{ isPrimary: "desc" }],
           select: {
@@ -182,7 +177,6 @@ export const getPattern = cache(
       timeComplexity: pattern.timeComplexity,
       spaceComplexity: pattern.spaceComplexity,
       difficulty: pattern.difficulty,
-      access: pattern.access,
       mastery: mastery && mastery.attempts > 0 ? mastery.score : null,
       problems: pattern.problems
         .filter((row) => row.problem.status === "PUBLISHED")

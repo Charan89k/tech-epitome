@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Lock, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 import { TutorPanel } from "@/components/tutor/tutor-panel";
 import { Button } from "@/components/ui/button";
@@ -29,17 +29,17 @@ import { cn } from "@/lib/utils";
  * genuinely aborts the request rather than leaving it running invisibly,
  * and reopening does not resurrect half a stale answer.
  *
- * Locked state is handled here rather than by hiding the button. A learner
- * on the free plan should be able to see that the tutor exists and what it
- * would do; the product's rule is that nothing in the navigation is a dead
- * end, not that paid features are invisible.
+ * The signed-out state is handled here rather than by hiding the button. A
+ * visitor should be able to see that the tutor exists and what it would do
+ * before creating an account; the product's rule is that nothing in the
+ * navigation is a dead end.
  */
 export function TutorLauncher({
   anchor,
   label,
   quickActions,
   getCode,
-  access,
+  enabled,
   variant = "outline",
   className,
 }: {
@@ -47,8 +47,11 @@ export function TutorLauncher({
   label: TutorContextLabel;
   quickActions: TutorQuickAction[];
   getCode?: () => TutorCodeState | undefined;
-  /** Resolved on the server: whether this learner may actually use it. */
-  access: "allowed" | "signin" | "upgrade";
+  /**
+   * Resolved on the server by the authorization layer. Conversations are
+   * per-user rows, so the tutor needs a session behind it.
+   */
+  enabled: boolean;
   variant?: "outline" | "ghost" | "default";
   className?: string;
 }) {
@@ -92,7 +95,7 @@ export function TutorLauncher({
             </SheetTitle>
           </SheetHeader>
 
-          {access === "allowed" ? (
+          {enabled ? (
             <TutorPanel
               anchor={anchor}
               label={label}
@@ -100,7 +103,7 @@ export function TutorLauncher({
               getCode={getCode}
             />
           ) : (
-            <LockedTutor reason={access} />
+            <SignInToUseTutor />
           )}
         </SheetContent>
       </Sheet>
@@ -108,20 +111,18 @@ export function TutorLauncher({
   );
 }
 
-function LockedTutor({ reason }: { reason: "signin" | "upgrade" }) {
+function SignInToUseTutor() {
   return (
     <div className="flex h-full flex-col items-center justify-center px-8 text-center">
-      <Lock className="text-muted-foreground size-6" aria-hidden="true" />
-      <h2 className="mt-3 text-sm font-semibold">The AI tutor is part of Pro</h2>
+      <Sparkles className="text-muted-foreground size-6" aria-hidden="true" />
+      <h2 className="mt-3 text-sm font-semibold">Sign in to use the tutor</h2>
       <p className="text-muted-foreground mt-2 max-w-xs text-sm leading-relaxed">
-        {reason === "signin"
-          ? "Sign in to check whether your plan includes it."
-          : "It knows the chapter you are reading and the code in your editor, and it walks you to the answer instead of handing it over."}
+        It knows the chapter you are reading and the code in your editor, and it
+        walks you to the answer instead of handing it over. Conversations are
+        saved to your account, so it needs one. It is free.
       </p>
       <Button asChild className="mt-6">
-        <Link href={reason === "signin" ? "/login" : "/pricing"}>
-          {reason === "signin" ? "Sign in" : "See plans"}
-        </Link>
+        <Link href="/login">Sign in</Link>
       </Button>
     </div>
   );

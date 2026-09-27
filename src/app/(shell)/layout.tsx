@@ -23,7 +23,7 @@ export default async function ShellLayout({ children }: LayoutProps<"/">) {
     <SidebarProvider>
       <CommandPaletteProvider>
         <AppSidebar
-          user={user ? { role: user.role, isPro: user.isPro } : null}
+          user={user ? { role: user.role } : null}
         />
 
         <SidebarInset className="min-w-0">
@@ -34,7 +34,6 @@ export default async function ShellLayout({ children }: LayoutProps<"/">) {
                     name: user.name,
                     email: user.email,
                     image: user.image,
-                    isPro: user.isPro,
                     role: user.role,
                   }
                 : null

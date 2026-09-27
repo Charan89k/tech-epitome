@@ -78,10 +78,10 @@ export async function listAvailableProviders(): Promise<
 /**
  * Records a call against the usage ledger.
  *
- * Written from the first call rather than added when billing arrives, so
- * there is real history to meter against instead of a backfill. Costs are
- * stored as integer tenth-of-cents; floats accumulate error across millions
- * of rows.
+ * Nobody is ever charged for this - CodeForge is free. The ledger exists so
+ * the cost of running the free AI features is a measured number rather than
+ * a guess, and so abuse is visible. Costs are stored as integer
+ * tenth-of-cents; floats accumulate error across millions of rows.
  */
 export async function recordAIUsage(params: {
   userId: string;
