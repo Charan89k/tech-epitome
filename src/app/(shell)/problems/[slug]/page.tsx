@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { CheckCircle2, Target } from "lucide-react";
 
 import { DifficultyBadge } from "@/components/common/difficulty-badge";
+import { BookmarkButton } from "@/components/library/bookmark-button";
+import { NoteEditor } from "@/components/library/note-editor";
 import { ContentRenderer, type ContentResources } from "@/components/learning/content-renderer";
 import { HintLadder } from "@/components/problems/hint-ladder";
 import { ProblemWorkspace } from "@/components/problems/problem-workspace";
@@ -24,6 +26,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { parseContent } from "@/lib/validation/content";
 import { route } from "@/lib/utils";
+import { getNoteFor, isBookmarked } from "@/services/library";
 import { getProblem } from "@/services/problems";
 import type { ContentBlock } from "@/types/content";
 
@@ -101,6 +104,21 @@ export default async function ProblemPage({
     signedIn: Boolean(user),
   };
 
+  const [bookmarked, note] = user
+    ? await Promise.all([
+        isBookmarked({
+          userId: user.id,
+          entityType: "PROBLEM",
+          entityId: problem.id,
+        }),
+        getNoteFor({
+          userId: user.id,
+          entityType: "PROBLEM",
+          entityId: problem.id,
+        }),
+      ])
+    : [false, null];
+
   const description = (
     <div className="mx-auto max-w-2xl space-y-6">
       <header>
@@ -115,6 +133,14 @@ export default async function ProblemPage({
               Solved
             </Badge>
           )}
+          <div className="ml-auto">
+            <BookmarkButton
+              entityType="PROBLEM"
+              entityId={problem.id}
+              initiallyBookmarked={bookmarked}
+              signedIn={Boolean(user)}
+            />
+          </div>
         </div>
 
         <h1 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
@@ -138,6 +164,13 @@ export default async function ProblemPage({
 
       <div className="space-y-4">
         <ContentRenderer blocks={statement} resources={emptyResources} />
+
+        <NoteEditor
+          entityType="PROBLEM"
+          entityId={problem.id}
+          initialBody={note?.body ?? ""}
+          signedIn={Boolean(user)}
+        />
       </div>
 
       {problem.constraints.length > 0 && (

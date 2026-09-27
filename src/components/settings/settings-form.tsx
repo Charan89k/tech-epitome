@@ -37,7 +37,9 @@ export type SettingsFormValues = {
   targetRole: string;
   preferredLanguage: Language;
   reducedMotion: boolean;
-  emailDigest: boolean;
+  notifyReviewDue: boolean;
+  notifyInterviewGraded: boolean;
+  notifyMilestones: boolean;
 };
 
 const INITIAL: SettingsFormState = { status: "idle" };
@@ -94,7 +96,7 @@ export function SettingsForm({ values }: { values: SettingsFormValues }) {
               placeholder="Backend engineer, mid-level"
             />
             <p className="text-muted-foreground text-xs">
-              Used to order company roadmaps. Optional.
+              Shown on your profile. Optional.
             </p>
           </div>
         </CardContent>
@@ -127,15 +129,44 @@ export function SettingsForm({ values }: { values: SettingsFormValues }) {
           <ToggleRow
             name="reducedMotion"
             label="Reduce motion"
-            description="Visualizations step instantly instead of animating. Your operating system setting is always respected on top of this."
+            description="Visualizations step instantly instead of animating, and transitions are removed across the site. Your operating system setting is honoured on top of this and always wins."
             defaultChecked={values.reducedMotion}
           />
 
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-sm">Notifications</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <p className="text-muted-foreground text-xs leading-relaxed">
+            These appear in the bell in the top bar. CodeForge sends no email
+            of any kind — there is no mailer configured and none planned — so
+            nothing here will reach your inbox. Account and security notices
+            cannot be turned off.
+          </p>
+
           <ToggleRow
-            name="emailDigest"
-            label="Weekly progress email"
-            description="A summary of what you covered and what is due for review."
-            defaultChecked={values.emailDigest}
+            name="notifyReviewDue"
+            label="Reviews falling due"
+            description="Sent by a scheduled job. If this deployment has no scheduler pointed at the notifications job, no reminders are sent at all."
+            defaultChecked={values.notifyReviewDue}
+          />
+
+          <ToggleRow
+            name="notifyInterviewGraded"
+            label="Interview feedback ready"
+            description="When the written feedback for a mock interview has been generated."
+            defaultChecked={values.notifyInterviewGraded}
+          />
+
+          <ToggleRow
+            name="notifyMilestones"
+            label="Milestones"
+            description="The occasional note when you pass a round number of solved problems. Deliberately rare."
+            defaultChecked={values.notifyMilestones}
           />
         </CardContent>
       </Card>

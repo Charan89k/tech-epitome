@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { getMotionPreference } from "@/lib/auth/session";
 import { site } from "@/lib/site";
 
 import "./globals.css";
@@ -77,13 +78,22 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // minted; without it the browser refuses it and the page flashes light.
   const nonce = (await headers()).get("x-nonce") ?? undefined;
 
+  // The saved reduced-motion preference, rendered as an attribute rather
+  // than passed through context: CSS needs it too, and an attribute on
+  // <body> is correct on first paint with no client round-trip. The OS
+  // media query is honoured independently in globals.css and always wins.
+  const reducedMotion = await getMotionPreference();
+
   return (
     <html
       lang="en"
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">
+      <body
+        className="flex min-h-full flex-col"
+        data-reduced-motion={reducedMotion ? "true" : undefined}
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

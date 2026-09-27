@@ -25,7 +25,9 @@ export async function updateSettingsAction(
     preferredLanguage: formData.get("preferredLanguage"),
     // Unchecked checkboxes are absent from FormData entirely.
     reducedMotion: formData.get("reducedMotion") === "on",
-    emailDigest: formData.get("emailDigest") === "on",
+    notifyReviewDue: formData.get("notifyReviewDue") === "on",
+    notifyInterviewGraded: formData.get("notifyInterviewGraded") === "on",
+    notifyMilestones: formData.get("notifyMilestones") === "on",
   });
 
   if (!parsed.success) {
@@ -37,8 +39,24 @@ export async function updateSettingsAction(
     return { status: "error", fieldErrors };
   }
 
-  const { name, targetRole, preferredLanguage, reducedMotion, emailDigest } =
-    parsed.data;
+  const {
+    name,
+    targetRole,
+    preferredLanguage,
+    reducedMotion,
+    notifyReviewDue,
+    notifyInterviewGraded,
+    notifyMilestones,
+  } = parsed.data;
+
+  const preferences = {
+    targetRole: targetRole || null,
+    preferredLanguage,
+    reducedMotion,
+    notifyReviewDue,
+    notifyInterviewGraded,
+    notifyMilestones,
+  };
 
   try {
     await prisma.$transaction([
@@ -48,19 +66,8 @@ export async function updateSettingsAction(
       }),
       prisma.profile.upsert({
         where: { userId: user.id },
-        create: {
-          userId: user.id,
-          targetRole: targetRole || null,
-          preferredLanguage,
-          reducedMotion,
-          emailDigest,
-        },
-        update: {
-          targetRole: targetRole || null,
-          preferredLanguage,
-          reducedMotion,
-          emailDigest,
-        },
+        create: { userId: user.id, ...preferences },
+        update: preferences,
       }),
     ]);
   } catch {
@@ -72,6 +79,10 @@ export async function updateSettingsAction(
 
   revalidatePath("/settings");
   revalidatePath("/profile");
+  // The reduced-motion attribute is rendered by the root layout, so the
+  // whole tree has to re-render for the change to be visible without a
+  // manual reload.
+  revalidatePath("/", "layout");
 
   return { status: "saved", message: "Settings saved." };
 }

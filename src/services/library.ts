@@ -184,3 +184,169 @@ export async function listNotes(
     };
   });
 }
+
+// ---------------------------------------------------------------------------
+// Writes
+// ---------------------------------------------------------------------------
+
+/**
+ * The entity types a learner may annotate.
+ *
+ * A closed subset of `EntityType`, because `resolveEntities` only knows
+ * how to turn these three back into a title and a link. A bookmark on a
+ * type it cannot resolve renders as "unavailable" forever, which is a
+ * worse outcome than refusing to create it.
+ */
+export const ANNOTATABLE = ["PROBLEM", "CHAPTER", "PATTERN"] as const;
+export type Annotatable = (typeof ANNOTATABLE)[number];
+
+/**
+ * Confirms the target exists and is published.
+ *
+ * Without this, a bookmark or note is a row keyed on an arbitrary string
+ * the client supplied — which is not a security hole, since everything is
+ * scoped to the owner, but it does let a client fill the table with
+ * references to nothing.
+ */
+export async function annotatableExists(
+  entityType: Annotatable,
+  entityId: string
+): Promise<boolean> {
+  const where = { id: entityId, status: "PUBLISHED" as const };
+  switch (entityType) {
+    case "PROBLEM":
+      return (await prisma.problem.count({ where })) > 0;
+    case "CHAPTER":
+      return (await prisma.chapter.count({ where })) > 0;
+    case "PATTERN":
+      return (await prisma.pattern.count({ where })) > 0;
+  }
+}
+
+export async function isBookmarked(params: {
+  userId: string;
+  entityType: Annotatable;
+  entityId: string;
+}): Promise<boolean> {
+  const row = await prisma.bookmark.findUnique({
+    where: {
+      userId_entityType_entityId: {
+        userId: params.userId,
+        entityType: params.entityType,
+        entityId: params.entityId,
+      },
+    },
+    select: { id: true },
+  });
+  return row !== null;
+}
+
+/** The learner's note on one thing, if they have written one. */
+export async function getNoteFor(params: {
+  userId: string;
+  entityType: Annotatable;
+  entityId: string;
+}): Promise<{ id: string; body: string; updatedAt: Date } | null> {
+  return prisma.note.findFirst({
+    where: {
+      userId: params.userId,
+      entityType: params.entityType,
+      entityId: params.entityId,
+    },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true, body: true, updatedAt: true },
+  });
+}
+
+/**
+ * Creates, updates or deletes the learner's note on one thing.
+ *
+ * One note per learner per entity, which is the shape the reader UI
+ * wants: a margin note, not a thread. An empty body deletes rather than
+ * storing a blank row, so clearing the box and saving is the delete
+ * gesture and there is no separate button for it.
+ */
+export async function upsertNote(params: {
+  userId: string;
+  entityType: Annotatable;
+  entityId: string;
+  body: string;
+}): Promise<{ id: string; body: string; updatedAt: Date } | null> {
+  const body = params.body.trim();
+  const existing = await getNoteFor(params);
+
+  if (body.length === 0) {
+    if (existing) {
+      await prisma.note.deleteMany({
+        where: { id: existing.id, userId: params.userId },
+      });
+    }
+    return null;
+  }
+
+  if (existing) {
+    const row = await prisma.note.update({
+      where: { id: existing.id },
+      data: { body },
+      select: { id: true, body: true, updatedAt: true },
+    });
+    return row;
+  }
+
+  return prisma.note.create({
+    data: {
+      userId: params.userId,
+      entityType: params.entityType,
+      entityId: params.entityId,
+      body,
+    },
+    select: { id: true, body: true, updatedAt: true },
+  });
+}
+
+/** Deletes one note by id, scoped. Used by the notes list page. */
+export async function deleteNote(id: string, userId: string): Promise<boolean> {
+  const result = await prisma.note.deleteMany({ where: { id, userId } });
+  return result.count > 0;
+}
+
+/**
+ * Adds or removes a bookmark, returning the state afterwards.
+ *
+ * The unique constraint is `(userId, entityType, entityId)`, so a double
+ * click races to the same row rather than creating two.
+ */
+export async function toggleBookmark(params: {
+  userId: string;
+  entityType: Annotatable;
+  entityId: string;
+}): Promise<boolean> {
+  const where = {
+    userId_entityType_entityId: {
+      userId: params.userId,
+      entityType: params.entityType,
+      entityId: params.entityId,
+    },
+  };
+
+  const existing = await prisma.bookmark.findUnique({
+    where,
+    select: { id: true },
+  });
+
+  if (existing) {
+    await prisma.bookmark.deleteMany({
+      where: { id: existing.id, userId: params.userId },
+    });
+    return false;
+  }
+
+  await prisma.bookmark.create({
+    data: {
+      userId: params.userId,
+      entityType: params.entityType,
+      entityId: params.entityId,
+    },
+  });
+  return true;
+}

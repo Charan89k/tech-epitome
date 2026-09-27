@@ -3,12 +3,18 @@ import Link from "next/link";
 import { Bookmark } from "lucide-react";
 
 import { EmptyState } from "@/components/common/empty-state";
+import { BookmarkButton } from "@/components/library/bookmark-button";
 import { PageHeader } from "@/components/common/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth/session";
 import { route } from "@/lib/utils";
-import { listBookmarks } from "@/services/library";
+import {
+  ANNOTATABLE,
+  listBookmarks,
+  type Annotatable,
+} from "@/services/library";
+import type { EntityType } from "@/generated/prisma/enums";
 
 export const metadata: Metadata = {
   title: "Bookmarks",
@@ -20,6 +26,17 @@ const TYPE_LABEL: Record<string, string> = {
   CHAPTER: "Chapter",
   PATTERN: "Pattern",
 };
+
+/**
+ * Whether this row can be unsaved from here.
+ *
+ * `EntityType` is wider than what the library can resolve, so a row of an
+ * unsupported type renders without the control rather than with one that
+ * would be refused server-side.
+ */
+function isAnnotatable(type: EntityType): type is Annotatable {
+  return (ANNOTATABLE as readonly string[]).includes(type);
+}
 
 export default async function BookmarksPage() {
   const user = await requireUser("/dashboard/bookmarks");
@@ -37,7 +54,7 @@ export default async function BookmarksPage() {
           <EmptyState
             icon={Bookmark}
             title="Nothing bookmarked yet"
-            description="Save a problem or a chapter and it will appear here."
+            description="Use “Save” on a problem, chapter or pattern and it will appear here."
             action={
               <Button asChild size="sm" variant="outline">
                 <Link href="/problems">Browse problems</Link>
@@ -48,10 +65,10 @@ export default async function BookmarksPage() {
       ) : (
         <ul className="border-border mt-8 divide-y divide-[var(--border)] overflow-hidden rounded-lg border">
           {bookmarks.map((item) => (
-            <li key={item.id}>
+            <li key={item.id} className="flex items-center gap-2 pr-3">
               <Link
                 href={route(item.href)}
-                className="hover:bg-accent/40 flex items-center gap-3 px-4 py-3 transition-colors"
+                className="hover:bg-accent/40 flex min-w-0 flex-1 items-center gap-3 px-4 py-3 transition-colors"
               >
                 <Bookmark
                   className="text-ember-500 size-4 shrink-0 fill-current"
@@ -71,6 +88,18 @@ export default async function BookmarksPage() {
                   {TYPE_LABEL[item.entityType] ?? item.entityType}
                 </Badge>
               </Link>
+
+              {/* Unsaving from the list itself. Outside the Link, because a
+                  button inside an anchor is invalid and unreachable by
+                  keyboard in the order people expect. */}
+              {isAnnotatable(item.entityType) && (
+                <BookmarkButton
+                  entityType={item.entityType}
+                  entityId={item.entityId}
+                  initiallyBookmarked
+                  signedIn
+                />
+              )}
             </li>
           ))}
         </ul>

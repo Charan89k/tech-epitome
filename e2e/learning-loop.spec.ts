@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { finishSignup } from "./helpers";
 
 /**
  * The critical product loop, end to end.
@@ -24,7 +25,7 @@ async function signUp(page: Page, tag: string): Promise<string> {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL("**/dashboard", { timeout: 30_000 });
+  await finishSignup(page);
   return email;
 }
 

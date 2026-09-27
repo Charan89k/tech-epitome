@@ -16,7 +16,13 @@ export const profileSettingsSchema = z.object({
     .or(z.literal("")),
   preferredLanguage: z.nativeEnum(Language),
   reducedMotion: z.boolean(),
-  emailDigest: z.boolean(),
+
+  // In-app notification preferences. There is no email of any kind — no
+  // mailer is configured and none is planned — so there is deliberately
+  // no toggle here that promises one.
+  notifyReviewDue: z.boolean(),
+  notifyInterviewGraded: z.boolean(),
+  notifyMilestones: z.boolean(),
 });
 
 export type ProfileSettingsInput = z.infer<typeof profileSettingsSchema>;

@@ -32,9 +32,24 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+/**
+ * A card's title, as a real heading.
+ *
+ * Renders `h3` rather than the `div` shadcn ships. A card is a section of
+ * a page, and a screen reader user navigating by heading should find it —
+ * with a `div` the entire settings page, the whole dashboard and every
+ * admin panel were invisible to heading navigation.
+ *
+ * `h3` because cards sit under a page `h1` and usually a section `h2`.
+ * Where that is wrong, pass `as` — but pass a heading, not a `div`.
+ */
+function CardTitle({
+  className,
+  as: Component = "h3",
+  ...props
+}: React.ComponentProps<"h3"> & { as?: "h2" | "h3" | "h4" }) {
   return (
-    <div
+    <Component
       data-slot="card-title"
       className={cn(
         "font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",

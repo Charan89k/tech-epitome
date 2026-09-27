@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { Language } from "@/generated/prisma/enums";
 import { recordEvent } from "@/lib/analytics";
+import { notifySolveMilestone } from "@/services/notifications";
 import { getCurrentUser, requireUserOrThrow } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { RATE_LIMITS, rateLimit } from "@/lib/rate-limit";
@@ -100,6 +101,15 @@ export async function submitCodeAction(
     if (outcome.result.status === "ACCEPTED") {
       await recordEvent(user.id, "problem_solved", { slug: parsed.data.slug });
       await touchStudyDay(user.id, { seconds: 0, chapters: 0, xp: 25, solved: 1 });
+
+      // The counter the profile page already maintains, read back after
+      // the write so the milestone fires on the exact number rather than
+      // on an estimate.
+      const profile = await prisma.profile.findUnique({
+        where: { userId: user.id },
+        select: { problemsSolved: true },
+      });
+      if (profile) await notifySolveMilestone(user.id, profile.problemsSolved);
     }
 
     revalidatePath("/dashboard");
@@ -197,30 +207,4 @@ export async function revealSolutionAction(slug: string): Promise<ActionResult> 
 
   await recordEvent(user.id, "solution_opened", { slug });
   return { ok: true, data: undefined };
-}
-
-export async function toggleBookmarkAction(
-  entityType: "PROBLEM" | "CHAPTER" | "PATTERN",
-  entityId: string
-): Promise<ActionResult<{ bookmarked: boolean }>> {
-  const user = await requireUserOrThrow();
-
-  const existing = await prisma.bookmark.findUnique({
-    where: {
-      userId_entityType_entityId: { userId: user.id, entityType, entityId },
-    },
-    select: { id: true },
-  });
-
-  if (existing) {
-    await prisma.bookmark.delete({ where: { id: existing.id } });
-    revalidatePath("/dashboard/bookmarks");
-    return { ok: true, data: { bookmarked: false } };
-  }
-
-  await prisma.bookmark.create({
-    data: { userId: user.id, entityType, entityId },
-  });
-  revalidatePath("/dashboard/bookmarks");
-  return { ok: true, data: { bookmarked: true } };
 }

@@ -366,3 +366,18 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* The account setting, written onto <body> by the app shell. Separate from
+   the media query above rather than folded into it, because the two are
+   independent: the OS setting applies everywhere and cannot be overridden
+   here, while this one is a per-account choice for people who want a still
+   interface on CodeForge without turning animation off system-wide. */
+body[data-reduced-motion="true"],
+body[data-reduced-motion="true"] *,
+body[data-reduced-motion="true"] *::before,
+body[data-reduced-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}

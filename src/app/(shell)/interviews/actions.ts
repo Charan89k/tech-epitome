@@ -6,6 +6,7 @@ import { z } from "zod";
 import { Difficulty, InterviewType, Language } from "@/generated/prisma/enums";
 import { getAIProvider, recordAIUsage } from "@/lib/ai";
 import { recordEvent } from "@/lib/analytics";
+import { notifyInterviewGraded } from "@/services/notifications";
 import { canAccess, FEATURES } from "@/lib/auth/access";
 import { requireUserOrThrow } from "@/lib/auth/session";
 import {
@@ -17,6 +18,7 @@ import {
   EVALUATION_DIMENSIONS,
   RATING_BANDS,
   dimensionsFor,
+  MACHINES,
   type InterviewKind,
 } from "@/lib/interview/types";
 import { RATE_LIMITS, rateLimit } from "@/lib/rate-limit";
@@ -285,6 +287,11 @@ export async function generateFeedbackAction(
   if (!saved) return { ok: false, error: "That interview is not available." };
 
   await recordEvent(user.id, "interview_completed", { sessionId });
+  await notifyInterviewGraded({
+    userId: user.id,
+    sessionId,
+    label: `${MACHINES[kind].label} — ${context.problemTitle}`,
+  });
 
   revalidatePath(`/interviews/${sessionId}`);
   revalidatePath("/interviews");

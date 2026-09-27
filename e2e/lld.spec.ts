@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { closeDb } from "./db";
+import { finishSignup } from "./helpers";
 
 /**
  * Journey 4: Low-Level Design.
@@ -35,7 +36,7 @@ async function signUp(page: Page, tag: string): Promise<string> {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL("**/dashboard", { timeout: 30_000 });
+  await finishSignup(page);
   return email;
 }
 

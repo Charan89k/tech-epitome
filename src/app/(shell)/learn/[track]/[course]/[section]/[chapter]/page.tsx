@@ -22,6 +22,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { TutorLauncher } from "@/components/tutor/tutor-launcher";
+import { BookmarkButton } from "@/components/library/bookmark-button";
+import { NoteEditor } from "@/components/library/note-editor";
 import { canAccess, FEATURES } from "@/lib/auth/access";
 import { getCurrentUser } from "@/lib/auth/session";
 import { labelFor } from "@/lib/tutor/context";
@@ -36,6 +38,7 @@ import {
   getPatternNames,
   resolveContentResources,
 } from "@/services/curriculum";
+import { getNoteFor, isBookmarked } from "@/services/library";
 import { getQuiz, type QuizView } from "@/services/quiz";
 import type { ContentBlock } from "@/types/content";
 
@@ -130,6 +133,23 @@ export default async function ChapterPage({ params }: Params) {
   // learner cannot use the tutor — there is no reason to read and flatten
   // a chapter body for a panel that will only ask them to sign in.
   const tutorAllowed = canAccess(user, FEATURES.AI_TUTOR);
+
+  // Two small per-user reads, only when there is a user. Both are keyed on
+  // the chapter id, so nothing here can surface another learner's rows.
+  const [bookmarked, note] = user
+    ? await Promise.all([
+        isBookmarked({
+          userId: user.id,
+          entityType: "CHAPTER",
+          entityId: chapter.id,
+        }),
+        getNoteFor({
+          userId: user.id,
+          entityType: "CHAPTER",
+          entityId: chapter.id,
+        }),
+      ])
+    : [false, null];
   const tutorBundle =
     user && tutorAllowed
       ? await loadContextBundle(
@@ -240,7 +260,15 @@ export default async function ChapterPage({ params }: Params) {
               {/* Rendered once, not once per breakpoint: two launchers would
                   mean two independent open states and two identical buttons
                   in the accessibility tree. */}
-              <div className="mt-4 flex justify-end">{tutor}</div>
+              <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+                <BookmarkButton
+                  entityType="CHAPTER"
+                  entityId={chapter.id}
+                  initiallyBookmarked={bookmarked}
+                  signedIn={Boolean(user)}
+                />
+                {tutor}
+              </div>
 
                 <div className="mt-8 space-y-4">
                   <ContentRenderer blocks={blocks} resources={resources} />
@@ -252,6 +280,17 @@ export default async function ChapterPage({ params }: Params) {
                     title="Practice for this chapter"
                   />
                 )}
+
+                {/* After the lesson, before the completion prompt: a note
+                    is something you write once you have read the thing. */}
+                <div className="mt-8">
+                  <NoteEditor
+                    entityType="CHAPTER"
+                    entityId={chapter.id}
+                    initialBody={note?.body ?? ""}
+                    signedIn={Boolean(user)}
+                  />
+                </div>
 
                 <ChapterCompletion
                   chapterId={chapter.id}

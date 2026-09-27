@@ -132,7 +132,14 @@ export async function signUpAction(
     },
   });
 
-  const next = safeNext(formData.get("next"));
+  // A brand-new account goes to onboarding unless they arrived here on
+  // their way somewhere specific — being bounced to a questionnaire after
+  // clicking "sign up to save this note" would lose the thing they wanted.
+  const requested = formData.get("next");
+  const next =
+    typeof requested === "string" && requested.length > 0
+      ? safeNext(requested)
+      : "/onboarding";
 
   try {
     await signIn("credentials", {

@@ -13,6 +13,7 @@ import {
   PlayCircle,
   Repeat2,
   Shapes,
+  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 
@@ -166,6 +167,21 @@ export const primaryNav: NavGroup[] = [
         href: "/dashboard/notes",
         icon: FileText,
         description: "Your notes, searchable",
+      },
+    ],
+  },
+  {
+    label: "Staff",
+    items: [
+      {
+        title: "Admin",
+        href: "/admin",
+        icon: ShieldCheck,
+        // The only nav item behind a role. `canAccess` returns false for
+        // every non-admin, so the group renders empty and disappears
+        // rather than showing something that 403s.
+        feature: FEATURES.ADMIN,
+        description: "Users, content, AI usage and the audit log",
       },
     ],
   },

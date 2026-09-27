@@ -141,6 +141,20 @@ enum ReviewStage {
   MATURE
 }
 
+/// Self-reported, used only to pick a starting point. Never gates anything.
+enum ExperienceLevel {
+  BEGINNER
+  SOME_EXPERIENCE
+  PROFESSIONAL
+}
+
+enum LearningGoal {
+  INTERVIEW_PREP
+  FUNDAMENTALS
+  SYSTEM_DESIGN
+  KEEP_SHARP
+}
+
 enum InterviewType {
   DSA
   SYSTEM_DESIGN
@@ -258,6 +272,7 @@ model User {
   behavioralStories BehavioralStory[]
   systemDesigns     SystemDesignSubmission[]
   lldSubmissions    LLDSubmission[]
+  notifications     Notification[]
 
   @@index([role])
   @@index([createdAt])
@@ -327,7 +342,26 @@ model Profile {
 
   preferredLanguage Language @default(PYTHON)
   reducedMotion     Boolean  @default(false)
-  emailDigest       Boolean  @default(true)
+
+  // --- Onboarding ---------------------------------------------------------
+  // All optional. Onboarding is genuinely skippable, so every field here
+  // must have a sensible absent state rather than a default that pretends
+  // the learner answered.
+  experienceLevel   ExperienceLevel?
+  primaryGoal       LearningGoal?
+  targetInterview   InterviewType?
+  /// Chapters-or-problems the learner means to finish each week. Drives the
+  /// dashboard's weekly target; null means they never set one and the
+  /// dashboard shows no target rather than inventing one.
+  weeklyTarget      Int?
+  onboardedAt       DateTime?
+
+  // --- Notification preferences -------------------------------------------
+  // Opt-out rather than opt-in for the two that are about the learner's own
+  // work; nothing here is a paid tier and nothing is marketing.
+  notifyReviewDue       Boolean @default(true)
+  notifyInterviewGraded Boolean @default(true)
+  notifyMilestones      Boolean @default(true)
 
   lastActiveOn DateTime?
   createdAt    DateTime  @default(now())
@@ -1399,6 +1433,70 @@ model BehavioralStory {
   @@index([userId, updatedAt])
   @@index([questionId])
   @@map("behavioral_stories")
+}
+
+/// What a notification is about. The set is closed on purpose: a
+/// notification kind that nothing in the product produces is a lie waiting
+/// to be rendered.
+enum NotificationKind {
+  REVIEW_DUE
+  INTERVIEW_GRADED
+  MILESTONE
+  ACCOUNT
+}
+
+/// An in-app notification.
+///
+/// Created only by server code that has just done the thing it describes,
+/// and always scoped to one user. There is no broadcast and no marketing
+/// kind — every row here is about something that happened to this learner's
+/// own work.
+model Notification {
+  id     String           @id @default(cuid())
+  userId String
+  kind   NotificationKind
+
+  title String
+  body  String  @db.Text
+  /// Where clicking it should go. Relative, and validated on write, so a
+  /// notification can never carry an off-site link.
+  href  String?
+
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// The unread query, which runs on every page load of the shell.
+  @@index([userId, readAt, createdAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+/// An administrative action, recorded after the fact.
+///
+/// Written by the admin service on every mutation, never by a client. The
+/// actor is the admin's user id; `entity`/`entityId` name what changed and
+/// `summary` says what the change was in one line. Deliberately NOT
+/// cascaded from the user: deleting an admin account must not erase the
+/// record of what they did, so `actorId` is a plain column with no foreign
+/// key and `actorEmail` is denormalised at write time.
+model AuditLog {
+  id String @id @default(cuid())
+
+  actorId    String
+  actorEmail String
+  action     String
+  entity     String
+  entityId   String?
+  summary    String  @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([entity, entityId])
+  @@map("audit_logs")
 }
 
 // ===========================================================================

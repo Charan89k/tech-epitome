@@ -3,10 +3,11 @@ import Link from "next/link";
 import { FileText } from "lucide-react";
 
 import { EmptyState } from "@/components/common/empty-state";
+import { NoteCard } from "@/components/library/note-card";
 import { PageHeader } from "@/components/common/page-header";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth/session";
-import { route } from "@/lib/utils";
+
 import { listNotes } from "@/services/library";
 
 export const metadata: Metadata = {
@@ -53,7 +54,7 @@ export default async function NotesPage({
             description={
               query
                 ? "Try a shorter phrase, or clear the search."
-                : "Notes you write while reading a chapter or solving a problem will collect here."
+                : "Open a chapter, a problem or a pattern and use \u201cAdd a note\u201d. Whatever you write there collects here."
             }
             action={
               !query ? (
@@ -67,31 +68,17 @@ export default async function NotesPage({
       ) : (
         <ul className="mt-6 space-y-3">
           {notes.map((note) => (
-            <li
+            <NoteCard
               key={note.id}
-              className="border-border bg-card rounded-lg border p-4"
-            >
-              <Link
-                href={route(note.href)}
-                className="text-muted-foreground hover:text-ember-300 text-xs transition-colors"
-              >
-                {note.title}
-                {note.subtitle ? ` · ${note.subtitle}` : ""}
-              </Link>
-              <p className="text-foreground mt-2 text-sm leading-relaxed whitespace-pre-wrap">
-                {note.body}
-              </p>
-              <time
-                dateTime={note.updatedAt.toISOString()}
-                className="text-muted-foreground/70 mt-2 block text-[0.68rem]"
-              >
-                {note.updatedAt.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </time>
-            </li>
+              id={note.id}
+              href={note.href}
+              title={note.title}
+              subtitle={note.subtitle}
+              body={note.body}
+              // Serialized: a Date cannot cross the server/client boundary
+              // as a prop without being turned back into one anyway.
+              updatedAt={note.updatedAt.toISOString()}
+            />
           ))}
         </ul>
       )}

@@ -98,3 +98,41 @@ export async function requireAdmin(): Promise<CurrentUser> {
   if (user.role !== "ADMIN") forbidden();
   return user;
 }
+
+/**
+ * The same boundary, for a server action.
+ *
+ * `requireAdmin` redirects, which is right for a page and wrong for an
+ * action: a redirect from an action is a 200 the client reads as success.
+ * This throws the interrupt instead, so an action invoked directly — by
+ * anyone who knows its id, with no page render in front of it — returns a
+ * real 401 or 403.
+ *
+ * Every admin action calls this. A layout check is not an action check.
+ */
+export async function requireAdminOrThrow(): Promise<CurrentUser> {
+  const user = await getCurrentUser();
+  if (!user) unauthorized();
+  if (user.role !== "ADMIN") forbidden();
+  return user;
+}
+
+/**
+ * The signed-in learner's reduced-motion preference.
+ *
+ * Its own function, and cached, because the root layout needs it on every
+ * request and must not pull the whole user row to get one boolean. False
+ * for a signed-out visitor — the OS media query still applies to them,
+ * and it applies to everyone.
+ */
+export const getMotionPreference = cache(async function getMotionPreference(): Promise<boolean> {
+  const session = await auth();
+  const id = session?.user?.id;
+  if (!id) return false;
+
+  const profile = await prisma.profile.findUnique({
+    where: { userId: id },
+    select: { reducedMotion: true },
+  });
+  return profile?.reducedMotion ?? false;
+});

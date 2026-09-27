@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { closeDb, tutorMessageCountFor, tutorUsageFor } from "./db";
+import { finishSignup } from "./helpers";
 
 /**
  * The AI tutor, end to end.
@@ -36,7 +37,7 @@ async function signUpAsLearner(page: Page, tag: string): Promise<string> {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL("**/dashboard", { timeout: 30_000 });
+  await finishSignup(page);
   // Authorization is resolved per request from the database, never from the
   // JWT, so a reload is enough to see the signed-in surface.
   await page.reload();

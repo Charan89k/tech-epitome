@@ -3,6 +3,7 @@ import { CommandPaletteProvider } from "@/components/layout/command-palette";
 import { TopBar } from "@/components/layout/top-bar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getCurrentUser } from "@/lib/auth/session";
+import { unreadCount } from "@/services/notifications";
 import { getStreak } from "@/services/progress";
 
 /**
@@ -17,7 +18,10 @@ import { getStreak } from "@/services/progress";
  */
 export default async function ShellLayout({ children }: LayoutProps<"/">) {
   const user = await getCurrentUser();
-  const streak = user ? await getStreak(user.id) : 0;
+  // Two small per-user reads, in parallel, only when there is a user.
+  const [streak, unread] = user
+    ? await Promise.all([getStreak(user.id), unreadCount(user.id)])
+    : [0, 0];
 
   return (
     <SidebarProvider>
@@ -39,6 +43,7 @@ export default async function ShellLayout({ children }: LayoutProps<"/">) {
                 : null
             }
             streak={streak}
+            unreadNotifications={unread}
           />
           <div id="main" className="min-w-0 flex-1">
             {children}

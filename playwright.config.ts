@@ -23,6 +23,12 @@ export default defineConfig({
   workers: process.env.CI ? 1 : 3,
   reporter: process.env.CI ? "github" : "list",
 
+  // The default 30s is for a page test. These are journeys: each one
+  // registers an account, and several stream from a model or run code in
+  // a sandbox. Under three workers competing for the same dev server, a
+  // slow-but-correct run was failing on the clock rather than on a bug.
+  timeout: 60_000,
+
   use: {
     baseURL,
     trace: "on-first-retry",

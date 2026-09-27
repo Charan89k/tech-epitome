@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { finishSignup } from "./helpers";
 
 /**
  * The account flow, which every other flow depends on.
@@ -13,7 +14,7 @@ function uniqueEmail(tag: string): string {
 
 const PASSWORD = "forge-e2e-password";
 
-test("a visitor can sign up and lands on the dashboard", async ({ page }) => {
+test("a visitor can sign up, and lands in onboarding first", async ({ page }) => {
   await page.goto("/signup");
 
   await page.getByLabel("Name").fill("E2E Learner");
@@ -21,10 +22,32 @@ test("a visitor can sign up and lands on the dashboard", async ({ page }) => {
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
 
-  await page.waitForURL("**/dashboard", { timeout: 30_000 });
+  // A brand-new account goes to onboarding, not straight to the dashboard.
+  await page.waitForURL(/\/onboarding$/, { timeout: 30_000 });
+  await expect(
+    page.getByRole("heading", { name: "Before you start" })
+  ).toBeVisible();
+
+  // Every question is optional, and skipping reaches the dashboard.
+  await page.getByRole("button", { name: "Skip" }).click();
+  await page.waitForURL(/\/dashboard$/, { timeout: 30_000 });
   await expect(
     page.getByRole("heading", { name: /Good (morning|afternoon|evening)/ })
   ).toBeVisible();
+});
+
+test("signing up on the way somewhere lands there, not in onboarding", async ({
+  page,
+}) => {
+  // "Sign up to save this note" must not lose the thing they wanted.
+  await page.goto("/signup?next=%2Fproblems");
+
+  await page.getByLabel("Name").fill("E2E Learner");
+  await page.getByLabel("Email").fill(uniqueEmail("signup-next"));
+  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Create account" }).click();
+
+  await page.waitForURL(/\/problems$/, { timeout: 30_000 });
 });
 
 test("signing up then out then back in returns the same account", async ({
@@ -37,7 +60,7 @@ test("signing up then out then back in returns the same account", async ({
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL("**/dashboard", { timeout: 30_000 });
+  await finishSignup(page);
 
   await page.getByRole("button", { name: "Account menu" }).click();
   await page.getByRole("menuitem", { name: "Sign out" }).click();
@@ -48,7 +71,7 @@ test("signing up then out then back in returns the same account", async ({
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Sign in" }).click();
 
-  await page.waitForURL("**/dashboard", { timeout: 30_000 });
+  await finishSignup(page);
   await expect(
     page.getByRole("heading", { level: 1, name: /Round$/ })
   ).toBeVisible();
@@ -64,7 +87,7 @@ test("a wrong password is rejected without revealing whether the email exists", 
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL("**/dashboard", { timeout: 30_000 });
+  await finishSignup(page);
 
   await page.getByRole("button", { name: "Account menu" }).click();
   await page.getByRole("menuitem", { name: "Sign out" }).click();
@@ -98,7 +121,7 @@ test("signing up with an already registered email is refused", async ({ page }) 
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL("**/dashboard", { timeout: 30_000 });
+  await finishSignup(page);
 
   await page.getByRole("button", { name: "Account menu" }).click();
   await page.getByRole("menuitem", { name: "Sign out" }).click();
@@ -126,7 +149,7 @@ test("a protected page redirects to login and returns after signing in", async (
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL("**/dashboard", { timeout: 30_000 });
+  await finishSignup(page);
 
   await page.getByRole("button", { name: "Account menu" }).click();
   await page.getByRole("menuitem", { name: "Sign out" }).click();

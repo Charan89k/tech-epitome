@@ -406,6 +406,50 @@ will invent the two it was not given, which is how "code quality: not
 demonstrated" ends up on a behavioural interview. The prompt names this
 type's dimensions and says "and no others".
 
+### Admin
+
+`/admin` is guarded by `requireAdmin` in its layout, which runs before every
+page beneath it — one boundary rather than five that must all remember. It
+`forbidden()`s a signed-in non-admin rather than 404ing: the route's
+existence is not a secret, and pretending otherwise makes a permissions
+problem look like a dead link. Server actions call `requireAdminOrThrow`
+separately, because an action is an endpoint with no page render in front of
+it and a layout check is not an action check.
+
+**Every mutation writes an audit row in the same transaction as the change**,
+so there is no ordering in which something lands unrecorded. `audit_logs` has
+no foreign key to `users` on purpose — deleting an admin must not erase the
+record of what they did, so the actor's id and email are denormalised at
+write time.
+
+Admin is a role. It is not, and must never become, a paid plan.
+
+### Notifications
+
+In-app only. **CodeForge sends no email** — there is no mailer and none is
+planned, so there is no toggle promising one.
+
+Preferences are checked **on write**, not on read: a learner who turns a kind
+off does not accumulate a hidden backlog that all appears if they turn it
+back on. `href` is rejected unless it is a path on this site, because a
+notification is rendered as a link and an absolute URL there would be an open
+redirect wearing the product's own chrome. Account and security notices are
+not a preference.
+
+Interview and milestone notifications are produced by the code that just did
+the thing. Review reminders need a scheduler — see
+[Known limitations](#known-limitations).
+
+### Onboarding
+
+Five optional questions after signup, with a genuine skip that writes only
+`onboardedAt`. Every answer column is nullable, because a default would
+record an answer nobody gave, and every screen that reads one shows nothing
+rather than a placeholder when it is null. None of them gate anything.
+
+Signing up with a `?next=` skips onboarding and goes where the visitor was
+headed — "sign up to save this note" must not lose the note.
+
 ### Interview preparation
 
 `/prepare` holds preparation plans for the shapes interview loops come in.
@@ -456,6 +500,7 @@ list.
 | `AI_PROVIDER` | no | `ollama` (default), `anthropic`, or `mock` (tests only; rejected in production) |
 | `AI_API_KEY` | conditional | Required when `AI_PROVIDER=anthropic` |
 | `CODE_EXECUTION_DRIVER` | no | `local` \| `docker` \| `remote` |
+| `CRON_SECRET` | no | Shared secret for `POST /api/cron/notifications`. Unset means the route refuses everything and no review reminders are sent |
 | `DATABASE_POOL_MAX` | no | Defaults to 10 |
 
 ---
@@ -580,10 +625,11 @@ no local Ollama.**
 These are real and currently true. None of them are hidden behind a
 "coming soon" label in the product.
 
-1. **Rate limiting is per-process.** The default store is in-memory, so it is
-   a real control on a single instance and only a speed bump across several.
-   Implement `RateLimitStore` against Redis and call `setRateLimitStore`
-   before running more than one instance.
+1. **Rate limiting is per-process.** The default store is in-memory, so it
+   is a real control on a single instance and only a speed bump across
+   several. `setRateLimitStore` is the swap point; no Redis adapter ships.
+   Implement `RateLimitStore` against Redis and call it at startup before
+   running more than one instance.
 2. **`experimental.authInterrupts` is enabled** so `unauthorized()` and
    `forbidden()` return real 401/403 responses. Still flagged experimental in
    Next 16.x.
@@ -619,64 +665,88 @@ These are real and currently true. None of them are hidden behind a
 9. **No mistake-specific review prompts.** A problem card states how many
    hints were opened, but does not quote the failing submission. Doing that
    properly means parsing test results per card, which is a query per item.
-10. **Notes and highlights are readable but not yet writable.** The models,
-    the list pages and the search exist; the editor for creating one does not.
-11. **`npm audit` reports 4 high advisories in `mysql2`**, a transitive
+10. **Highlights are a model with no feature behind them.** The
+    `Highlight` table is designed — block index, offsets, quote, colour,
+    with anchor repair in mind — and nothing reads or writes it. Notes
+    and bookmarks are complete (write, edit, delete, per-user scoping);
+    text highlighting is not built. The table is left in place because
+    the design is the hard part and dropping it would lose it, but
+    nothing in the product implies the feature exists.
+11. **Review reminders need a scheduler.** CodeForge has no background
+    worker, so `POST /api/cron/notifications` is an endpoint for whatever
+    scheduler the deployment already has, authenticated with `CRON_SECRET`
+    and comparing it in constant time. With the variable unset the route
+    refuses every request — an unauthenticated endpoint that enumerates
+    users is worse than a switched-off feature — so **no review reminders
+    are sent until a scheduler is pointed at it**. The settings toggle
+    says so in those words. Interview and milestone notifications need no
+    scheduler and work today.
+12. **CodeForge sends no email, at all.** There is no mailer, no provider
+    and no template. Notifications are in-app only. An earlier "weekly
+    progress email" toggle saved a boolean that nothing could ever act
+    on; it has been removed rather than left as a promise.
+13. **Admin content management edits publication state and nothing else.**
+    An admin can publish, unpublish and archive any of the six content
+    types, and every change writes an audit row in the same transaction.
+    Bodies are validated block documents authored in `src/data/`; a
+    textarea that let arbitrary JSON into them would be a worse tool than
+    the seed it replaced, so it is deliberately absent.
+14. **`npm audit` reports 4 high advisories in `mysql2`**, a transitive
     development dependency of the Prisma CLI. This project uses PostgreSQL;
     `mysql2` is never loaded at runtime and is not in the production bundle.
-12. **Google OAuth is untested** — no credentials were available. The code
+15. **Google OAuth is untested** — no credentials were available. The code
     path is present and the button is hidden unless both variables are set.
-13. **Policy compliance is instructed, not enforced.** The Socratic rules and
+16. **Policy compliance is instructed, not enforced.** The Socratic rules and
     the escalation rung are pinned by unit tests, and one rung-1 hint from a
     real local model (`qwen2.5:3b`, through the full stack) came back
     conceptual, code-free and ending in a question — as intended. But a
     prompt is a request, not a constraint: no test can prove a model will
     always obey it, and a stronger model may behave differently. Treat the
     ladder as a strong default, not a guarantee.
-14. **Anthropic is unverified at runtime** — still no API key. The adapter is
+17. **Anthropic is unverified at runtime** — still no API key. The adapter is
     exercised through its error paths only, and is unchanged from Phase 2.
     Ollama is verified end to end through the same interface.
-15. **`qwen2.5:14b` is unusably slow on this machine.** The configured
+18. **`qwen2.5:14b` is unusably slow on this machine.** The configured
     default takes over five minutes for a single tutor turn on CPU, so the
     live check used `qwen2.5:3b` (~60s). Nothing is wrong with the adapter;
     the box cannot run a 14B model interactively. Set `OLLAMA_MODEL` to
     something smaller for local development, or use Anthropic.
-16. **Test files run serially.** `fileParallelism: false` in
+19. **Test files run serially.** `fileParallelism: false` in
     `vitest.config.mts`, because a fourth database-backed suite pushed the
     PGlite stand-in past the concurrency it can serve (see limitation 4).
     Costs ~24s on the full suite. `VITEST_FILE_PARALLELISM=true` restores
     parallelism against real PostgreSQL.
-17. **Tutor conversations are never pruned.** Threads and messages
+20. **Tutor conversations are never pruned.** Threads and messages
     accumulate for the life of the account; there is no archive, no delete
     and no retention policy. "New chat" starts a thread, it does not remove
     the old one. Fine at current scale, not a position to hold forever.
-18. **LLD code is written but not executed.** The workspace has Monaco
+21. **LLD code is written but not executed.** The workspace has Monaco
     and stores the learner's implementation alongside their diagram, but
     it does not compile or run it: the LLD exercises are design
     exercises, graded on structure, and none of them ships test cases.
     The existing execution abstraction is untouched and still powers DSA
     submissions. Wiring LLD code to it needs per-exercise tests that do
     not exist yet.
-19. **3 LLD exercises seeded, not the 12 listed as examples.** Parking
+22. **3 LLD exercises seeded, not the 12 listed as examples.** Parking
     Garage, Vending Machine and Event Logger, chosen to cover Strategy,
     State and composition respectively. The authoring format takes the
     rest without schema changes.
-20. **Class-diagram layout is tiered, not free-form.** Supertypes above
+23. **Class-diagram layout is tiered, not free-form.** Supertypes above
     subtypes, deterministic. Deliberate — it works on a phone and makes
     designs comparable — but an arbitrary topology cannot be expressed.
-21. **RESOLVED.** The Phase 6 "two tutor composers" flake was reproduced
+24. **RESOLVED.** The Phase 6 "two tutor composers" flake was reproduced
     in Phase 9 as a general pattern: under parallel load the Next dev
     server leaves a hidden prerender copy of a page in the DOM, so an
     unscoped `getByTestId` intermittently matches twice. Test locators
     for in-page content are now scoped to `main`. It affects the dev
     server only — the production build does not do this — so it was
     always a test-harness artefact rather than a product defect.
-22. **Interview feedback is AI-generated and labelled as such.** It is a
+25. **Interview feedback is AI-generated and labelled as such.** It is a
     language model reading a transcript. Every judgement carries evidence
     so it can be disagreed with, and there is deliberately no composite
     score, no percentage and no hire recommendation. It is not equivalent
     to a real interview and the UI says so.
-23. **Preparation tracks name no employer, on purpose.** CodeForge has
+26. **Preparation tracks name no employer, on purpose.** CodeForge has
     no sourced, dated, attributable record of what any company asks in
     an interview. Shipping "prepare for <company>" would have meant
     inventing the provenance the schema requires, producing something
@@ -687,16 +757,16 @@ These are real and currently true. None of them are hidden behind a
     recommendation. The provenance columns are kept precisely so that a
     real citation has somewhere honest to go; only then would naming an
     employer be defensible. A test fails if any employer is named.
-24. **Behavioural difficulty is not modelled.** "Tell me about a
+27. **Behavioural difficulty is not modelled.** "Tell me about a
     conflict" is not harder at senior level; the follow-ups are. The
     start form hides the difficulty control for that type rather than
     offering one that does nothing.
-25. **There is no billing** — see limitation 3. As of the free
+28. **There is no billing** — see limitation 3. As of the free
     refactor this is a product decision rather than unfinished work:
     the `Subscription` model, the `AccessTier` column on every content
     table, the `STRIPE_*` variables and the pricing page have all been
     removed, and `/pricing` permanently redirects to `/features`.
-26. **`notFound()` after streaming returns HTTP 200.** Next commits the
+29. **`notFound()` after streaming returns HTTP 200.** Next commits the
     status when it starts streaming the shell, so a page that calls
     `notFound()` later renders the not-found UI under a 200. Verified
     that no data leaks — a non-owner sees the not-found page — but the

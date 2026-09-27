@@ -14,7 +14,10 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { BookmarkButton } from "@/components/library/bookmark-button";
+import { NoteEditor } from "@/components/library/note-editor";
 import { getCurrentUser } from "@/lib/auth/session";
+import { getNoteFor, isBookmarked } from "@/services/library";
 import { LANGUAGE_LABEL } from "@/lib/code-execution/signature";
 import { chapterHref } from "@/lib/tracks";
 import { route } from "@/lib/utils";
@@ -43,6 +46,21 @@ export default async function PatternPage({
 
   if (!pattern) notFound();
 
+  const [bookmarked, note] = user
+    ? await Promise.all([
+        isBookmarked({
+          userId: user.id,
+          entityType: "PATTERN",
+          entityId: pattern.id,
+        }),
+        getNoteFor({
+          userId: user.id,
+          entityType: "PATTERN",
+          entityId: pattern.id,
+        }),
+      ])
+    : [false, null];
+
   const templateLanguages = Object.keys(pattern.templateCode);
 
   return (
@@ -67,6 +85,15 @@ export default async function PatternPage({
             {pattern.name}
           </h1>
           <DifficultyBadge difficulty={pattern.difficulty} />
+          <div className="ml-auto">
+            <BookmarkButton
+              entityType="PATTERN"
+              entityId={pattern.id}
+              initiallyBookmarked={bookmarked}
+              signedIn={Boolean(user)}
+              variant="outline"
+            />
+          </div>
         </div>
         <p className="text-muted-foreground mt-2 text-base leading-relaxed text-pretty">
           {pattern.tagline}
@@ -229,6 +256,14 @@ export default async function PatternPage({
           title={`Problems using ${pattern.name}`}
         />
       )}
+      <div className="mt-10">
+        <NoteEditor
+          entityType="PATTERN"
+          entityId={pattern.id}
+          initialBody={note?.body ?? ""}
+          signedIn={Boolean(user)}
+        />
+      </div>
     </div>
   );
 }

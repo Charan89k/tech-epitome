@@ -161,6 +161,78 @@ export function dueAtMs(row: ReviewItemRow): number {
   return Date.parse(row.dueAtIso);
 }
 
+/**
+ * Grants an account the ADMIN role.
+ *
+ * The only thing in the suite that cannot be reached through the UI:
+ * promotion requires an existing admin, and bootstrapping one through the
+ * browser would mean signing in as the seeded admin, whose password is a
+ * development default. Writing the role directly keeps the test honest
+ * about what it is doing rather than hiding it behind a fixture login.
+ */
+export async function makeAdmin(email: string): Promise<void> {
+  const userId = await userIdFor(email);
+  await withRetry(() =>
+    pool().query(`UPDATE users SET role = 'ADMIN' WHERE id = $1`, [userId])
+  );
+}
+
+/**
+ * Inserts a throwaway DRAFT problem and returns its id.
+ *
+ * The admin content test has to publish and unpublish something. Doing
+ * that to a seeded problem hides content other specs are reading, which
+ * under parallel workers turns into a 404 in an unrelated test — so it
+ * gets its own row, invisible to everything else because it starts as a
+ * draft and is deleted afterwards.
+ */
+export async function createDraftProblem(tag: string): Promise<{
+  id: string;
+  title: string;
+}> {
+  const title = `E2E throwaway ${tag}`;
+  const slug = `e2e-throwaway-${tag}`;
+  // Numbered far above the seeded catalogue so it sorts last and cannot
+  // collide with a real problem's number.
+  const number = 900_000 + Math.floor(Math.random() * 90_000);
+
+  const result = await withRetry(() =>
+    pool().query<{ id: string }>(
+      `INSERT INTO problems (id, slug, number, title, statement, difficulty, status, "createdAt", "updatedAt")
+            VALUES ($1, $2, $3, $4, '[]'::jsonb, 'EASY', 'DRAFT', now(), now())
+         RETURNING id`,
+      [`e2e-prob-${tag}`, slug, number, title]
+    )
+  );
+
+  return { id: result.rows[0]!.id, title };
+}
+
+export async function deleteDraftProblem(id: string): Promise<void> {
+  await withRetry(() => pool().query(`DELETE FROM problems WHERE id = $1`, [id]));
+}
+
+export async function problemStatusFor(id: string): Promise<string | null> {
+  const result = await withRetry(() =>
+    pool().query<{ status: string }>(`SELECT status FROM problems WHERE id = $1`, [id])
+  );
+  return result.rows[0]?.status ?? null;
+}
+
+/** How many unread notifications an account has. */
+export async function unreadNotificationsFor(email: string): Promise<number> {
+  const userId = await userIdFor(email);
+  const result = await withRetry(() =>
+    pool().query<{ count: string }>(
+      `SELECT count(*)::text AS count
+         FROM notifications
+        WHERE "userId" = $1 AND "readAt" IS NULL`,
+      [userId]
+    )
+  );
+  return Number(result.rows[0]?.count ?? 0);
+}
+
 /** How many tutor messages a learner has, for asserting persistence. */
 export async function tutorMessageCountFor(email: string): Promise<number> {
   const userId = await userIdFor(email);

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Lock } from "lucide-react";
+import { LogIn } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
 import {
@@ -18,7 +18,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { canAccess } from "@/lib/auth/access";
+import { canAccess, FEATURES } from "@/lib/auth/access";
 import { isNavItemActive, primaryNav } from "@/lib/navigation";
 import { cn, route } from "@/lib/utils";
 
@@ -45,66 +45,82 @@ export function AppSidebar({ user }: AppSidebarProps) {
       </SidebarHeader>
 
       <SidebarContent className="gap-0">
-        {primaryNav.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel className="text-muted-foreground/70 text-[0.68rem] font-medium tracking-wider uppercase">
-              {group.label}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items.map((item) => {
-                  const active = isNavItemActive(item, pathname);
-                  const locked = item.feature
-                    ? !canAccess(user, item.feature)
-                    : false;
+        {primaryNav.map((group) => {
+          // Staff surfaces are omitted for everyone else rather than shown
+          // locked: a learner has no route to becoming an admin, so an
+          // "Admin" row they can never open is a dead end. Everything else
+          // stays visible — the rule is that nothing in the navigation is
+          // a dead end, and "sign in" is a next step.
+          const items = group.items.filter(
+            (item) => item.feature !== FEATURES.ADMIN || canAccess(user, item.feature)
+          );
+          if (items.length === 0) return null;
 
-                  const button = (
-                    <SidebarMenuButton
-                      asChild
-                      isActive={active}
-                      tooltip={item.title}
-                      className={cn(
-                        "gap-2.5",
-                        active &&
-                          "text-sidebar-accent-foreground font-medium"
-                      )}
-                    >
-                      <Link href={route(item.href)}>
-                        <item.icon
-                          className={cn(
-                            "size-4 shrink-0",
-                            active ? "text-ember-500" : "text-muted-foreground"
-                          )}
-                        />
-                        <span className="truncate">{item.title}</span>
-                        {locked && (
-                          <Lock className="text-muted-foreground/60 ml-auto size-3 shrink-0" />
+          return (
+            <SidebarGroup key={group.label}>
+              <SidebarGroupLabel className="text-[0.68rem] font-medium tracking-wider text-muted-foreground/70 uppercase">
+                {group.label}
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {items.map((item) => {
+                    const active = isNavItemActive(item, pathname);
+                    // The only remaining reason to withhold anything is that
+                    // there is no account. CodeForge is free; there is no
+                    // upgrade branch here and there must never be one again.
+                    const needsAccount = item.feature
+                      ? !canAccess(user, item.feature)
+                      : false;
+
+                    const button = (
+                      <SidebarMenuButton
+                        asChild
+                        isActive={active}
+                        tooltip={item.title}
+                        className={cn(
+                          "gap-2.5",
+                          active && "font-medium text-sidebar-accent-foreground"
                         )}
-                      </Link>
-                    </SidebarMenuButton>
-                  );
+                      >
+                        <Link href={route(item.href)}>
+                          <item.icon
+                            className={cn(
+                              "size-4 shrink-0",
+                              active ? "text-ember-500" : "text-muted-foreground"
+                            )}
+                          />
+                          <span className="truncate">{item.title}</span>
+                          {needsAccount && (
+                            <LogIn
+                              className="ml-auto size-3 shrink-0 text-muted-foreground/60"
+                              aria-label="Sign in required"
+                            />
+                          )}
+                        </Link>
+                      </SidebarMenuButton>
+                    );
 
-                  return (
-                    <SidebarMenuItem key={item.href}>
-                      {locked ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>{button}</TooltipTrigger>
-                          <TooltipContent side="right">
-                            Included with Pro
-                          </TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        button
-                      )}
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+                    return (
+                      <SidebarMenuItem key={item.href}>
+                        {needsAccount ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>{button}</TooltipTrigger>
+                            <TooltipContent side="right">
+                              Sign in to use this — it is free
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          button
+                        )}
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          );
+        })}
       </SidebarContent>
-
 
       <SidebarRail />
     </Sidebar>

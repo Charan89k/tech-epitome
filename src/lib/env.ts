@@ -51,6 +51,14 @@ const serverSchema = z.object({
   CODE_EXECUTION_API_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
 
 
+  /**
+   * Shared secret for `/api/cron/notifications`. Unset means the route
+   * refuses every request — an unauthenticated endpoint that enumerates
+   * users is worse than a switched-off feature — so review reminders are
+   * simply not sent until a scheduler and this secret are configured.
+   */
+  CRON_SECRET: z.preprocess(emptyToUndefined, z.string().min(24).optional()),
+
   SEED_ADMIN_EMAIL: z.string().email().default("admin@codeforge.local"),
   SEED_ADMIN_PASSWORD: z.string().min(8).default("forge-admin-dev"),
   SEED_DEMO_EMAIL: z.string().email().default("demo@codeforge.local"),
