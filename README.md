@@ -585,7 +585,7 @@ fails on any commercial phrasing or any link pointing at a paywall. It
 also asserts `/api/checkout`, `/api/billing`, `/api/stripe`,
 `/api/webhooks/stripe` and `/api/subscription` all 404.
 
-610 unit and integration tests; 194 end-to-end tests across desktop and
+610 unit and integration tests; 212 end-to-end tests across desktop and
 mobile viewports, plus one that runs against a production build to check
 the CSP.
 
