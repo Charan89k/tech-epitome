@@ -30,18 +30,18 @@ See → Understand → Recognise → Attempt → Struggle → Hint
 | 6 | AI tutor: Socratic tutoring in chapter, problem and code context | **Complete, verified** |
 | 7 | System Design: curriculum, diagram engine, design workspace, AI review | **Complete, verified** |
 | 8 | Low-Level Design: curriculum, class-diagram engine, design workspace, AI review | **Complete, verified** |
-| 9 | Mock interviews: DSA interviewer, server-owned state machine, banded feedback | **Partial** — see below |
-| 10 | Admin, content management, production hardening | Not started |
+| 9 | Mock interviews: four interviewers, server-owned state machines, banded feedback, preparation tracks | **Complete, verified** |
+| 10 | Admin, content management, production hardening | In progress — see below |
 
-**Phase 9 is partial and the table says so.** What is implemented and
-verified: DSA mock interviews end to end — session creation, an AI
-interviewer whose stage machine lives on the server, transcript
-persistence, and written feedback with per-dimension bands and evidence
-from the transcript. What is **not** implemented: behavioural
-interviews, company preparation, and the System Design / LLD interview
-types. Those models exist in the schema from Phase 1 and carry no
-implementation; the UI does not offer them and the service refuses to
-create them rather than opening a session that cannot be conducted.
+**Phase 9 covers four interviews, not one.** DSA, behavioural, system
+design and low-level design each own a state machine in
+`src/lib/interview/types.ts`: its own stages, its own legal transitions,
+its own editor stages, and its own feedback dimensions. The stage lives
+on the session row and the client never sends it.
+
+Preparation tracks (`/prepare`) describe the *shapes* interview loops
+come in rather than naming employers. That is a deliberate limit, not an
+omission — see [Known limitations](#known-limitations).
 
 Navigation only ever lists routes that exist. A section absent from the
 sidebar has not shipped yet — there are no "coming soon" buttons.
@@ -85,10 +85,24 @@ observations, never a score. **The reference design, the reference
 implementation and every unopened hint are withheld by the service**
 until the learner submits.
 
+Phase 9 adds mock interviews: four interviewers — coding, behavioural,
+system design and low-level design — each with its own server-owned
+state machine, its own transcript, and written feedback assessed on the
+dimensions that interview can actually produce evidence for. An
+interviewer asks rather than teaches: it will not correct a mistake as
+it happens, and it never holds the answer to the brief it set.
+`/prepare` lays out preparation plans for the shapes interview loops
+come in, with the source, confidence and reason printed beside every
+recommendation.
+
 Seeded content, all original: **3 courses, 22 sections, 53 chapters, 20
 patterns, 50 problems** (377 test cases, 200 hints, 56 solutions), **15
 quizzes**, **6 interactive visualizations**, **3 system-design
-exercises** and **3 LLD exercises**.
+exercises**, **3 LLD exercises**, **16 behavioural questions** across 8
+categories, and **3 preparation tracks**.
+
+Every one of those is free. There is no paid tier — see
+[Authorization](#authorization).
 
 ---
 
@@ -360,6 +374,45 @@ tools, no database access of its own, and nothing in its context worth
 extracting. **Only the hints a learner has already unlocked are loaded**, so
 the model cannot hand back hint 4 on the first ask.
 
+### Mock interviews
+
+Four interviews, four state machines, one table. `MACHINES` in
+`src/lib/interview/types.ts` gives each type its stage order, its legal
+transitions, whether an editor appears, and the dimensions its feedback is
+written against:
+
+| Type | Stages |
+|---|---|
+| DSA | intro → clarifying → approach → solving → testing → complexity → follow-up → wrap-up |
+| Behavioural | intro → question → probing → follow-up → wrap-up |
+| System design | intro → clarifying → estimation → high-level → deep dive → scaling → trade-offs → wrap-up |
+| Low-level design | intro → clarifying → domain model → class design → principles → extensibility → trade-offs → wrap-up |
+
+**The stage is server-owned and the client never sends it.** The browser
+posts what the candidate said; the server reads the stored stage, derives
+the turn from it, and returns the stage the interview is now in. An E2E
+test posts a forged `stage` and `requestType` and asserts the server
+ignores both.
+
+**No interviewer holds its own answer.** `BRIEF_SELECT` in
+`services/interview.ts` is the single place that decides what the
+interviewer may see, and it omits the DSA solution and hidden tests, the
+reference architecture, the reference class diagram and code, and the
+behavioural rubric. `loadFeedbackContext` is the only path that loads any
+of it, and it refuses unless the session reached `ENDED`.
+
+**Feedback dimensions are per-type.** A model asked for eight dimensions
+will invent the two it was not given, which is how "code quality: not
+demonstrated" ends up on a behavioural interview. The prompt names this
+type's dimensions and says "and no others".
+
+### Interview preparation
+
+`/prepare` holds preparation plans for the shapes interview loops come in.
+It deliberately does **not** name employers — see
+[Known limitations](#known-limitations) for why, and for the provenance
+rule every recommendation carries.
+
 ### Visualizations
 
 Each visualization is a pure function from an input to a list of frames, plus
@@ -477,10 +530,26 @@ Six integration suites execute real code against real runtimes:
   loaded, that autosave cannot rewind the counter, and that neither the
   reference design nor an unopened hint reaches the AI reviewer.
 - `services/interview.integration.test.ts` covers session ownership and
-  the reference boundary: that the interviewer is never given the
-  solution while the interview is running, that `loadFeedbackContext`
-  refuses until it has ended, and that every write scoped to another
-  candidate's session is a no-op rather than a leak.
+  the reference boundary for all four interview types: that no
+  interviewer is given its own answer while the interview is running —
+  the DSA solution, the reference architecture, the reference class
+  design, or the behavioural rubric — that `loadFeedbackContext` refuses
+  until the session has ended, and that every write scoped to another
+  candidate's session is a no-op rather than a leak. The LLD case is
+  checked by content as well as by key name: every line of the reference
+  implementation is searched for in the serialized context, because a
+  reference that arrived flattened into the brief would pass a key check.
+- `services/prep.integration.test.ts` covers the provenance rule: no
+  recommendation without a source, a confidence, a date and a reason,
+  and a failing test if any employer is ever named in published track
+  content.
+
+`lib/interview/interview.test.ts` tests the four state machines as
+machines. Two assertions there are worth more than the rest: every
+machine is walked to a fixed point and fails if any stage in its own
+stepper is unreachable — which is how the dead `APPROACH` and `WRAP_UP`
+steps were found — and no machine may declare a transition out of a
+stage belonging to a different interview type.
 
 The tutor's own rules — the escalation ladder, the refusal to dump a
 solution, the fencing of untrusted content, and the context budgets — are
@@ -607,12 +676,21 @@ These are real and currently true. None of them are hidden behind a
     so it can be disagreed with, and there is deliberately no composite
     score, no percentage and no hire recommendation. It is not equivalent
     to a real interview and the UI says so.
-23. **Only DSA interviews exist.** `createInterview` refuses the other
-    three types rather than opening a session no interviewer can conduct.
-24. **No admin area exists yet.** `requireAdmin` and `FEATURES.ADMIN`
-    are present from Phase 1 and unused; there is no `/admin` route and
-    no admin-only query. There is therefore nothing for an ordinary user
-    to bypass — but equally, none of Phase 10's admin work is done.
+23. **Preparation tracks name no employer, on purpose.** CodeForge has
+    no sourced, dated, attributable record of what any company asks in
+    an interview. Shipping "prepare for <company>" would have meant
+    inventing the provenance the schema requires, producing something
+    that looks authoritative and is not. What `/prepare` describes
+    instead is the shape a loop comes in — generalist, startup
+    full-stack, infrastructure — as CodeForge's own editorial judgement,
+    with the source, confidence and date printed next to every
+    recommendation. The provenance columns are kept precisely so that a
+    real citation has somewhere honest to go; only then would naming an
+    employer be defensible. A test fails if any employer is named.
+24. **Behavioural difficulty is not modelled.** "Tell me about a
+    conflict" is not harder at senior level; the follow-ups are. The
+    start form hides the difficulty control for that type rather than
+    offering one that does nothing.
 25. **There is no billing** — see limitation 3. As of the free
     refactor this is a product decision rather than unfinished work:
     the `Subscription` model, the `AccessTier` column on every content
