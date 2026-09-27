@@ -52,12 +52,26 @@ async function signUpAsLearner(page: Page, tag: string): Promise<string> {
  * composer the instant `goto` resolves races that swap. Asserting the
  * panel is up first is what the learner does anyway.
  */
+/**
+ * The tutor's composer, filtered to the visible one.
+ *
+ * Under parallel load the dev server can leave a hidden prerender copy
+ * of the page mounted, giving two matches where there is only ever one
+ * real composer. The usual fix — scoping to `main` — does not work here:
+ * the panel renders in a Radix portal outside it. Filtering to visible
+ * is precise rather than lenient, since a hidden textarea is not
+ * something a learner could type into.
+ */
+function tutorComposer(page: Page) {
+  return page.getByLabel("Message the tutor").filter({ visible: true });
+}
+
 async function openTutorPage(page: Page) {
   await page.goto("/ai-tutor");
   await expect(
     page.getByRole("heading", { name: "AI Tutor", exact: true })
   ).toBeVisible();
-  await expect(page.getByLabel("Message the tutor")).toBeVisible();
+  await expect(tutorComposer(page)).toBeVisible();
 }
 
 async function openTutor(page: Page) {
@@ -152,7 +166,7 @@ test("chapter tutor: shows chapter context and streams an answer", async ({
   await expect(page.getByText("Currently studying")).toBeVisible();
   await expect(page.getByText(CHAPTER_TITLE).last()).toBeVisible();
 
-  await page.getByLabel("Message the tutor").fill("Why does this matter?");
+  await tutorComposer(page).fill("Why does this matter?");
   await page.getByRole("button", { name: "Send message" }).click();
 
   const transcript = page.getByTestId("tutor-transcript");
@@ -283,7 +297,7 @@ test("a learner cannot reach another learner's tutor conversation", async ({
   // Alice holds a conversation.
   const alice = await signUpAsLearner(page, "alice");
   await openTutorPage(page);
-  await page.getByLabel("Message the tutor").fill("alice's private question");
+  await tutorComposer(page).fill("alice's private question");
   await page.getByRole("button", { name: "Send message" }).click();
   await expect(
     page.getByTestId("tutor-transcript").getByText(/Request type:/)
@@ -361,7 +375,7 @@ test("the tutor works on a phone without overflowing", async ({ page }) => {
   await signUpAsLearner(page, "mobile");
   await openTutorPage(page);
 
-  await page.getByLabel("Message the tutor").fill("How do I start?");
+  await tutorComposer(page).fill("How do I start?");
   await page.getByRole("button", { name: "Send message" }).click();
 
   await expect(
@@ -387,7 +401,7 @@ test("the tutor streams without console or hydration errors", async ({ page }) =
   await signUpAsLearner(page, "health");
   await openTutorPage(page);
 
-  await page.getByLabel("Message the tutor").fill("What should I study next?");
+  await tutorComposer(page).fill("What should I study next?");
   await page.getByRole("button", { name: "Send message" }).click();
 
   const transcript = page.getByTestId("tutor-transcript");
@@ -396,7 +410,7 @@ test("the tutor streams without console or hydration errors", async ({ page }) =
   });
 
   // A second turn, to catch anything that only breaks once a thread exists.
-  await page.getByLabel("Message the tutor").fill("And after that?");
+  await tutorComposer(page).fill("And after that?");
   await page.getByRole("button", { name: "Send message" }).click();
   await expect(transcript.getByText(/Request type:/).nth(1)).toBeVisible({
     timeout: 30_000,

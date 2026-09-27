@@ -31,7 +31,7 @@ See → Understand → Recognise → Attempt → Struggle → Hint
 | 7 | System Design: curriculum, diagram engine, design workspace, AI review | **Complete, verified** |
 | 8 | Low-Level Design: curriculum, class-diagram engine, design workspace, AI review | **Complete, verified** |
 | 9 | Mock interviews: four interviewers, server-owned state machines, banded feedback, preparation tracks | **Complete, verified** |
-| 10 | Admin, content management, production hardening | In progress — see below |
+| 10 | Admin, notifications, onboarding, library, production hardening | **Complete, verified** — with the gaps named below |
 
 **Phase 9 covers four interviews, not one.** DSA, behavioural, system
 design and low-level design each own a state machine in
@@ -43,8 +43,16 @@ Preparation tracks (`/prepare`) describe the *shapes* interview loops
 come in rather than naming employers. That is a deliberate limit, not an
 omission — see [Known limitations](#known-limitations).
 
+**Phase 10 is complete as scoped, and two things in it are deliberately
+not built.** There is no text-highlighting feature (the `Highlight` table
+is a design with nothing behind it) and CodeForge sends no email of any
+kind. Both are listed under [Known limitations](#known-limitations)
+rather than hinted at in the UI.
+
 Navigation only ever lists routes that exist. A section absent from the
-sidebar has not shipped yet — there are no "coming soon" buttons.
+sidebar has not shipped yet — there are no "coming soon" buttons, and
+the one staff route is hidden from everyone who cannot open it rather
+than shown locked.
 
 ### What exists today
 
@@ -189,17 +197,20 @@ src/
 ├── app/
 │   ├── (marketing)/     public pages: landing, features
 │   ├── (auth)/          login, signup
-│   ├── (shell)/         the sidebar application shell
-│   └── api/
+│   ├── (shell)/         the sidebar application shell, including /admin
+│   └── api/             auth, tutor + interview streams, cron
 ├── components/
 │   ├── ui/              shadcn primitives (owned, editable)
 │   ├── brand/ layout/ common/
 │   ├── learning/        content block renderers
 │   ├── tutor/           AI tutor panel, launcher, markdown
+│   ├── interview/       the room, the stepper, the start form
+│   ├── admin/ library/ notifications/ onboarding/
 │   ├── problems/ dashboard/ settings/ auth/ marketing/
 ├── lib/
 │   ├── ai/              provider adapters: ollama, anthropic, mock
 │   ├── tutor/           request types, Socratic policy, context builder
+│   ├── interview/       the four state machines, interviewer policy
 │   └── …                env, db, auth, rate-limit, validation
 ├── services/            data access, one module per domain
 ├── types/               shared domain types
@@ -526,6 +537,35 @@ list.
 - **Indexing** — authenticated routes carry `X-Robots-Tag: noindex` from
   `next.config.ts`, in addition to `robots.txt`.
 
+- **Server actions are endpoints** — every export of a `"use server"`
+  module is callable with a public id, so authorization lives in the
+  action, not only in the page or layout that renders its caller. Admin
+  actions call `requireAdminOrThrow` even though the admin layout already
+  guarded the page. Helpers that take a `userId` must not live in such a
+  module at all: one did, and it was an unauthenticated cross-user write
+  until it was moved into `src/services/study-days.ts`.
+- **No client-supplied identity** — no action accepts a `userId`. The one
+  exception is the admin role change, where the id is the *target*, and
+  the actor comes from the session.
+- **Raw SQL** — the five full-text queries in `src/lib/search/index.ts`
+  use `Prisma.sql` tagged templates, so the user's query is a bound
+  parameter. There is no `queryRawUnsafe` anywhere.
+- **No HTML injection surface** — `dangerouslySetInnerHTML` and
+  `innerHTML` appear nowhere in the codebase; tutor markdown is rendered
+  through a parser that escapes, and a test feeds it
+  `<img onerror=...>` and asserts it comes back as text.
+- **Notification links** — rejected unless they are a path on this site.
+  A notification is rendered as an anchor, so an absolute URL there would
+  be an open redirect wearing the product's own chrome.
+- **Code execution** — production refuses to run learner code without a
+  container rather than falling back to the host. See
+  `src/lib/code-execution/index.ts`.
+- **AI** — never makes an authorization decision. Reference material is
+  withheld by the service's `select`, not by asking the model to keep a
+  secret; `BRIEF_SELECT` in `services/interview.ts` is the single place
+  that decides what an interviewer may see, and tests assert per type
+  that the answer is absent from the serialized context.
+
 Never trust client-side authorization. Every gated read re-checks server-side.
 
 ---
@@ -535,22 +575,33 @@ Never trust client-side authorization. Every gated read re-checks server-side.
 ```bash
 npm test              # unit + component
 npm run test:e2e      # browser, desktop + mobile viewports
+npm run test:e2e:prod # CSP, against a real production build
 ```
 
-525 unit and integration tests; 140 end-to-end tests across desktop and
-mobile viewports.
+`e2e/free-access.spec.ts` is the one that keeps the product honest about
+its own model: an ordinary account — nothing bought, no role, no flag —
+opens all 26 surfaces, starts all four interview types, and the test
+fails on any commercial phrasing or any link pointing at a paywall. It
+also asserts `/api/checkout`, `/api/billing`, `/api/stripe`,
+`/api/webhooks/stripe` and `/api/subscription` all 404.
 
-Test files run one at a time (`fileParallelism: false`). That is a constraint
-of the local `prisma dev` stand-in, not of the tests — see
-[Known limitations](#known-limitations). Against real PostgreSQL, set
-`VITEST_FILE_PARALLELISM=true` to get the parallelism back.
+610 unit and integration tests; 194 end-to-end tests across desktop and
+mobile viewports, plus one that runs against a production build to check
+the CSP.
+
+Test files run one at a time (`fileParallelism: false`) and pin
+`DATABASE_POOL_MAX=1`. Both are constraints of the local `prisma dev`
+stand-in, not of the tests — serial files alone was not enough, because a
+single test that fans out with `Promise.all` still opens several
+connections. See [Known limitations](#known-limitations). Against real
+PostgreSQL, set `VITEST_FILE_PARALLELISM=true` and a real pool size.
 
 Unit tests cover the logic where a wrong answer is a security or data problem:
 authorization boundaries, rate-limit policies, auth and quiz validation, content
 document validation, search query sanitisation, quiz scoring, and UTC calendar
 arithmetic for streaks.
 
-Six integration suites execute real code against real runtimes:
+The integration suites execute real code against the real database:
 
 - `lib/code-execution/harness.integration.test.ts` compiles and runs generated
   harnesses in Python, JavaScript, Java and C++ — including resource limits,
@@ -588,6 +639,24 @@ Six integration suites execute real code against real runtimes:
   recommendation without a source, a confidence, a date and a reason,
   and a failing test if any employer is ever named in published track
   content.
+- `services/admin.integration.test.ts` pins the two invariants that make
+  an admin surface safe to have: no mutation lands without an audit row
+  (including that a *failed* write leaves none), and the last admin
+  cannot be demoted.
+- `services/notifications.integration.test.ts` pins preferences being
+  honoured on write rather than on read, and the refusal of any `href`
+  that is not a path on this site.
+- `services/library.integration.test.ts` covers notes and bookmarks:
+  one note per learner per thing, clearing it deletes it, and neither is
+  visible to anyone else.
+- `services/achievements.integration.test.ts` pins idempotence — the
+  award pass recomputes rather than increments, so running it twice
+  awards nothing twice.
+- `services/database.integration.test.ts` pins the schema-level
+  behaviour everything else assumes: deleting an account removes its rows
+  and no content, retiring a brief nulls an interview's reference instead
+  of deleting the transcript, the audit trail outlives its author, and
+  every unique constraint that matters actually rejects.
 
 `lib/interview/interview.test.ts` tests the four state machines as
 machines. Two assertions there are worth more than the rest: every
@@ -625,11 +694,16 @@ no local Ollama.**
 These are real and currently true. None of them are hidden behind a
 "coming soon" label in the product.
 
-1. **Rate limiting is per-process.** The default store is in-memory, so it
-   is a real control on a single instance and only a speed bump across
-   several. `setRateLimitStore` is the swap point; no Redis adapter ships.
-   Implement `RateLimitStore` against Redis and call it at startup before
-   running more than one instance.
+1. **The Redis rate-limit store has never run against Redis.**
+   `createRedisRateLimitStore` is written and unit-tested against a fake
+   that implements the three commands it uses, including the
+   crash-between-INCR-and-PEXPIRE case — but no Redis server was
+   available here, so it is untested against a real one. The default
+   store remains in-memory and per-process: a real control on a single
+   instance, a speed bump across several. Set
+   `REQUIRE_DISTRIBUTED_RATE_LIMIT=true` on a multi-instance deployment
+   and rate-limited requests are refused until a shared store is
+   installed, rather than silently admitted.
 2. **`experimental.authInterrupts` is enabled** so `unauthorized()` and
    `forbidden()` return real 401/403 responses. Still flagged experimental in
    Next 16.x.
@@ -734,13 +808,17 @@ These are real and currently true. None of them are hidden behind a
 23. **Class-diagram layout is tiered, not free-form.** Supertypes above
     subtypes, deterministic. Deliberate — it works on a phone and makes
     designs comparable — but an arbitrary topology cannot be expressed.
-24. **RESOLVED.** The Phase 6 "two tutor composers" flake was reproduced
-    in Phase 9 as a general pattern: under parallel load the Next dev
-    server leaves a hidden prerender copy of a page in the DOM, so an
-    unscoped `getByTestId` intermittently matches twice. Test locators
-    for in-page content are now scoped to `main`. It affects the dev
-    server only — the production build does not do this — so it was
-    always a test-harness artefact rather than a product defect.
+24. **The dev server duplicates pages in the DOM under parallel load.**
+    Diagnosed in Phase 6, understood in Phase 9: `next dev` sometimes
+    leaves a hidden prerender copy of a page mounted, so a locator that
+    should match once matches twice and Playwright's strict mode fails
+    the test. In-page locators are scoped to `main`, which fixes it
+    everywhere except the tutor panel — that renders in a Radix portal
+    *outside* `main`, so scoping breaks it instead. The local suite
+    therefore allows one retry, and Playwright reports anything that
+    needed one as *flaky* rather than passed, so it stays visible. A
+    production build does not do this, and the production CSP test
+    renders the same pages once.
 25. **Interview feedback is AI-generated and labelled as such.** It is a
     language model reading a transcript. Every judgement carries evidence
     so it can be disagreed with, and there is deliberately no composite

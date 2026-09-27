@@ -16,7 +16,23 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
-  retries: process.env.CI ? 2 : 0,
+  /**
+   * One local retry, for one specific and well-understood cause.
+   *
+   * Under parallel load the Next **dev server** sometimes leaves a hidden
+   * prerender copy of a page in the DOM, so a locator that should match
+   * once matches twice and Playwright's strict mode fails the test. It is
+   * a dev-server artefact — the production build does not do it, and the
+   * production CSP test renders the same pages once — but it cannot be
+   * fixed from the test side everywhere: the tutor panel renders in a
+   * Radix portal outside `main`, so the usual "scope to main" fix does
+   * not apply to it.
+   *
+   * A retry is not hiding a product bug here, and Playwright reports a
+   * test that needed one as *flaky* rather than passed, so it stays
+   * visible. CI keeps two, because a cold CI machine is slower still.
+   */
+  retries: process.env.CI ? 2 : 1,
   // Capped deliberately: these tests run real code through the executor,
   // so unlimited workers means several Python and JVM processes competing
   // for the same cores and timing out on contention rather than on a bug.

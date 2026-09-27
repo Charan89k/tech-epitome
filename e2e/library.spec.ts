@@ -175,9 +175,14 @@ test("a note can be written, edited and deleted", async ({ page }) => {
   await page.getByRole("button", { name: "Save note" }).click();
   await expect(page.getByText("Note saved")).toBeVisible({ timeout: 20_000 });
 
-  // It reaches the library, attached to the thing it came from.
+  // It reaches the library, attached to the thing it came from. Scoped
+  // to `main` throughout: under parallel load the dev server leaves a
+  // hidden prerender copy of the page in the DOM, so an unscoped match
+  // resolves twice. A dev-server artefact, documented in the README.
   await page.goto("/dashboard/notes");
-  await expect(page.getByText("The running maximum only ever increases.")).toBeVisible();
+  await expect(
+    page.getByRole("main").getByText("The running maximum only ever increases.")
+  ).toBeVisible();
 
   // Editing happens where it was written, and replaces rather than adds.
   await page.goto(PROBLEM_URL);
@@ -189,13 +194,16 @@ test("a note can be written, edited and deleted", async ({ page }) => {
   await expect(page.getByText("Note saved")).toBeVisible({ timeout: 20_000 });
 
   await page.goto("/dashboard/notes");
-  await expect(page.getByText("Revised: track the max as you scan.")).toBeVisible();
-  await expect(page.getByText("The running maximum only ever")).toHaveCount(0);
+  const notes = page.getByRole("main");
+  await expect(
+    notes.getByText("Revised: track the max as you scan.")
+  ).toBeVisible();
+  await expect(notes.getByText("The running maximum only ever")).toHaveCount(0);
 
   // Two clicks to delete, so a mis-tap does not lose it.
-  await page.getByRole("button", { name: "Delete" }).click();
-  await page.getByRole("button", { name: "Confirm" }).click();
-  await expect(page.getByText("No notes yet")).toBeVisible({ timeout: 20_000 });
+  await notes.getByRole("button", { name: "Delete" }).first().click();
+  await notes.getByRole("button", { name: "Confirm" }).first().click();
+  await expect(notes.getByText("No notes yet")).toBeVisible({ timeout: 20_000 });
 });
 
 test("one learner's note is invisible to another", async ({ page, browser }) => {

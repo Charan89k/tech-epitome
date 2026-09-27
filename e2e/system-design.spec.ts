@@ -106,7 +106,9 @@ test("full journey: draw, save, submit, reveal, review", async ({ page }) => {
   await page.reload();
 
   await page.goto(EXERCISE_URL);
-  const workspace = page.getByTestId("design-workspace");
+  // Scoped to `main`: under parallel load the dev server leaves a hidden
+  // prerender copy of the page in the DOM. See README "Known limitations".
+  const workspace = page.getByRole("main").getByTestId("design-workspace");
   await expect(workspace).toBeVisible({ timeout: 30_000 });
 
   // --- draw ---------------------------------------------------------------
@@ -136,11 +138,12 @@ test("full journey: draw, save, submit, reveal, review", async ({ page }) => {
   // A reload proves it reached the database rather than local state.
   await page.reload();
   await expect(
-    page.getByTestId("design-workspace").getByText(/Reads dominate writes/)
+    page.getByRole("main").getByTestId("design-workspace").getByText(/Reads dominate writes/)
   ).toBeVisible({ timeout: 20_000 });
 
   // --- submit -------------------------------------------------------------
   await page
+    .getByRole("main")
     .getByTestId("design-workspace")
     .getByRole("button", { name: "Submit design" })
     .click();
@@ -170,7 +173,9 @@ test("an empty design cannot be submitted to reveal the answer", async ({
   await page.reload();
 
   await page.goto(EXERCISE_URL);
-  const workspace = page.getByTestId("design-workspace");
+  // Scoped to `main`: under parallel load the dev server leaves a hidden
+  // prerender copy of the page in the DOM. See README "Known limitations".
+  const workspace = page.getByRole("main").getByTestId("design-workspace");
   await workspace.getByRole("button", { name: "Submit design" }).click();
 
   await expect(workspace.getByRole("alert")).toBeVisible({ timeout: 20_000 });
@@ -194,7 +199,9 @@ test("the workspace works on a phone without overflowing", async ({ page }) => {
   await signUp(page, "mobile");
 
   await page.goto(EXERCISE_URL);
-  const workspace = page.getByTestId("design-workspace");
+  // Scoped to `main`: under parallel load the dev server leaves a hidden
+  // prerender copy of the page in the DOM. See README "Known limitations".
+  const workspace = page.getByRole("main").getByTestId("design-workspace");
   // The page carries the whole brief plus the editor; under parallel load
   // the default five seconds is not always enough for it to settle.
   await expect(workspace).toBeVisible({ timeout: 30_000 });
