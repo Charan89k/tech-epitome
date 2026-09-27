@@ -30,6 +30,16 @@ export const TUTOR_REQUEST_TYPES = [
   "CHECK_SCALABILITY",
   "CHECK_FAILURE_MODES",
   "ASK_FOLLOWUP",
+  // Phase 8. Reviewing a class design is a third distinct job: the
+  // artefact is a type graph, the failure modes are about responsibility
+  // and coupling, and the useful output is a question about a decision
+  // rather than a corrected diagram.
+  "REVIEW_DESIGN",
+  "REVIEW_SOLID",
+  "REVIEW_PATTERN",
+  "FIND_DESIGN_SMELL",
+  "SUGGEST_REFACTOR",
+  "EXPLAIN_CLASS_RELATIONSHIP",
 ] as const;
 
 export type TutorRequestType = (typeof TUTOR_REQUEST_TYPES)[number];
@@ -39,6 +49,7 @@ export type TutorContextType =
   | "CHAPTER"
   | "PROBLEM"
   | "SYSTEM_DESIGN"
+  | "LLD"
   | "GLOBAL";
 
 /**
@@ -52,6 +63,7 @@ export type TutorAnchor =
   | { kind: "CHAPTER"; courseSlug: string; sectionSlug: string; chapterSlug: string }
   | { kind: "PROBLEM"; problemSlug: string }
   | { kind: "SYSTEM_DESIGN"; problemSlug: string }
+  | { kind: "LLD"; problemSlug: string }
   | { kind: "GLOBAL" };
 
 /**
@@ -300,6 +312,58 @@ export const DESIGN_QUICK_ACTIONS: TutorQuickAction[] = [
     icon: "repeat",
     requestType: "ASK_FOLLOWUP",
     utterance: "Ask me a follow-up question about this design.",
+  },
+];
+
+/**
+ * Design-review actions for an LLD exercise.
+ *
+ * Each interrogates the learner's own class design. None asks for the
+ * reference — it is unlocked by submitting, and a reviewer that handed
+ * it over earlier would undercut the exercise.
+ */
+export const LLD_QUICK_ACTIONS: TutorQuickAction[] = [
+  {
+    id: "review-design",
+    label: "Review my design",
+    icon: "search",
+    requestType: "REVIEW_DESIGN",
+    utterance: "Review the class design I have drawn.",
+  },
+  {
+    id: "review-solid",
+    label: "Check against SOLID",
+    icon: "list",
+    requestType: "REVIEW_SOLID",
+    utterance: "Which SOLID principle is my design most at odds with?",
+  },
+  {
+    id: "smell",
+    label: "Find a design smell",
+    icon: "x",
+    requestType: "FIND_DESIGN_SMELL",
+    utterance: "What is the weakest part of this design?",
+  },
+  {
+    id: "pattern",
+    label: "Is a pattern warranted?",
+    icon: "brain",
+    requestType: "REVIEW_PATTERN",
+    utterance: "Is there a design pattern that would genuinely help here?",
+  },
+  {
+    id: "refactor",
+    label: "Suggest a refactor",
+    icon: "repeat",
+    requestType: "SUGGEST_REFACTOR",
+    utterance: "What one change would most improve this design?",
+  },
+  {
+    id: "relationship",
+    label: "Explain a relationship",
+    icon: "clock",
+    requestType: "EXPLAIN_CLASS_RELATIONSHIP",
+    utterance: "Is the relationship between my classes the right kind?",
   },
 ];
 

@@ -9,6 +9,8 @@ import { DSA_COURSE } from "../src/data/curriculum";
 import type { CourseSeed } from "../src/data/curriculum/types";
 import { SYSTEM_DESIGN_COURSE } from "../src/data/system-design";
 import { SYSTEM_DESIGN_EXERCISES } from "../src/data/system-design/exercises";
+import { LLD_COURSE } from "../src/data/lld";
+import { LLD_EXERCISES } from "../src/data/lld/exercises";
 import type { Track } from "../src/generated/prisma/enums";
 import { PATTERNS } from "../src/data/patterns";
 import { PROBLEMS } from "../src/data/problems";
@@ -495,6 +497,45 @@ async function seedSystemDesignExercises() {
   console.log(`  system design  ${SYSTEM_DESIGN_EXERCISES.length} exercises`);
 }
 
+/**
+ * LLD exercises.
+ *
+ * Upserted on slug, so re-running updates content in place and never
+ * duplicates it. Learner submissions reference these by id and are
+ * untouched.
+ */
+async function seedLLDExercises() {
+  for (const [index, exercise] of LLD_EXERCISES.entries()) {
+    const payload = {
+      title: exercise.title,
+      tagline: exercise.tagline,
+      difficulty: exercise.difficulty,
+      access: exercise.access ?? ("FREE" as const),
+      status: "PUBLISHED" as const,
+      order: index * 10,
+      requirements: exercise.requirements,
+      constraints: exercise.constraints,
+      objectives: exercise.objectives,
+      principles: exercise.principles,
+      designPatterns: exercise.designPatterns,
+      extensions: exercise.extensions,
+      entities: exercise.entities as object,
+      hints: exercise.hints,
+      classDiagram: exercise.classDiagram as object,
+      code: exercise.code as object,
+      tradeoffs: exercise.tradeoffs as object,
+    };
+
+    await prisma.lLDProblem.upsert({
+      where: { slug: exercise.slug },
+      create: { slug: exercise.slug, ...payload },
+      update: payload,
+    });
+  }
+
+  console.log(`  lld            ${LLD_EXERCISES.length} exercises`);
+}
+
 async function main() {
   console.log("Seeding CodeForge…");
 
@@ -506,8 +547,10 @@ async function main() {
   const problemIds = await seedProblems(patternIds, topicIds);
   const chapterIds = await seedCourse(DSA_COURSE, "DSA", 0, patternIds, problemIds);
   await seedCourse(SYSTEM_DESIGN_COURSE, "SYSTEM_DESIGN", 10, patternIds, problemIds);
+  await seedCourse(LLD_COURSE, "LLD", 20, patternIds, problemIds);
   await seedQuizzes(chapterIds);
   await seedSystemDesignExercises();
+  await seedLLDExercises();
 
   console.log("Seed complete.");
 }

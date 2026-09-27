@@ -236,6 +236,7 @@ model User {
   interviews        InterviewSession[]
   behavioralStories BehavioralStory[]
   systemDesigns     SystemDesignSubmission[]
+  lldSubmissions    LLDSubmission[]
 
   @@index([role])
   @@index([createdAt])
@@ -1261,23 +1262,74 @@ model LLDProblem {
   order      Int           @default(0)
 
   requirements   String[]
+  /// Assumptions the learner may take as given, so the brief is bounded.
+  constraints    String[]
+  /// What the learner should be able to do afterwards.
+  objectives     String[]
+  /// Principles this exercise is designed to exercise (SOLID etc).
+  principles     String[]
   entities       Json     @default("[]")
   /// UML-ish class diagram stored as data for the same reason as above.
+  /// REFERENCE MATERIAL: withheld by services/lld.ts until submission.
   classDiagram   Json     @default("{}")
   designPatterns String[]
-  /// Reference implementation per language.
+  /// Reference implementation per language. REFERENCE MATERIAL.
   code           Json     @default("{}")
   tradeoffs      Json     @default("[]")
   extensions     String[]
+  /// Progressive hints, conceptual first. Revealed one at a time by the
+  /// server from the learner's stored counter, exactly like DSA hints.
+  hints          String[]
 
   searchVector Unsupported("tsvector")?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  submissions LLDSubmission[]
+
   @@index([status, order])
   @@index([searchVector], type: Gin)
   @@map("lld_problems")
+}
+
+/// A learner's own class design and implementation for an LLD exercise.
+///
+/// One row per (user, exercise), same shape as SystemDesignSubmission:
+/// the workspace autosaves into it and "submit" flips `submittedAt`,
+/// which is what unlocks the reference design. History is deliberately
+/// not kept — the teaching value is in the current design and the review
+/// of it.
+model LLDSubmission {
+  id        String @id @default(cuid())
+  userId    String
+  problemId String
+
+  /// Types and relationships, validated by lib/class-diagram/schema.ts.
+  classDiagram Json     @default("{\"types\":[],\"relationships\":[]}")
+  /// The learner's implementation. Java is the teaching default but the
+  /// column is language-agnostic.
+  code         String   @default("") @db.Text
+  language     Language @default(JAVA)
+  /// Why these classes, what was traded away. A design without its
+  /// rationale is not a design.
+  rationale    String   @default("") @db.Text
+
+  /// How far into the hint ladder they went. Server-owned, like DSA.
+  hintsRevealed Int @default(0)
+
+  status      ProgressStatus @default(IN_PROGRESS)
+  submittedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem LLDProblem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, problemId])
+  @@index([userId, updatedAt])
+  @@map("lld_submissions")
 }
 
 model BehavioralCategory {

@@ -249,6 +249,41 @@ const REQUEST_INSTRUCTIONS: Record<TutorRequestType, string> = {
     "Ask exactly ONE follow-up question about their design, then stop and wait. " +
     "Aim it at a decision they have made implicitly without stating why. Do not " +
     "answer it yourself.",
+
+  REVIEW_DESIGN:
+    "Review the learner's class design the way a thoughtful colleague would in a " +
+    "design review. Structure each point as: what you observe, why it matters, " +
+    "what it will cost them later, and a direction to consider — never a corrected " +
+    "diagram. Name what the design gets right before what it misses. Raise at most " +
+    "two substantive points, each tied to a specific type or relationship they " +
+    "actually drew. There is no single correct design here; you are helping them " +
+    "defend theirs, not steering them to yours.",
+  REVIEW_SOLID:
+    "Identify the ONE SOLID principle this design is most at odds with, name the " +
+    "specific type or relationship that shows it, and say what will go wrong when " +
+    "the relevant requirement changes. If the design honours all five reasonably " +
+    "well, say so and name which one it honours most deliberately — a review that " +
+    "always finds fault teaches nothing about what good looks like.",
+  REVIEW_PATTERN:
+    "Say whether a named design pattern would genuinely help here, and be willing " +
+    "to answer no. If yes, name it, point at the exact variation it would absorb, " +
+    "and state its cost. If no, say plainly that the straightforward design is " +
+    "correct and that adding a pattern would be indirection without payoff.",
+  FIND_DESIGN_SMELL:
+    "Name the single weakest point in this design — a class doing two jobs, a " +
+    "concrete dependency where an abstraction exists, a type that only holds data, " +
+    "a relationship of the wrong kind. One smell, argued specifically from what " +
+    "they drew. End by asking what they would change, rather than changing it.",
+  SUGGEST_REFACTOR:
+    "Propose the ONE change that would most improve this design, as a direction " +
+    "rather than a finished answer: which responsibility moves where, and what " +
+    "that buys. Say what it costs too. Do not restructure the whole design.",
+  EXPLAIN_CLASS_RELATIONSHIP:
+    "Examine the relationships the learner has drawn and discuss whether each is " +
+    "the right kind — composition versus aggregation versus association versus " +
+    "dependency. Use the ownership test: if the source is destroyed, should the " +
+    "target go with it? Point at a specific relationship rather than explaining " +
+    "the taxonomy in the abstract.",
 };
 
 /**

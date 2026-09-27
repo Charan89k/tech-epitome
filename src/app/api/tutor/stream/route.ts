@@ -47,6 +47,10 @@ const anchorSchema = z.discriminatedUnion("kind", [
     kind: z.literal("SYSTEM_DESIGN"),
     problemSlug: z.string().min(1).max(160),
   }),
+  z.object({
+    kind: z.literal("LLD"),
+    problemSlug: z.string().min(1).max(160),
+  }),
   z.object({ kind: z.literal("GLOBAL") }),
 ]);
 
@@ -302,6 +306,18 @@ function defaultUtterance(requestType: (typeof TUTOR_REQUEST_TYPES)[number]): st
       return "What happens to my design when a component fails?";
     case "ASK_FOLLOWUP":
       return "Ask me a follow-up question about this design.";
+    case "REVIEW_DESIGN":
+      return "Review the class design I have drawn.";
+    case "REVIEW_SOLID":
+      return "Which SOLID principle is my design most at odds with?";
+    case "REVIEW_PATTERN":
+      return "Is there a design pattern that would genuinely help here?";
+    case "FIND_DESIGN_SMELL":
+      return "What is the weakest part of this design?";
+    case "SUGGEST_REFACTOR":
+      return "What one change would most improve this design?";
+    case "EXPLAIN_CLASS_RELATIONSHIP":
+      return "Is the relationship between my classes the right kind?";
     default:
       return "Help me with this.";
   }

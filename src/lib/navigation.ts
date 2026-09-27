@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Blocks,
   Bookmark,
   Boxes,
   FileText,
@@ -22,7 +23,7 @@ import { FEATURES, type Feature } from "@/lib/auth/access";
  * new section appears everywhere at once and cannot be half-added.
  *
  * This list contains only routes that exist. Sections belonging to later
- * phases (System Design, LLD, Interview, Behavioral, Companies) are added
+ * phases (Interview, Behavioral, Companies) are added
  * here as they ship - a nav entry that 404s is the same broken promise as a
  * "coming soon" button. The roadmap lives in README.md, not in the UI.
  */
@@ -86,6 +87,12 @@ export const primaryNav: NavGroup[] = [
         description: "Scale, latency, replication and the trade-offs between them",
       },
       {
+        title: "Low-Level Design",
+        href: "/learn/lld",
+        icon: Blocks,
+        description: "Responsibilities, SOLID, and the patterns worth knowing",
+      },
+      {
         title: "Visualize",
         href: "/visualize",
         icon: PlayCircle,
@@ -102,6 +109,12 @@ export const primaryNav: NavGroup[] = [
         href: "/system-design",
         icon: Boxes,
         description: "Draw an architecture, submit it, compare against the reference",
+      },
+      {
+        title: "LLD Exercises",
+        href: "/lld",
+        icon: Blocks,
+        description: "Design the classes, defend the trade-offs",
       },
       {
         title: "Problems",

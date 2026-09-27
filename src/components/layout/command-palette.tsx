@@ -12,10 +12,12 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Blocks,
   BookOpen,
   GraduationCap,
   ListChecks,
   Loader2,
+  Network,
   Search,
   Shapes,
 } from "lucide-react";
@@ -38,7 +40,8 @@ import { route } from "@/lib/utils";
  * Cmd/Ctrl+K palette.
  *
  * Navigates the static sections and searches published content — chapters,
- * patterns, problems and courses — through the Postgres full-text service.
+ * patterns, problems, courses and the two design-exercise catalogues —
+ * through the Postgres full-text service.
  *
  * Searching is debounced and runs in a transition, so typing never blocks
  * and a slow query cannot make the input stutter. The static nav is always
@@ -50,6 +53,8 @@ const RESULT_ICON: Record<SearchResultType, typeof BookOpen> = {
   chapter: BookOpen,
   pattern: Shapes,
   problem: ListChecks,
+  "system-design": Network,
+  lld: Blocks,
 };
 
 const RESULT_GROUP: Record<SearchResultType, string> = {
@@ -57,6 +62,8 @@ const RESULT_GROUP: Record<SearchResultType, string> = {
   chapter: "Chapters",
   pattern: "Patterns",
   problem: "Problems",
+  "system-design": "Design Exercises",
+  lld: "LLD Exercises",
 };
 
 type CommandPaletteContextValue = {

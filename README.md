@@ -29,7 +29,7 @@ See → Understand → Recognise → Attempt → Struggle → Hint
 | 5 | Quiz engine and spaced revision | **Complete, verified** |
 | 6 | AI tutor: Socratic tutoring in chapter, problem and code context | **Complete, verified** |
 | 7 | System Design: curriculum, diagram engine, design workspace, AI review | **Complete, verified** |
-| 8 | Low-level design track | Not started |
+| 8 | Low-Level Design: curriculum, class-diagram engine, design workspace, AI review | **Complete, verified** |
 | 9 | AI mock interviews and interview prep | Not started |
 | 10 | Admin, billing, production hardening | Not started |
 
@@ -63,10 +63,22 @@ submits it. **The reference architecture is withheld by the service until
 they do**, so an exercise cannot be read as a worked example. The AI reviewer
 gets their design as prose and never gets the reference.
 
-Seeded content, all original: **2 courses, 16 sections, 40 chapters, 20
+Phase 8 adds a third track through the same reader. Low-Level Design
+teaches responsibility assignment, SOLID and the patterns worth knowing —
+each with the situation where it is the wrong choice — and its exercises
+use a class-diagram engine built on the Phase 7 pattern: types and
+relationships as data, deterministic layout, prose description doubling
+as screen-reader text and AI context. Structural diagnostics
+(duplicate names, inheritance cycles, unimplemented interfaces,
+dependencies on a concrete class where an abstraction exists) are
+observations, never a score. **The reference design, the reference
+implementation and every unopened hint are withheld by the service**
+until the learner submits.
+
+Seeded content, all original: **3 courses, 22 sections, 53 chapters, 20
 patterns, 50 problems** (377 test cases, 200 hints, 56 solutions), **15
-quizzes**, **6 interactive visualizations** and **3 system-design
-exercises**.
+quizzes**, **6 interactive visualizations**, **3 system-design
+exercises** and **3 LLD exercises**.
 
 ---
 
@@ -412,7 +424,7 @@ npm test              # unit + component
 npm run test:e2e      # browser, desktop + mobile viewports
 ```
 
-383 unit and integration tests; 106 end-to-end tests across desktop and
+462 unit and integration tests; 123 end-to-end tests across desktop and
 mobile viewports.
 
 Test files run one at a time (`fileParallelism: false`). That is a constraint
@@ -425,7 +437,7 @@ authorization tiers, rate-limit policies, auth and quiz validation, content
 document validation, search query sanitisation, quiz scoring, and UTC calendar
 arithmetic for streaks.
 
-Four integration suites execute real code against real runtimes:
+Five integration suites execute real code against real runtimes:
 
 - `lib/code-execution/harness.integration.test.ts` compiles and runs generated
   harnesses in Python, JavaScript, Java and C++ — including resource limits,
@@ -445,6 +457,10 @@ Four integration suites execute real code against real runtimes:
   that a failing submission reaches the context while an unscored run does
   not, and that naming another learner's conversation id returns nothing
   rather than their thread.
+- `services/lld.integration.test.ts` covers the same guarantees for the
+  LLD workspace, plus the hint ladder: that only the unlocked prefix is
+  loaded, that autosave cannot rewind the counter, and that neither the
+  reference design nor an unopened hint reaches the AI reviewer.
 
 The tutor's own rules — the escalation ladder, the refusal to dump a
 solution, the fencing of untrusted content, and the context budgets — are
@@ -543,7 +559,21 @@ These are real and currently true. None of them are hidden behind a
     accumulate for the life of the account; there is no archive, no delete
     and no retention policy. "New chat" starts a thread, it does not remove
     the old one. Fine at current scale, not a position to hold forever.
-18. **One observed, unreproduced E2E flake.** A single run saw two tutor
+18. **LLD code is written but not executed.** The workspace has Monaco
+    and stores the learner's implementation alongside their diagram, but
+    it does not compile or run it: the LLD exercises are design
+    exercises, graded on structure, and none of them ships test cases.
+    The existing execution abstraction is untouched and still powers DSA
+    submissions. Wiring LLD code to it needs per-exercise tests that do
+    not exist yet.
+19. **3 LLD exercises seeded, not the 12 listed as examples.** Parking
+    Garage, Vending Machine and Event Logger, chosen to cover Strategy,
+    State and composition respectively. The authoring format takes the
+    rest without schema changes.
+20. **Class-diagram layout is tiered, not free-form.** Supertypes above
+    subtypes, deterministic. Deliberate — it works on a phone and makes
+    designs comparable — but an arbitrary topology cannot be expressed.
+21. **One observed, unreproduced E2E flake.** A single run saw two tutor
     composers in the DOM on `/ai-tutor` at mobile width under parallel load,
     failing a strict locator. It has not recurred across a dozen subsequent
     runs, isolated or parallel. The tests now wait for the panel to be

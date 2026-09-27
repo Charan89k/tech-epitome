@@ -198,6 +198,35 @@ export type SystemDesignContext = {
   submitted: boolean;
 };
 
+/**
+ * An LLD exercise plus the learner's own class design.
+ *
+ * The reference class diagram and reference implementation are
+ * deliberately absent, for the same reason the system-design reference
+ * is: a reviewer holding the answer converges the learner onto it
+ * however carefully it is instructed not to, and the exercise is about
+ * defending your own design.
+ */
+export type LLDContext = {
+  kind: "LLD";
+  title: string;
+  tagline: string;
+  difficulty: string;
+  requirements: string[];
+  constraints: string[];
+  /** Principles the exercise is designed to exercise. */
+  principles: string[];
+  /** The learner's class design, as prose. */
+  learnerDiagram: string;
+  /** Deterministic structural findings, computed rather than guessed. */
+  diagnostics: string[];
+  learnerRationale: string;
+  /** Their implementation, if they have written any. */
+  learnerCode: string;
+  language: string;
+  submitted: boolean;
+};
+
 export type GlobalContext = {
   kind: "GLOBAL";
   completedChapters: number;
@@ -212,6 +241,7 @@ export type TutorContextBundle =
   | ChapterContext
   | ProblemContext
   | SystemDesignContext
+  | LLDContext
   | GlobalContext;
 
 // ---------------------------------------------------------------------------
@@ -245,6 +275,15 @@ export function labelFor(
       primary: bundle.patterns[0]?.name ?? null,
       secondary: bundle.title,
       chips,
+    };
+  }
+
+  if (bundle.kind === "LLD") {
+    return {
+      contextType: "LLD",
+      primary: "Low-Level Design",
+      secondary: bundle.title,
+      chips: [titleCase(bundle.difficulty)],
     };
   }
 
@@ -385,6 +424,53 @@ export function renderContext(
     } else {
       sections.push(
         fence("learner_rationale", "(The learner has not written any rationale yet.)")
+      );
+    }
+  }
+
+  if (bundle.kind === "LLD") {
+    const facts = [
+      `Exercise: ${bundle.title}`,
+      `Brief: ${bundle.tagline}`,
+      `Difficulty: ${bundle.difficulty}`,
+      `Requirements: ${bundle.requirements.join("; ")}`,
+      bundle.constraints.length
+        ? `Constraints: ${bundle.constraints.join("; ")}`
+        : null,
+      bundle.principles.length
+        ? `Principles this exercise is meant to exercise: ${bundle.principles.join("; ")}`
+        : null,
+      `Learner has submitted: ${bundle.submitted ? "yes" : "no"}`,
+    ].filter(Boolean);
+
+    sections.push(fence("exercise_brief", facts.join("\n")));
+    sections.push(
+      fence("learner_class_design", clip(bundle.learnerDiagram, BUDGETS.chapterBody))
+    );
+
+    if (bundle.diagnostics.length > 0) {
+      // Computed structural findings, handed over so the reviewer does
+      // not re-derive them — and cannot get them wrong.
+      sections.push(
+        fence("structural_findings", bundle.diagnostics.join("\n"))
+      );
+    }
+
+    sections.push(
+      fence(
+        "learner_rationale",
+        bundle.learnerRationale.trim()
+          ? clip(bundle.learnerRationale, BUDGETS.code)
+          : "(The learner has not written any rationale yet.)"
+      )
+    );
+
+    if (bundle.learnerCode.trim()) {
+      sections.push(
+        fence(
+          "learner_implementation",
+          `Language: ${bundle.language}\n\n${clip(bundle.learnerCode, BUDGETS.code)}`
+        )
       );
     }
   }

@@ -2,12 +2,18 @@ import "server-only";
 
 import { prisma } from "@/lib/db";
 import { parseContent } from "@/lib/validation/content";
+import {
+  classDiagramDiagnostics,
+  describeClassDiagram,
+} from "@/lib/class-diagram/layout";
+import { parseClassDiagram } from "@/lib/class-diagram/schema";
 import { describeDiagram, diagramObservations } from "@/lib/diagram/layout";
 import { parseDiagram } from "@/lib/diagram/schema";
 import {
   blocksToText,
   type ChapterContext,
   type GlobalContext,
+  type LLDContext,
   type ProblemContext,
   type SystemDesignContext,
   type TutorContextBundle,
@@ -214,6 +220,69 @@ async function loadSystemDesignContext(
   };
 }
 
+/**
+ * An LLD exercise plus the learner's own class design.
+ *
+ * The reference class diagram, reference implementation and trade-offs
+ * are deliberately not selected. Same reasoning as the system-design
+ * reviewer: a model holding the answer converges the learner onto it
+ * however it is instructed, and the exercise is about defending their
+ * own design.
+ */
+async function loadLLDContext(
+  anchor: Extract<TutorAnchor, { kind: "LLD" }>,
+  userId: string
+): Promise<LLDContext | null> {
+  const problem = await prisma.lLDProblem.findFirst({
+    where: { slug: anchor.problemSlug, status: "PUBLISHED" },
+    select: {
+      id: true,
+      title: true,
+      tagline: true,
+      difficulty: true,
+      requirements: true,
+      constraints: true,
+      principles: true,
+    },
+  });
+  if (!problem) return null;
+
+  const submission = await prisma.lLDSubmission.findUnique({
+    where: { userId_problemId: { userId, problemId: problem.id } },
+    select: {
+      classDiagram: true,
+      rationale: true,
+      code: true,
+      language: true,
+      submittedAt: true,
+    },
+  });
+
+  const diagram = parseClassDiagram(
+    submission?.classDiagram,
+    `lld-tutor:${anchor.problemSlug}`
+  );
+
+  return {
+    kind: "LLD",
+    title: problem.title,
+    tagline: problem.tagline,
+    difficulty: problem.difficulty,
+    requirements: problem.requirements,
+    constraints: problem.constraints,
+    principles: problem.principles,
+    // Prose, not coordinates — the same description a screen reader gets.
+    learnerDiagram: describeClassDiagram(diagram),
+    diagnostics: classDiagramDiagnostics(diagram).map(
+      (d) => `[${d.level}] ${d.message}`
+    ),
+    learnerRationale: submission?.rationale ?? "",
+    learnerCode: submission?.code ?? "",
+    language: submission?.language ?? "JAVA",
+    submitted: Boolean(submission?.submittedAt),
+  };
+}
+
 async function loadGlobalContext(userId: string): Promise<GlobalContext> {
   const [completedChapters, solvedProblems, weak, recent] = await Promise.all([
     prisma.userChapterProgress.count({ where: { userId, status: "COMPLETED" } }),
@@ -260,6 +329,8 @@ export async function loadContextBundle(
       return loadProblemContext(anchor, userId);
     case "SYSTEM_DESIGN":
       return loadSystemDesignContext(anchor, userId);
+    case "LLD":
+      return loadLLDContext(anchor, userId);
     case "GLOBAL":
       return loadGlobalContext(userId);
   }
@@ -271,17 +342,22 @@ export async function loadContextBundle(
 
 const ENTITY_TYPE_FOR: Record<
   TutorAnchor["kind"],
-  "CHAPTER" | "PROBLEM" | "SYSTEM_DESIGN_PROBLEM" | null
+  "CHAPTER" | "PROBLEM" | "SYSTEM_DESIGN_PROBLEM" | "LLD_PROBLEM" | null
 > = {
   CHAPTER: "CHAPTER",
   PROBLEM: "PROBLEM",
   SYSTEM_DESIGN: "SYSTEM_DESIGN_PROBLEM",
+  LLD: "LLD_PROBLEM",
   GLOBAL: null,
 };
 
 function titleFor(bundle: TutorContextBundle): string {
   if (bundle.kind === "CHAPTER") return bundle.chapterTitle;
-  if (bundle.kind === "PROBLEM" || bundle.kind === "SYSTEM_DESIGN") {
+  if (
+    bundle.kind === "PROBLEM" ||
+    bundle.kind === "SYSTEM_DESIGN" ||
+    bundle.kind === "LLD"
+  ) {
     return bundle.title;
   }
   return "General questions";
@@ -294,6 +370,7 @@ function contextIdFor(anchor: TutorAnchor): string | null {
       return anchor.chapterSlug;
     case "PROBLEM":
     case "SYSTEM_DESIGN":
+    case "LLD":
       return anchor.problemSlug;
     case "GLOBAL":
       return null;

@@ -24,7 +24,9 @@ export type SearchResultType =
   | "course"
   | "chapter"
   | "pattern"
-  | "problem";
+  | "problem"
+  | "system-design"
+  | "lld";
 
 export type SearchResult = {
   type: SearchResultType;
@@ -47,12 +49,19 @@ class PostgresSearchService implements SearchService {
     const tsquery = toPrefixQuery(query);
     if (!tsquery) return [];
 
-    const perType = Math.max(3, Math.ceil(limit / 3));
+    const perType = Math.max(3, Math.ceil(limit / 4));
 
     // One round trip per entity type, in parallel. A single UNION would be
-    // one query but would have to erase the per-type columns; four small
+    // one query but would have to erase the per-type columns; several small
     // index-backed queries are simpler to read and just as fast.
-    const [chapters, patterns, problems, courses] = await Promise.all([
+    //
+    // Note what the design-exercise queries select: slug, title, tagline,
+    // difficulty. Never `classDiagram`, `architecture`, `code`, `tradeoffs`
+    // or `hints`. The tsvector columns those tables carry are fed only from
+    // title/tagline/requirements by the search-triggers migration, so
+    // reference material is neither matched against nor returned.
+    const [chapters, patterns, problems, courses, systemDesign, lld] =
+      await Promise.all([
       prisma.$queryRaw<
         { id: string; title: string; summary: string | null; slug: string; section_slug: string; course_slug: string; track: Track; rank: number }[]
       >(Prisma.sql`
@@ -108,6 +117,30 @@ class PostgresSearchService implements SearchService {
         take: 3,
         select: { id: true, slug: true, title: true, subtitle: true, track: true },
       }),
+
+      prisma.$queryRaw<
+        { id: string; title: string; tagline: string; slug: string; difficulty: string; rank: number }[]
+      >(Prisma.sql`
+        SELECT id, title, tagline, slug, difficulty::text AS difficulty,
+               ts_rank("searchVector", to_tsquery('english', ${tsquery})) AS rank
+        FROM system_design_problems
+        WHERE "searchVector" @@ to_tsquery('english', ${tsquery})
+          AND status = 'PUBLISHED'
+        ORDER BY rank DESC
+        LIMIT ${perType}
+      `),
+
+      prisma.$queryRaw<
+        { id: string; title: string; tagline: string; slug: string; difficulty: string; rank: number }[]
+      >(Prisma.sql`
+        SELECT id, title, tagline, slug, difficulty::text AS difficulty,
+               ts_rank("searchVector", to_tsquery('english', ${tsquery})) AS rank
+        FROM lld_problems
+        WHERE "searchVector" @@ to_tsquery('english', ${tsquery})
+          AND status = 'PUBLISHED'
+        ORDER BY rank DESC
+        LIMIT ${perType}
+      `),
     ]);
 
     const results: SearchResult[] = [
@@ -149,6 +182,22 @@ class PostgresSearchService implements SearchService {
         description: `Problem #${problem.number} · ${problem.difficulty.toLowerCase()}`,
         href: `/problems/${problem.slug}`,
         rank: Number(problem.rank),
+      })),
+      ...systemDesign.map((exercise) => ({
+        type: "system-design" as const,
+        id: exercise.id,
+        title: exercise.title,
+        description: exercise.tagline,
+        href: `/system-design/${exercise.slug}`,
+        rank: Number(exercise.rank),
+      })),
+      ...lld.map((exercise) => ({
+        type: "lld" as const,
+        id: exercise.id,
+        title: exercise.title,
+        description: exercise.tagline,
+        href: `/lld/${exercise.slug}`,
+        rank: Number(exercise.rank),
       })),
     ];
 
