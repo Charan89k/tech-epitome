@@ -5,6 +5,10 @@ import { PrismaPg } from "@prisma/adapter-pg";
 
 import { PrismaClient } from "../src/generated/prisma/client";
 import { ACHIEVEMENTS } from "../src/data/achievements";
+import {
+  BEHAVIORAL_CATEGORIES,
+  BEHAVIORAL_QUESTION_COUNT,
+} from "../src/data/behavioral/questions";
 import { DSA_COURSE } from "../src/data/curriculum";
 import type { CourseSeed } from "../src/data/curriculum/types";
 import { SYSTEM_DESIGN_COURSE } from "../src/data/system-design";
@@ -13,6 +17,7 @@ import { LLD_COURSE } from "../src/data/lld";
 import { LLD_EXERCISES } from "../src/data/lld/exercises";
 import type { Track } from "../src/generated/prisma/enums";
 import { PATTERNS } from "../src/data/patterns";
+import { PREP_SOURCE, PREP_TRACKS } from "../src/data/prep/tracks";
 import { PROBLEMS } from "../src/data/problems";
 import { QUIZZES } from "../src/data/quizzes";
 import { buildAllStarters } from "../src/lib/code-execution/signature";
@@ -521,6 +526,150 @@ async function seedLLDExercises() {
 }
 
 async function main() {
+/**
+ * Behavioural interview questions.
+ *
+ * `lookingFor` is written to the database because the feedback pass reads
+ * it after an interview ends. It is never selected by the paths that build
+ * the interviewer's context — see `BRIEF_SELECT` in services/interview.ts.
+ */
+async function seedBehavioral() {
+  for (const category of BEHAVIORAL_CATEGORIES) {
+    const categoryPayload = {
+      name: category.name,
+      description: category.description,
+      order: category.order,
+    };
+
+    const row = await prisma.behavioralCategory.upsert({
+      where: { slug: category.slug },
+      create: { slug: category.slug, ...categoryPayload },
+      update: categoryPayload,
+      select: { id: true },
+    });
+
+    for (const question of category.questions) {
+      const payload = {
+        categoryId: row.id,
+        prompt: question.prompt,
+        lookingFor: question.lookingFor,
+        followUps: question.followUps,
+        order: question.order,
+        status: "PUBLISHED" as const,
+      };
+      await prisma.behavioralQuestion.upsert({
+        where: { slug: question.slug },
+        create: { slug: question.slug, ...payload },
+        update: payload,
+      });
+    }
+  }
+
+  console.log(
+    `  behavioral     ${BEHAVIORAL_CATEGORIES.length} categories, ${BEHAVIORAL_QUESTION_COUNT} questions`
+  );
+}
+
+/**
+ * Interview preparation tracks.
+ *
+ * Every association is written with its provenance and its reason, because
+ * the columns are NOT NULL and the UI prints them. `reportedAt` is the seed
+ * run's own date: these are CodeForge's current editorial judgements, and
+ * dating them is how they become reviewable rather than permanent.
+ */
+async function seedPrepTracks() {
+  const reportedAt = new Date();
+  let problemLinks = 0;
+  let designLinks = 0;
+
+  for (const track of PREP_TRACKS) {
+    const payload = {
+      name: track.name,
+      blurb: track.blurb,
+      status: "PUBLISHED" as const,
+      order: track.order,
+      interviewStages: track.interviewStages as object,
+      focusAreas: track.focusAreas,
+      roadmap: track.roadmap as object,
+    };
+
+    const row = await prisma.prepTrack.upsert({
+      where: { slug: track.slug },
+      create: { slug: track.slug, ...payload },
+      update: payload,
+      select: { id: true },
+    });
+
+    for (const entry of track.problems) {
+      const problem = await prisma.problem.findUnique({
+        where: { slug: entry.slug },
+        select: { id: true },
+      });
+      // A track referencing a problem that does not exist is a content
+      // bug, and a silent skip would hide it.
+      if (!problem) {
+        throw new Error(
+          `Prep track ${track.slug} references unknown problem ${entry.slug}`
+        );
+      }
+
+      const link = {
+        source: PREP_SOURCE,
+        sourceUrl: null,
+        reportedAt,
+        confidence: entry.confidence,
+        rationale: entry.rationale,
+      };
+      await prisma.prepTrackProblem.upsert({
+        where: { trackId_problemId: { trackId: row.id, problemId: problem.id } },
+        create: { trackId: row.id, problemId: problem.id, ...link },
+        update: link,
+      });
+      problemLinks += 1;
+    }
+
+    for (const entry of track.systemDesign) {
+      const design = await prisma.systemDesignProblem.findUnique({
+        where: { slug: entry.slug },
+        select: { id: true },
+      });
+      if (!design) {
+        throw new Error(
+          `Prep track ${track.slug} references unknown design exercise ${entry.slug}`
+        );
+      }
+
+      const link = {
+        source: PREP_SOURCE,
+        sourceUrl: null,
+        reportedAt,
+        confidence: entry.confidence,
+        rationale: entry.rationale,
+      };
+      await prisma.prepTrackSystemDesignTopic.upsert({
+        where: {
+          trackId_systemDesignProblemId: {
+            trackId: row.id,
+            systemDesignProblemId: design.id,
+          },
+        },
+        create: {
+          trackId: row.id,
+          systemDesignProblemId: design.id,
+          ...link,
+        },
+        update: link,
+      });
+      designLinks += 1;
+    }
+  }
+
+  console.log(
+    `  prep tracks    ${PREP_TRACKS.length} (${problemLinks} problems, ${designLinks} design)`
+  );
+}
+
   console.log("Seeding CodeForge…");
 
   await seedUsers();
@@ -535,6 +684,8 @@ async function main() {
   await seedQuizzes(chapterIds);
   await seedSystemDesignExercises();
   await seedLLDExercises();
+  await seedBehavioral();
+  await seedPrepTracks();
 
   console.log("Seed complete.");
 }

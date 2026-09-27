@@ -27,6 +27,8 @@ const ROUTES = [
   "/visualize",
   "/visualize/binary-search",
   "/visualize/breadth-first-search",
+  "/prepare",
+  "/prepare/generalist-loop",
 ];
 
 /** Errors a healthy page may still emit, and why they are not our problem. */

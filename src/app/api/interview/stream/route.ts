@@ -14,6 +14,7 @@ import {
   defaultRequestFor,
   isLegalTransition,
   nextStage,
+  type InterviewKind,
 } from "@/lib/interview/types";
 import { RATE_LIMITS, rateLimit } from "@/lib/rate-limit";
 import {
@@ -103,9 +104,12 @@ export async function POST(request: NextRequest) {
 
   // The stage comes from the database; the request type is derived from
   // it. The only thing the candidate may choose is to stop.
-  const requestType = input.end ? "END_INTERVIEW" : defaultRequestFor(context.stage);
+  const kind = context.type as InterviewKind;
+  const requestType = input.end
+    ? "END_INTERVIEW"
+    : defaultRequestFor(kind, context.stage);
 
-  if (!isLegalTransition(context.stage, requestType)) {
+  if (!isLegalTransition(kind, context.stage, requestType)) {
     return fail(409, "That is not a valid step in this interview right now.");
   }
 
@@ -123,7 +127,7 @@ export async function POST(request: NextRequest) {
   const systemPrompt = buildInterviewSystemPrompt({
     requestType,
     stage: context.stage,
-    type: context.type,
+    type: kind,
     difficulty: context.difficulty,
   });
 
@@ -131,7 +135,7 @@ export async function POST(request: NextRequest) {
   // the interview is running. `loadInterviewContext` does not select it
   // and nothing here supplies it.
   const contextBlock = renderInterviewContext({
-    type: context.type,
+    type: kind,
     difficulty: context.difficulty,
     stage: context.stage,
     problemTitle: context.problemTitle,
@@ -162,7 +166,7 @@ export async function POST(request: NextRequest) {
   const provider = getAIProvider();
   const startedAt = Date.now();
   const encoder = new TextEncoder();
-  const resolvedStage = nextStage(context.stage, requestType);
+  const resolvedStage = nextStage(kind, context.stage, requestType);
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {

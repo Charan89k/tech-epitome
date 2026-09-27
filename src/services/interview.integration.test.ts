@@ -31,6 +31,8 @@ const SUFFIX = `${Date.now()}-${Math.floor(Math.random() * 100_000)}`;
 let alice = "";
 let bob = "";
 let sessionId = "";
+/** One session per non-DSA type, so each brief path is exercised. */
+const otherSessions: Record<string, string | undefined> = {};
 
 beforeAll(async () => {
   const [a, b] = await Promise.all([
@@ -74,16 +76,125 @@ describe("creating a session", () => {
     expect(session!.status).toBe("IN_PROGRESS");
   });
 
-  it("refuses an interview type that is not implemented", async () => {
-    // Better an explicit refusal than a session that cannot be conducted.
+  it("creates a session for every interview type, each with its own brief", async () => {
+    // All four interviewers are real. Each type reads its brief from a
+    // different table, so each is exercised rather than assumed.
     for (const type of ["SYSTEM_DESIGN", "LLD", "BEHAVIORAL"] as const) {
       const result = await createInterview({
         userId: alice,
         type,
-        difficulty: "EASY",
+        difficulty: "MEDIUM",
         language: "PYTHON",
       });
-      expect(result.ok, type).toBe(false);
+      expect(result.ok, type).toBe(true);
+      if (!result.ok) continue;
+
+      const session = await getInterview(result.id, alice);
+      expect(session!.type, type).toBe(type);
+      expect(session!.stage, type).toBe("INTRO");
+      // A session whose brief did not load would render an empty room.
+      expect(session!.problemTitle.length, type).toBeGreaterThan(0);
+      expect(session!.problemStatement.length, type).toBeGreaterThan(20);
+
+      otherSessions[type] = result.id;
+    }
+  });
+
+  it("refuses rather than opening a session it cannot brief", async () => {
+    // No published system design brief is HARD in the seed, and an
+    // unconducted session is worse than a refusal that says why.
+    const result = await createInterview({
+      userId: alice,
+      type: "SYSTEM_DESIGN",
+      difficulty: "HARD",
+      language: "PYTHON",
+    });
+    if (!result.ok) {
+      expect(result.reason).toMatch(/published/i);
+    } else {
+      // If a HARD brief is ever seeded this stops being a refusal case;
+      // assert the session is still conductable rather than silently
+      // passing.
+      const session = await getInterview(result.id, alice);
+      expect(session!.problemStatement.length).toBeGreaterThan(20);
+    }
+  });
+});
+
+describe("per-type reference boundaries", () => {
+  /**
+   * The rule that makes each of these an interview rather than a
+   * tutorial: the interviewer must not hold the answer. Each type has a
+   * different answer to withhold, so each is checked against the actual
+   * serialized context rather than against a type.
+   */
+  const FORBIDDEN: Record<string, RegExp> = {
+    // Note the absence of a bare `code`: the context legitimately carries
+    // the CANDIDATE's editor buffer under that key. What must not be here
+    // is the exercise's own reference implementation, which is checked by
+    // content below rather than by key name.
+    SYSTEM_DESIGN:
+      /"(architecture|tradeoffs|bottlenecks|scalingNotes|dataModel|apiDesign)"/,
+    LLD: /"(classDiagram|tradeoffs|designPatterns)"/,
+    BEHAVIORAL: /"lookingFor"/,
+  };
+
+  it("withholds each type's reference material during the interview", async () => {
+    for (const [type, forbidden] of Object.entries(FORBIDDEN)) {
+      const id = otherSessions[type];
+      expect(id, `${type} session was not created`).toBeTruthy();
+
+      const context = await loadInterviewContext(id!, alice);
+      expect(context, type).not.toBeNull();
+      expect(JSON.stringify(context), type).not.toMatch(forbidden);
+      expect(Object.keys(context!), type).not.toContain("reference");
+      // The only `code` in there is the candidate's, which is empty.
+      expect(context!.code, type).toBe("");
+    }
+  });
+
+  it("leaks no line of an LLD reference implementation into the interview", async () => {
+    // Stronger than a key check: the reference could arrive flattened into
+    // the statement, and a key-name assertion would not notice.
+    const id = otherSessions.LLD!;
+    const session = await prisma.interviewSession.findUniqueOrThrow({
+      where: { id },
+      select: { lldProblem: { select: { code: true } } },
+    });
+
+    const reference = Object.values(
+      (session.lldProblem?.code ?? {}) as Record<string, string>
+    );
+    expect(reference.length).toBeGreaterThan(0);
+
+    const serialized = JSON.stringify(await loadInterviewContext(id, alice));
+    for (const body of reference) {
+      for (const line of body.split("\n")) {
+        const trimmed = line.trim();
+        // Short lines like "}" are not evidence of a leak.
+        if (trimmed.length < 25) continue;
+        expect(serialized, trimmed.slice(0, 40)).not.toContain(trimmed);
+      }
+    }
+  });
+
+  it("releases each type's reference only after the interview ends", async () => {
+    for (const type of Object.keys(FORBIDDEN)) {
+      const id = otherSessions[type]!;
+      expect(await loadFeedbackContext(id, alice), type).toBeNull();
+
+      await setStage({ sessionId: id, userId: alice, stage: "ENDED" });
+
+      const context = await loadFeedbackContext(id, alice);
+      expect(context, type).not.toBeNull();
+      expect(context!.reference.length, type).toBeGreaterThan(20);
+      expect(context!.reference, type).not.toMatch(/^No reference/);
+    }
+  });
+
+  it("still refuses a non-owner after every one of them has ended", async () => {
+    for (const type of Object.keys(FORBIDDEN)) {
+      expect(await loadFeedbackContext(otherSessions[type]!, bob), type).toBeNull();
     }
   });
 });

@@ -36,12 +36,29 @@ function isNarrow(page: Page): boolean {
   return (page.viewportSize()?.width ?? 1280) < 1024;
 }
 
-/** Starts an interview and lands in the room. */
-async function startInterview(page: Page) {
+/** Starts an interview of the given type and lands in the room. */
+async function startInterview(
+  page: Page,
+  type: "Coding (DSA)" | "Behavioural" | "System design" | "Low-level design" =
+    "Coding (DSA)"
+) {
   await page.goto("/interviews");
+  if (type !== "Coding (DSA)") {
+    await page.getByLabel("Interview type").click();
+    await page.getByRole("option", { name: type }).click();
+  }
   await page.getByRole("button", { name: "Start interview" }).click();
   await page.waitForURL(/\/interviews\/[a-z0-9]+$/, { timeout: 30_000 });
   await expect(page.getByTestId("interview-room")).toBeVisible({ timeout: 30_000 });
+}
+
+/** Opens the interview and waits for the interviewer's first turn. */
+async function begin(page: Page) {
+  const room = page.getByTestId("interview-room");
+  await room.getByRole("button", { name: "Begin interview" }).click();
+  await expect(
+    page.getByTestId("interview-transcript").getByText("Interviewer").first()
+  ).toBeVisible({ timeout: 30_000 });
 }
 
 test.afterAll(async () => {
@@ -151,6 +168,148 @@ test("full journey: start, respond, advance, finish, feedback, history", async (
   const history = page.getByTestId("interview-history");
   await expect(history).toBeVisible();
   await expect(history.getByText("Feedback").first()).toBeVisible();
+});
+
+/**
+ * The three interviews added after DSA.
+ *
+ * Each one is a genuinely different machine — different stages,
+ * different first question, different feedback dimensions — so each is
+ * walked rather than assumed to work because DSA does. The assertions
+ * are on the stage the SERVER reports, which is the only thing that
+ * proves the machine and not the client decided.
+ */
+const JOURNEYS = [
+  {
+    type: "Behavioural" as const,
+    tag: "behavioral",
+    /** The stage the interview must be in after the opening turn. */
+    opensInto: "The question",
+    /** A stage from another machine that must never appear here. */
+    foreign: "Complexity",
+    answer:
+      "Two of us disagreed about rewriting the importer. I owned the decision to ship the smaller fix first.",
+    reaches: "Digging into the story",
+  },
+  {
+    type: "System design" as const,
+    tag: "sysdesign",
+    opensInto: "Clarifying the problem",
+    foreign: "Domain model",
+    answer:
+      "Is this read-heavy, and roughly how many writes per second should I design for?",
+    reaches: "Scale and estimates",
+  },
+  {
+    type: "Low-level design" as const,
+    tag: "lld",
+    opensInto: "Clarifying the problem",
+    foreign: "Scaling and reliability",
+    answer:
+      "Can I assume a single machine and one transaction at a time, with no concurrency?",
+    reaches: "Domain model",
+  },
+];
+
+for (const journey of JOURNEYS) {
+  test(`${journey.type.toLowerCase()} interview: opens, advances and produces its own feedback`, async ({
+    page,
+  }) => {
+    test.slow();
+    await signUpAsLearner(page, journey.tag);
+    await startInterview(page, journey.type);
+
+    const room = page.getByTestId("interview-room");
+
+    // The stepper shows this machine's stages and only this machine's.
+    await expect(room.getByText(journey.foreign)).toHaveCount(0);
+
+    await begin(page);
+    await expect(room.getByText(journey.opensInto).first()).toBeVisible({
+      timeout: 20_000,
+    });
+
+    // The brief is on screen once the interviewer has presented it — an
+    // interviewer asking about a constraint the candidate cannot see is
+    // testing memory, not design.
+    await expect(page.getByTestId("interview-brief")).toBeVisible();
+
+    await page.getByLabel("Your response").fill(journey.answer);
+    await page.getByRole("button", { name: "Send response" }).click();
+    await expect(room.getByText(journey.reaches).first()).toBeVisible({
+      timeout: 30_000,
+    });
+
+    await page.getByRole("button", { name: "End interview" }).click();
+    await expect(page.getByText("This interview is finished.")).toBeVisible({
+      timeout: 30_000,
+    });
+
+    await page.getByRole("button", { name: "Generate feedback" }).click();
+    await expect(page.getByRole("heading", { name: "Feedback" })).toBeVisible({
+      timeout: 45_000,
+    });
+
+    const feedback = await page
+      .locator("section", { has: page.getByRole("heading", { name: "Feedback" }) })
+      .innerText();
+
+    // Feedback is written against THIS interview's dimensions. "Code
+    // quality: not demonstrated" on a behavioural interview is noise, and
+    // was the failure mode before dimensions became per-type.
+    if (journey.type === "Behavioural") {
+      expect(feedback).toContain("Ownership");
+      expect(feedback).not.toContain("Complexity reasoning");
+      expect(feedback).not.toContain("Code quality");
+    }
+    if (journey.type === "System design") {
+      expect(feedback).toContain("Scalability");
+      expect(feedback).not.toContain("Code quality");
+    }
+    if (journey.type === "Low-level design") {
+      expect(feedback).toContain("Design principles");
+      expect(feedback).not.toContain("Estimation");
+    }
+
+    // The same no-score rule as everywhere else.
+    expect(feedback).not.toMatch(/\b\d+\s*\/\s*10\b/);
+    expect(feedback).not.toMatch(/\b\d+\s*%/);
+    expect(feedback).not.toMatch(/\b(hire|no hire|strong hire)\b/i);
+  });
+}
+
+test("a behavioural interview never leaks its rubric to the candidate", async ({
+  page,
+}) => {
+  // `lookingFor` is what a strong answer demonstrates. Showing it during
+  // the interview turns the question into a checklist to read off.
+  await signUpAsLearner(page, "rubric");
+  await startInterview(page, "Behavioural");
+  await begin(page);
+
+  const served = await page.content();
+  for (const phrase of [
+    "lookingFor",
+    "Describes the difference concretely",
+    "Something they changed about their own behaviour",
+    "Owns the decision rather than attributing it upwards",
+    "A real failure with real consequences",
+  ]) {
+    expect(served, phrase).not.toContain(phrase);
+  }
+});
+
+test("a design interview never leaks its reference while it is running", async ({
+  page,
+}) => {
+  await signUpAsLearner(page, "sdleak");
+  await startInterview(page, "System design");
+  await begin(page);
+
+  const served = await page.content();
+  for (const phrase of ["architecture", "scalingNotes", "bottlenecks", "tradeoffs"]) {
+    expect(served.toLowerCase(), phrase).not.toContain(`"${phrase}"`);
+  }
 });
 
 test("the client cannot skip the interview to the end", async ({ page }) => {
@@ -268,4 +427,56 @@ test("existing surfaces still work alongside interviews", async ({ page }) => {
   await expect(
     page.getByRole("heading", { level: 1, name: "Low-Level Design Exercises" })
   ).toBeVisible();
+});
+
+// ---------------------------------------------------------------------------
+// Preparation tracks
+// ---------------------------------------------------------------------------
+
+test("preparation tracks describe loop shapes, never an employer", async ({
+  page,
+}) => {
+  // The whole feature rests on not claiming what any company asks. A
+  // named employer on this page would be an unsupported assertion about
+  // a real organisation.
+  await page.goto("/prepare");
+  await expect(
+    page.getByRole("heading", { name: "Interview Preparation" })
+  ).toBeVisible();
+  await expect(page.getByText("These are shapes, not employers.")).toBeVisible();
+
+  const first = page.getByRole("main").getByRole("link").filter({
+    hasText: "Generalist engineering loop",
+  });
+  await first.click();
+  await page.waitForURL(/\/prepare\/[a-z-]+$/);
+
+  const body = await page.getByRole("main").innerText();
+  for (const employer of [
+    "Google",
+    "Amazon",
+    "Meta",
+    "Microsoft",
+    "Netflix",
+    "Apple",
+  ]) {
+    expect(body, employer).not.toContain(employer);
+  }
+
+  // Every recommendation says who judged it and how sure they are.
+  await expect(page.getByText(/CodeForge editorial/).first()).toBeVisible();
+  await expect(page.getByText(/confidence/).first()).toBeVisible();
+});
+
+test("a track shows real progress for the learner, and none when signed out", async ({
+  page,
+}) => {
+  await page.goto("/prepare");
+  // Signed out: no progress claim at all, rather than a fabricated zero.
+  await expect(page.getByText(/\d+ solved/)).toHaveCount(0);
+  await expect(page.getByText("Sign in to track which of these")).toBeVisible();
+
+  await signUpAsLearner(page, "prep");
+  await page.goto("/prepare");
+  await expect(page.getByText(/0 solved/).first()).toBeVisible();
 });

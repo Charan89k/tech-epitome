@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { Loader2, Send, Square, UserRound } from "lucide-react";
+import { FileText, Loader2, Send, Square, UserRound } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -19,10 +19,11 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   codeIsRelevant,
-  PROGRESS_STAGES,
+  progressStages,
   STAGE_GUIDANCE,
   STAGE_LABELS,
   stageIndex,
+  type InterviewKind,
   type InterviewStage,
 } from "@/lib/interview/types";
 import type { Language } from "@/generated/prisma/enums";
@@ -51,19 +52,30 @@ type Turn = { id: string; role: "USER" | "ASSISTANT"; content: string; streaming
 
 export function InterviewRoom({
   sessionId,
+  kind,
   initialStage,
   initialTranscript,
   initialCode,
   language,
   problemTitle,
+  problemStatement,
   hasFeedback,
 }: {
   sessionId: string;
+  /** Which interview this is. Decides the stepper, the editor and the copy. */
+  kind: InterviewKind;
   initialStage: InterviewStage;
   initialTranscript: { id: string; role: "USER" | "ASSISTANT"; content: string }[];
   initialCode: string;
   language: Language;
   problemTitle: string;
+  /**
+   * The brief, exactly as the interviewer received it. Shown once the
+   * interview has begun so the candidate can re-read it — an interviewer
+   * who asks about a constraint the candidate cannot see is testing
+   * memory, not design.
+   */
+  problemStatement: string;
   hasFeedback: boolean;
 }) {
   const router = useRouter();
@@ -131,7 +143,7 @@ export function InterviewRoom({
           body: JSON.stringify({
             sessionId,
             message: opts.message,
-            code: codeIsRelevant(stage) ? code : undefined,
+            code: codeIsRelevant(kind, stage) ? code : undefined,
             end: opts.end,
           }),
         });
@@ -214,7 +226,7 @@ export function InterviewRoom({
         abortRef.current = null;
       }
     },
-    [sessionId, stage, code, router]
+    [sessionId, kind, stage, code, router]
   );
 
   function send() {
@@ -242,13 +254,14 @@ export function InterviewRoom({
   }
 
   const ended = stage === "ENDED";
-  const current = stageIndex(stage);
+  const current = stageIndex(kind, stage);
+  const stages = progressStages(kind);
 
   // -------------------------------------------------------------------------
 
   const stepper = (
     <ol className="flex flex-wrap items-center gap-1" aria-label="Interview progress">
-      {PROGRESS_STAGES.map((s, i) => {
+      {stages.map((s, i) => {
         const state = i < current ? "done" : i === current ? "current" : "todo";
         return (
           <li key={s} className="flex items-center gap-1">
@@ -418,6 +431,35 @@ export function InterviewRoom({
     </div>
   );
 
+  /**
+   * The brief, on screen rather than only in the transcript.
+   *
+   * Hidden until the interview has begun: the interviewer presents the
+   * problem in their own words on the first turn, and pre-reading it
+   * would make that turn pointless.
+   */
+  const brief = problemStatement.trim() && turns.length > 0 && (
+    <details
+      className="border-border bg-card group mt-3 rounded-lg border"
+      data-testid="interview-brief"
+      open
+    >
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-2 text-xs font-medium">
+        <FileText className="text-muted-foreground size-3.5" aria-hidden="true" />
+        The brief
+        <span className="text-muted-foreground/60 ml-auto text-[0.65rem] group-open:hidden">
+          Show
+        </span>
+        <span className="text-muted-foreground/60 ml-auto hidden text-[0.65rem] group-open:inline">
+          Hide
+        </span>
+      </summary>
+      <p className="text-muted-foreground border-border border-t px-3 py-2.5 text-xs leading-relaxed whitespace-pre-wrap">
+        {problemStatement}
+      </p>
+    </details>
+  );
+
   const header = (
     <div className="border-border border-b pb-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -427,6 +469,7 @@ export function InterviewRoom({
         </Badge>
       </div>
       <div className="mt-2">{stepper}</div>
+      {brief}
     </div>
   );
 
@@ -439,7 +482,11 @@ export function InterviewRoom({
             <TabsTrigger value="talk" className="flex-1">
               Interview
             </TabsTrigger>
-            <TabsTrigger value="code" className="flex-1" disabled={!codeIsRelevant(stage)}>
+            <TabsTrigger
+              value="code"
+              className="flex-1"
+              disabled={!codeIsRelevant(kind, stage)}
+            >
               Code
             </TabsTrigger>
           </TabsList>
@@ -463,14 +510,14 @@ export function InterviewRoom({
       <div
         className={cn(
           "grid gap-5",
-          codeIsRelevant(stage) ? "lg:grid-cols-2" : "lg:grid-cols-1"
+          codeIsRelevant(kind, stage) ? "lg:grid-cols-2" : "lg:grid-cols-1"
         )}
       >
         <div className="flex h-[60vh] min-w-0 flex-col">
           {transcriptPane}
           {composer}
         </div>
-        {codeIsRelevant(stage) && (
+        {codeIsRelevant(kind, stage) && (
           <div className="border-border h-[60vh] min-w-0 overflow-hidden rounded-lg border">
             {codePane}
           </div>

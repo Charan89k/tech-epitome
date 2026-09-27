@@ -7,9 +7,13 @@ import type {
   Language,
 } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
+import { describeClassDiagram } from "@/lib/class-diagram/layout";
+import { parseClassDiagram } from "@/lib/class-diagram/schema";
+import { describeDiagram } from "@/lib/diagram/layout";
+import { parseDiagram } from "@/lib/diagram/schema";
 import { parseContent } from "@/lib/validation/content";
 import { toPlainText } from "@/types/content";
-import type { InterviewStage } from "@/lib/interview/types";
+import type { InterviewKind, InterviewStage } from "@/lib/interview/types";
 
 /**
  * Interview sessions: creation, state, transcript, evaluation.
@@ -38,13 +42,98 @@ export type InterviewSummary = {
   hasFeedback: boolean;
 };
 
+/** Picks one at random, or nothing when the pool is empty. */
+function pick<T>(rows: T[]): T | null {
+  if (rows.length === 0) return null;
+  return rows[Math.floor(Math.random() * rows.length)] ?? null;
+}
+
 /**
- * Starts a session against a randomly chosen published problem of the
- * requested difficulty.
+ * Chooses the brief for a new session, server-side.
  *
- * The problem is picked server-side: letting the client name it would
- * let a candidate shop for one they have already solved, which makes
- * the practice worthless.
+ * Deliberately never takes an id from the client. Letting a candidate
+ * name the problem lets them shop for one they have already solved,
+ * which makes the practice worthless — and for the design types it
+ * would let them pick the exercise whose reference they have already
+ * unlocked.
+ *
+ * Difficulty is a filter for the three types that have one. Behavioural
+ * questions are not graded by difficulty: "tell me about a conflict" is
+ * not harder at senior level, the follow-ups are.
+ */
+async function chooseBrief(
+  type: InterviewKind,
+  difficulty: Difficulty
+): Promise<
+  | { ok: true; link: Partial<Record<"problemId" | "systemDesignProblemId" | "lldProblemId" | "behavioralQuestionId", string>> }
+  | { ok: false; reason: string }
+> {
+  switch (type) {
+    case "DSA": {
+      const chosen = pick(
+        await prisma.problem.findMany({
+          where: { status: "PUBLISHED", difficulty },
+          select: { id: true },
+        })
+      );
+      return chosen
+        ? { ok: true, link: { problemId: chosen.id } }
+        : { ok: false, reason: "No problems are published at that difficulty yet." };
+    }
+
+    case "SYSTEM_DESIGN": {
+      const chosen = pick(
+        await prisma.systemDesignProblem.findMany({
+          where: { status: "PUBLISHED", difficulty },
+          select: { id: true },
+        })
+      );
+      return chosen
+        ? { ok: true, link: { systemDesignProblemId: chosen.id } }
+        : {
+            ok: false,
+            reason: "No system design briefs are published at that difficulty yet.",
+          };
+    }
+
+    case "LLD": {
+      const chosen = pick(
+        await prisma.lLDProblem.findMany({
+          where: { status: "PUBLISHED", difficulty },
+          select: { id: true },
+        })
+      );
+      return chosen
+        ? { ok: true, link: { lldProblemId: chosen.id } }
+        : {
+            ok: false,
+            reason: "No low-level design briefs are published at that difficulty yet.",
+          };
+    }
+
+    case "BEHAVIORAL": {
+      const chosen = pick(
+        await prisma.behavioralQuestion.findMany({
+          where: { status: "PUBLISHED" },
+          select: { id: true },
+        })
+      );
+      return chosen
+        ? { ok: true, link: { behavioralQuestionId: chosen.id } }
+        : {
+            ok: false,
+            reason: "No behavioural questions are published yet.",
+          };
+    }
+  }
+}
+
+/**
+ * Starts a session against a randomly chosen published brief.
+ *
+ * All four interview types are supported. The type decides which table
+ * the brief comes from and which state machine conducts the session;
+ * see `src/lib/interview/types.ts`.
  */
 export async function createInterview(params: {
   userId: string;
@@ -52,24 +141,8 @@ export async function createInterview(params: {
   difficulty: Difficulty;
   language: Language;
 }): Promise<{ ok: true; id: string } | { ok: false; reason: string }> {
-  if (params.type !== "DSA") {
-    // Only the DSA interviewer is implemented. Refusing explicitly is
-    // better than creating a session that cannot be conducted.
-    return {
-      ok: false,
-      reason: "Only DSA mock interviews are available at the moment.",
-    };
-  }
-
-  const candidates = await prisma.problem.findMany({
-    where: { status: "PUBLISHED", difficulty: params.difficulty },
-    select: { id: true },
-  });
-  if (candidates.length === 0) {
-    return { ok: false, reason: "No problems are available at that difficulty." };
-  }
-
-  const problem = candidates[Math.floor(Math.random() * candidates.length)]!;
+  const brief = await chooseBrief(params.type as InterviewKind, params.difficulty);
+  if (!brief.ok) return brief;
 
   const session = await prisma.interviewSession.create({
     data: {
@@ -77,14 +150,184 @@ export async function createInterview(params: {
       type: params.type,
       difficulty: params.difficulty,
       language: params.language,
-      problemId: problem.id,
       stage: "INTRO",
       status: "IN_PROGRESS",
+      ...brief.link,
     },
     select: { id: true },
   });
 
   return { ok: true, id: session.id };
+}
+
+// ---------------------------------------------------------------------------
+// Briefs
+//
+// Four interview types read from four tables, and the split between what
+// the candidate may see and what only the feedback pass may see is
+// different in each. Rather than repeat that split in three functions,
+// both halves are selected once here and rendered by two pure functions —
+// so "is the reference selected?" is answerable by reading one `select`.
+// ---------------------------------------------------------------------------
+
+/**
+ * Everything the candidate and the interviewer are allowed to see.
+ *
+ * Note what is absent for each type: the DSA `solutions` and hidden test
+ * cases, the system design `architecture`, `tradeoffs`, `bottlenecks`,
+ * `scalingNotes`, `dataModel` and `apiDesign`, the LLD `classDiagram`,
+ * `code`, `tradeoffs` and `designPatterns`, and the behavioural
+ * `lookingFor` rubric. A model that holds the answer cannot help steering
+ * towards it, and steering is exactly what an interview must not do.
+ */
+const BRIEF_SELECT = {
+  problem: { select: { title: true, statement: true, slug: true } },
+  systemDesignProblem: {
+    select: {
+      title: true,
+      tagline: true,
+      functionalRequirements: true,
+      nonFunctionalRequirements: true,
+    },
+  },
+  lldProblem: {
+    select: {
+      title: true,
+      tagline: true,
+      requirements: true,
+      constraints: true,
+      entities: true,
+    },
+  },
+  behavioralQuestion: {
+    select: {
+      prompt: true,
+      // The interviewer's own script, not the answer: these are the
+      // questions a human interviewer would have in front of them. The
+      // rubric (`lookingFor`) is what must not be here, and is not.
+      followUps: true,
+      category: { select: { name: true } },
+    },
+  },
+} as const;
+
+type BriefRow = {
+  type: InterviewType;
+  problem: { title: string; statement: unknown; slug: string } | null;
+  systemDesignProblem: {
+    title: string;
+    tagline: string;
+    functionalRequirements: string[];
+    nonFunctionalRequirements: string[];
+  } | null;
+  lldProblem: {
+    title: string;
+    tagline: string;
+    requirements: string[];
+    constraints: string[];
+    entities: unknown;
+  } | null;
+  behavioralQuestion: {
+    prompt: string;
+    followUps: string[];
+    category: { name: string };
+  } | null;
+};
+
+function bullets(heading: string, items: string[]): string | null {
+  if (items.length === 0) return null;
+  return `${heading}:\n${items.map((item) => `- ${item}`).join("\n")}`;
+}
+
+/** The title shown in a list and at the top of the room. */
+function briefTitle(row: BriefRow, sessionId: string): string {
+  switch (row.type) {
+    case "DSA":
+      return row.problem?.title ?? "Problem";
+    case "SYSTEM_DESIGN":
+      return row.systemDesignProblem?.title ?? "Design brief";
+    case "LLD":
+      return row.lldProblem?.title ?? "Design brief";
+    case "BEHAVIORAL":
+      return row.behavioralQuestion
+        ? `${row.behavioralQuestion.category.name} question`
+        : "Behavioural question";
+    default:
+      return `Interview ${sessionId.slice(0, 6)}`;
+  }
+}
+
+/**
+ * The brief as plain text.
+ *
+ * Doubles as what the candidate reads in the room and as what goes into
+ * the model's context, which is deliberate: if the two could differ, the
+ * interviewer could be asking about something the candidate cannot see.
+ */
+function briefStatement(row: BriefRow, sessionId: string): string {
+  switch (row.type) {
+    case "DSA":
+      return row.problem
+        ? toPlainText(parseContent(row.problem.statement, `interview:${sessionId}`))
+        : "";
+
+    case "SYSTEM_DESIGN": {
+      const brief = row.systemDesignProblem;
+      if (!brief) return "";
+      return [
+        brief.tagline,
+        bullets("The system must", brief.functionalRequirements),
+        bullets("It also has to", brief.nonFunctionalRequirements),
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+    }
+
+    case "LLD": {
+      const brief = row.lldProblem;
+      if (!brief) return "";
+      const entities = Array.isArray(brief.entities)
+        ? (brief.entities as { name?: unknown; responsibility?: unknown }[])
+            .map((entity) =>
+              typeof entity?.name === "string"
+                ? `- ${entity.name}${
+                    typeof entity.responsibility === "string"
+                      ? `: ${entity.responsibility}`
+                      : ""
+                  }`
+                : null
+            )
+            .filter((line): line is string => line !== null)
+        : [];
+      return [
+        brief.tagline,
+        bullets("Requirements", brief.requirements),
+        bullets("You may assume", brief.constraints),
+        entities.length > 0
+          ? `Things the brief expects to exist (candidates, not a design):\n${entities.join("\n")}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+    }
+
+    case "BEHAVIORAL": {
+      const question = row.behavioralQuestion;
+      if (!question) return "";
+      return [
+        question.prompt,
+        bullets(
+          "Follow-ups available to the interviewer (do not read these out as a list)",
+          question.followUps
+        ),
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+    }
+
+    default:
+      return "";
+  }
 }
 
 export type InterviewDetail = {
@@ -131,9 +374,10 @@ export async function getInterview(
       code: true,
       startedAt: true,
       endedAt: true,
-      // Statement only. `solutions` and hidden `testCases` are not
-      // selected and never reach this shape.
-      problem: { select: { title: true, statement: true, slug: true } },
+      // Candidate-visible brief only. See BRIEF_SELECT: no solutions, no
+      // hidden tests, no reference architecture, no reference class
+      // diagram, no behavioural rubric.
+      ...BRIEF_SELECT,
       messages: {
         orderBy: { createdAt: "asc" },
         select: { id: true, role: true, content: true, createdAt: true },
@@ -159,10 +403,8 @@ export async function getInterview(
     stage: session.stage,
     language: session.language,
     code: session.code ?? "",
-    problemTitle: session.problem?.title ?? "Problem",
-    problemStatement: session.problem
-      ? toPlainText(parseContent(session.problem.statement, `interview:${session.id}`))
-      : "",
+    problemTitle: briefTitle(session, session.id),
+    problemStatement: briefStatement(session, session.id),
     startedAt: session.startedAt,
     endedAt: session.endedAt,
     transcript: session.messages
@@ -206,6 +448,9 @@ export async function listInterviews(
       endedAt: true,
       durationSeconds: true,
       problem: { select: { title: true } },
+      systemDesignProblem: { select: { title: true } },
+      lldProblem: { select: { title: true } },
+      behavioralQuestion: { select: { category: { select: { name: true } } } },
       // A count rather than the rows: the list needs to know whether
       // feedback exists, not what it says.
       evaluation: { select: { id: true } },
@@ -218,7 +463,13 @@ export async function listInterviews(
     difficulty: row.difficulty,
     status: row.status,
     stage: row.stage,
-    problemTitle: row.problem?.title ?? null,
+    problemTitle:
+      row.problem?.title ??
+      row.systemDesignProblem?.title ??
+      row.lldProblem?.title ??
+      (row.behavioralQuestion
+        ? `${row.behavioralQuestion.category.name} question`
+        : null),
     startedAt: row.startedAt,
     endedAt: row.endedAt,
     durationSeconds: row.durationSeconds,
@@ -255,7 +506,7 @@ export async function loadInterviewContext(
       stage: true,
       language: true,
       code: true,
-      problem: { select: { title: true, statement: true } },
+      ...BRIEF_SELECT,
       messages: {
         orderBy: { createdAt: "asc" },
         select: { role: true, content: true },
@@ -271,10 +522,8 @@ export async function loadInterviewContext(
     stage: session.stage,
     language: session.language,
     code: session.code ?? "",
-    problemTitle: session.problem?.title ?? "Problem",
-    problemStatement: session.problem
-      ? toPlainText(parseContent(session.problem.statement, `interview:${sessionId}`))
-      : "",
+    problemTitle: briefTitle(session, sessionId),
+    problemStatement: briefStatement(session, sessionId),
     transcript: session.messages
       .filter((m) => m.role !== "SYSTEM")
       .map((m) => ({ role: m.role as "USER" | "ASSISTANT", content: m.content })),
@@ -304,6 +553,7 @@ export async function loadFeedbackContext(
   const session = await prisma.interviewSession.findFirst({
     where: { id: sessionId, userId },
     select: {
+      type: true,
       problem: {
         select: {
           solutions: {
@@ -313,15 +563,135 @@ export async function loadFeedbackContext(
           },
         },
       },
+      systemDesignProblem: {
+        select: {
+          architecture: true,
+          bottlenecks: true,
+          tradeoffs: true,
+          scalingNotes: true,
+        },
+      },
+      lldProblem: {
+        select: { classDiagram: true, tradeoffs: true, designPatterns: true },
+      },
+      behavioralQuestion: { select: { lookingFor: true } },
     },
   });
 
-  const solution = session?.problem?.solutions[0];
-  const reference = solution
-    ? `Intuition: ${solution.intuition}\nExpected complexity: ${solution.timeComplexity} time, ${solution.spaceComplexity} space.`
-    : "No reference solution is available for this problem.";
+  return { ...base, reference: renderReference(session, sessionId) };
+}
 
-  return { ...base, reference };
+/** A `{ decision, chose, over, because }` row, as stored in the JSON column. */
+function tradeoffLines(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((row) => {
+      const t = row as Record<string, unknown>;
+      if (typeof t?.decision !== "string") return null;
+      const chose =
+        typeof t.chose === "string" && typeof t.over === "string"
+          ? ` — chose ${t.chose} over ${t.over}`
+          : "";
+      const because = typeof t.because === "string" ? `: ${t.because}` : "";
+      return `- ${t.decision}${chose}${because}`;
+    })
+    .filter((line): line is string => line !== null);
+}
+
+/**
+ * The reference material, rendered for the feedback pass only.
+ *
+ * This is the one place in the interview subsystem that reads a
+ * reference architecture, a reference class diagram, a DSA solution or a
+ * behavioural rubric. It is called from `loadFeedbackContext`, which has
+ * already refused unless the interview reached ENDED — the interview
+ * being over is what makes the reference safe to look at.
+ */
+function renderReference(
+  session: {
+    type: InterviewType;
+    problem: {
+      solutions: {
+        intuition: string;
+        timeComplexity: string;
+        spaceComplexity: string;
+      }[];
+    } | null;
+    systemDesignProblem: {
+      architecture: unknown;
+      bottlenecks: string[];
+      tradeoffs: unknown;
+      scalingNotes: unknown;
+    } | null;
+    lldProblem: {
+      classDiagram: unknown;
+      tradeoffs: unknown;
+      designPatterns: string[];
+    } | null;
+    behavioralQuestion: { lookingFor: string[] } | null;
+  } | null,
+  sessionId: string
+): string {
+  if (!session) return "No reference material is available.";
+
+  switch (session.type) {
+    case "DSA": {
+      const solution = session.problem?.solutions[0];
+      return solution
+        ? `Intuition: ${solution.intuition}\nExpected complexity: ${solution.timeComplexity} time, ${solution.spaceComplexity} space.`
+        : "No reference solution is available for this problem.";
+    }
+
+    case "SYSTEM_DESIGN": {
+      const brief = session.systemDesignProblem;
+      if (!brief) return "No reference architecture is available.";
+      const parts = [
+        `One reference architecture (not the only defensible one):\n${describeDiagram(
+          parseDiagram(brief.architecture, `interview-ref:${sessionId}`)
+        )}`,
+      ];
+      const tradeoffs = tradeoffLines(brief.tradeoffs);
+      if (tradeoffs.length > 0) {
+        parts.push(`Trade-offs behind it:\n${tradeoffs.join("\n")}`);
+      }
+      if (brief.bottlenecks.length > 0) {
+        parts.push(
+          `Known bottlenecks:\n${brief.bottlenecks.map((b) => `- ${b}`).join("\n")}`
+        );
+      }
+      return parts.join("\n\n");
+    }
+
+    case "LLD": {
+      const brief = session.lldProblem;
+      if (!brief) return "No reference design is available.";
+      const parts = [
+        `One reference class design (not the only defensible one):\n${describeClassDiagram(
+          parseClassDiagram(brief.classDiagram, `interview-ref:${sessionId}`)
+        )}`,
+      ];
+      const tradeoffs = tradeoffLines(brief.tradeoffs);
+      if (tradeoffs.length > 0) {
+        parts.push(`Trade-offs behind it:\n${tradeoffs.join("\n")}`);
+      }
+      if (brief.designPatterns.length > 0) {
+        parts.push(`Patterns it uses: ${brief.designPatterns.join(", ")}`);
+      }
+      return parts.join("\n\n");
+    }
+
+    case "BEHAVIORAL": {
+      const looking = session.behavioralQuestion?.lookingFor ?? [];
+      return looking.length > 0
+        ? `What a strong answer to this question demonstrates:\n${looking
+            .map((item) => `- ${item}`)
+            .join("\n")}`
+        : "No rubric is recorded for this question.";
+    }
+
+    default:
+      return "No reference material is available.";
+  }
 }
 
 /**

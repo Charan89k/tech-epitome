@@ -151,16 +151,44 @@ enum InterviewType {
 /// Server-owned interview position. The client never sends this — the
 /// order of an interview IS the product, so a candidate who could skip
 /// to the feedback stage would not have had an interview.
+///
+/// One enum spans all four interview types because a session's stage is
+/// one column. Which subset is legal for a given type is decided by the
+/// per-type state machines in `src/lib/interview/types.ts`, not here:
+/// Postgres cannot express "SOLVING is a DSA stage only", and pretending
+/// otherwise with four columns would make every query worse.
 enum InterviewStage {
+  // Shared.
   INTRO
   CLARIFYING
+  FOLLOW_UP
+  WRAP_UP
+  ENDED
+
+  // DSA.
   APPROACH
   SOLVING
   TESTING
   COMPLEXITY
-  FOLLOW_UP
-  WRAP_UP
-  ENDED
+
+  // Behavioral.
+  QUESTION
+  PROBING
+
+  // System design.
+  ESTIMATION
+  HIGH_LEVEL_DESIGN
+  DEEP_DIVE
+  SCALING
+
+  // Low-level design.
+  DOMAIN_MODEL
+  CLASS_DESIGN
+  SOLID_REVIEW
+  EXTENSIBILITY
+
+  // Shared by both design interviews.
+  TRADEOFFS
 }
 
 enum InterviewStatus {
@@ -527,7 +555,7 @@ model Problem {
   patterns    ProblemPattern[]
   topics      ProblemTopic[]
   tags        ProblemTag[]
-  companies   CompanyProblem[]
+  prepTracks  PrepTrackProblem[]
   submissions Submission[]
   progress    UserProblemProgress[]
   chapters    ChapterProblem[]
@@ -1078,7 +1106,9 @@ model InterviewSession {
   status     InterviewStatus @default(IN_PROGRESS)
   stage      InterviewStage  @default(INTRO)
 
-  /// The problem under discussion, if the type uses one.
+  /// The brief under discussion. Exactly one is set, chosen by `type`.
+  /// Four nullable columns rather than a polymorphic id because a real
+  /// foreign key per target is what stops a session pointing at nothing.
   problemId             String?
   systemDesignProblemId String?
   lldProblemId          String?
@@ -1094,12 +1124,16 @@ model InterviewSession {
   user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// SetNull rather than Cascade: retiring a problem must not delete a
   /// candidate's interview history. The transcript stands on its own.
-  problem  Problem? @relation(fields: [problemId], references: [id], onDelete: SetNull)
+  problem             Problem?             @relation(fields: [problemId], references: [id], onDelete: SetNull)
+  systemDesignProblem SystemDesignProblem? @relation(fields: [systemDesignProblemId], references: [id], onDelete: SetNull)
+  lldProblem          LLDProblem?          @relation(fields: [lldProblemId], references: [id], onDelete: SetNull)
+  behavioralQuestion  BehavioralQuestion?  @relation(fields: [behavioralQuestionId], references: [id], onDelete: SetNull)
 
   messages   InterviewMessage[]
   evaluation InterviewEvaluation?
 
   @@index([userId, startedAt])
+  @@index([userId, type, startedAt])
   @@index([status])
   @@map("interview_sessions")
 }
@@ -1186,8 +1220,9 @@ model SystemDesignProblem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  companies   CompanySystemDesignTopic[]
+  prepTracks  PrepTrackSystemDesignTopic[]
   submissions SystemDesignSubmission[]
+  interviews  InterviewSession[]
 
   @@index([status, order])
   @@index([searchVector], type: Gin)
@@ -1261,6 +1296,7 @@ model LLDProblem {
   updatedAt DateTime @updatedAt
 
   submissions LLDSubmission[]
+  interviews  InterviewSession[]
 
   @@index([status, order])
   @@index([searchVector], type: Gin)
@@ -1330,10 +1366,12 @@ model BehavioralQuestion {
   order      Int           @default(0)
   status     ContentStatus @default(DRAFT)
 
-  category BehavioralCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  stories  BehavioralStory[]
+  category   BehavioralCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  stories    BehavioralStory[]
+  interviews InterviewSession[]
 
   @@index([categoryId, order])
+  @@index([status, order])
   @@map("behavioral_questions")
 }
 
@@ -1364,15 +1402,28 @@ model BehavioralStory {
 }
 
 // ===========================================================================
-// COMPANIES
+// PREPARATION TRACKS
 //
-// Every company-to-topic association carries provenance. The product must not
-// assert that a company asks a given question without a dated, attributed
-// source, so the source fields are required by the service layer and surfaced
-// in the UI next to the claim.
+// These were `Company` tables in an earlier iteration, meant to answer "what
+// does <employer> ask?". They are not, because CodeForge cannot answer that
+// honestly: it has no sourced, dated report of any company's interview
+// questions, and inventing provenance to fill the columns would have been a
+// fabrication dressed as data.
+//
+// What it can do honestly is describe the SHAPES interview loops come in —
+// a generalist big-tech loop, a startup's full-stack loop, an infrastructure
+// role — and lay out a preparation plan against each. Those are CodeForge's
+// own editorial judgements about common industry practice, they name no
+// employer, and they assert nothing about anyone.
+//
+// The provenance columns are kept, and they are the reason this stays
+// honest: every association records where the judgement came from, and the
+// UI prints it next to the claim. If a real, dated, attributable source is
+// ever available, these columns are where it goes — and only then would
+// naming an employer become defensible.
 // ===========================================================================
 
-model Company {
+model PrepTrack {
   id       String        @id @default(cuid())
   slug     String        @unique
   name     String
@@ -1382,55 +1433,64 @@ model Company {
   status   ContentStatus @default(DRAFT)
   order    Int           @default(0)
 
+  /// The rounds this kind of loop typically has, as `{ name, detail }`.
   interviewStages Json     @default("[]")
   focusAreas      String[]
+  /// An ordered plan, as `{ title, detail, weeks }`.
   roadmap         Json     @default("[]")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  problems           CompanyProblem[]
-  systemDesignTopics CompanySystemDesignTopic[]
+  problems           PrepTrackProblem[]
+  systemDesignTopics PrepTrackSystemDesignTopic[]
 
   @@index([status, order])
-  @@map("companies")
+  @@map("prep_tracks")
 }
 
-model CompanyProblem {
+model PrepTrackProblem {
   id        String @id @default(cuid())
-  companyId String
+  trackId   String
   problemId String
 
-  /// Provenance. `source` is a human-readable attribution, `sourceUrl` the
-  /// citation, `reportedAt` when the report is from, `confidence` 0-100.
+  /// Provenance, required. `source` is a human-readable attribution,
+  /// `sourceUrl` the citation where one exists, `reportedAt` the date the
+  /// judgement is from, `confidence` 0-100. Surfaced in the UI beside the
+  /// recommendation so a reader can discount it.
   source     String
   sourceUrl  String?
   reportedAt DateTime
   confidence Int      @default(50)
 
-  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  /// Why this problem is on this track, in one sentence. Shown to the
+  /// learner: a recommendation with no reason is an assertion.
+  rationale String @db.Text
 
-  @@unique([companyId, problemId])
+  track   PrepTrack @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  problem Problem   @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([trackId, problemId])
   @@index([problemId])
-  @@index([companyId, reportedAt])
-  @@map("company_problems")
+  @@index([trackId, reportedAt])
+  @@map("prep_track_problems")
 }
 
-model CompanySystemDesignTopic {
+model PrepTrackSystemDesignTopic {
   id                    String @id @default(cuid())
-  companyId             String
+  trackId               String
   systemDesignProblemId String
 
   source     String
   sourceUrl  String?
   reportedAt DateTime
   confidence Int      @default(50)
+  rationale  String   @db.Text
 
-  company Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  track   PrepTrack           @relation(fields: [trackId], references: [id], onDelete: Cascade)
   problem SystemDesignProblem @relation(fields: [systemDesignProblemId], references: [id], onDelete: Cascade)
 
-  @@unique([companyId, systemDesignProblemId])
+  @@unique([trackId, systemDesignProblemId])
   @@index([systemDesignProblemId])
-  @@map("company_system_design_topics")
+  @@map("prep_track_system_design_topics")
 }

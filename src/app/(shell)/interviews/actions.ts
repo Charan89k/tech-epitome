@@ -13,7 +13,12 @@ import {
   buildFeedbackSystemPrompt,
   renderInterviewContext,
 } from "@/lib/interview/policy";
-import { EVALUATION_DIMENSIONS, RATING_BANDS } from "@/lib/interview/types";
+import {
+  EVALUATION_DIMENSIONS,
+  RATING_BANDS,
+  dimensionsFor,
+  type InterviewKind,
+} from "@/lib/interview/types";
 import { RATE_LIMITS, rateLimit } from "@/lib/rate-limit";
 import {
   createInterview,
@@ -48,7 +53,7 @@ export async function createInterviewAction(
 ): Promise<ActionResult<{ id: string }>> {
   const user = await requireUserOrThrow();
   if (!canAccess(user, FEATURES.AI_MOCK_INTERVIEW)) {
-    return { ok: false, error: "Mock interviews are part of Pro." };
+    return { ok: false, error: "Sign in to use mock interviews." };
   }
 
   const parsed = createSchema.safeParse(raw);
@@ -163,7 +168,7 @@ export async function generateFeedbackAction(
 ): Promise<ActionResult<{ generated: true }>> {
   const user = await requireUserOrThrow();
   if (!canAccess(user, FEATURES.AI_MOCK_INTERVIEW)) {
-    return { ok: false, error: "Mock interviews are part of Pro." };
+    return { ok: false, error: "Sign in to use mock interviews." };
   }
 
   const limited = await rateLimit(`interview-feedback:${user.id}`, RATE_LIMITS.AI_MESSAGE);
@@ -186,8 +191,11 @@ export async function generateFeedbackAction(
     };
   }
 
+  const kind = context.type as InterviewKind;
+  const dimensions = dimensionsFor(kind);
+
   const contextBlock = renderInterviewContext({
-    type: context.type,
+    type: kind,
     difficulty: context.difficulty,
     stage: context.stage,
     problemTitle: context.problemTitle,
@@ -207,12 +215,12 @@ export async function generateFeedbackAction(
   try {
     const result = await provider.generate({
       messages: [
-        { role: "system", content: buildFeedbackSystemPrompt() },
+        { role: "system", content: buildFeedbackSystemPrompt(kind) },
         {
           role: "user",
           content:
             `${contextBlock}\n\n<<<TRANSCRIPT>>>\n${transcript}\n<<<END_TRANSCRIPT>>>\n\n` +
-            `Assess these dimensions: ${EVALUATION_DIMENSIONS.join(", ")}.\n` +
+            `Assess these dimensions: ${dimensions.join(", ")}.\n` +
             `Bands: ${RATING_BANDS.join(", ")}.\n` +
             `Return JSON: { dimensions: [{dimension, band, evidence}], strengths: [], improvements: [], summary }`,
         },

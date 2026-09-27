@@ -21,7 +21,8 @@ export type ProblemFilters = {
   difficulty?: Difficulty[];
   patternSlugs?: string[];
   topicSlugs?: string[];
-  companySlug?: string;
+  /** Narrows to the problems recommended by one preparation track. */
+  prepTrackSlug?: string;
   /** Requires a signed-in user; ignored otherwise. */
   status?: ProblemStatus[];
   page?: number;
@@ -82,8 +83,8 @@ export async function listProblems(
     where.topics = { some: { topic: { slug: { in: filters.topicSlugs } } } };
   }
 
-  if (filters.companySlug) {
-    where.companies = { some: { company: { slug: filters.companySlug } } };
+  if (filters.prepTrackSlug) {
+    where.prepTracks = { some: { track: { slug: filters.prepTrackSlug } } };
   }
 
   // Status is per-user, so it can only be applied when there is a user.

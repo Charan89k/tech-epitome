@@ -62,6 +62,7 @@ export default async function InterviewPage({
       <div className="mt-5">
         <InterviewRoom
           sessionId={session.id}
+          kind={session.type}
           initialStage={session.stage}
           initialTranscript={session.transcript.map((t) => ({
             id: t.id,
@@ -71,6 +72,7 @@ export default async function InterviewPage({
           initialCode={session.code}
           language={session.language}
           problemTitle={session.problemTitle}
+          problemStatement={session.problemStatement}
           hasFeedback={Boolean(session.feedback)}
         />
       </div>

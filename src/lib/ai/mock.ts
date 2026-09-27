@@ -26,6 +26,35 @@ import { AIProviderUnavailableError } from "./types";
  * `AI_PROVIDER=mock` on a real deployment fails loudly at the first call
  * rather than silently serving canned text to paying users.
  */
+/**
+ * One recognisable line per interview request type.
+ *
+ * Not an attempt to imitate an interviewer — it exists so an end-to-end
+ * test can tell a behavioural probe from a complexity question without
+ * depending on a model's wording.
+ */
+const MOCK_INTERVIEWER_LINE: Record<string, string> = {
+  PRESENT_PROBLEM: "Here is the brief. What would you like to ask before you start?",
+  ASK_CLARIFICATION: "Good question — assume the simple case.",
+  ASK_APPROACH: "Before you write anything, how would you approach this?",
+  REVIEW_REASONING: "What happens to that approach on the largest input?",
+  REVIEW_CODE: "Walk me through what that line does.",
+  ASK_COMPLEXITY: "What is the time and space complexity of that?",
+  ASK_BEHAVIORAL: "Tell me about a time this happened to you.",
+  PROBE_STORY: "What did you personally decide in that moment?",
+  ASK_ESTIMATION: "Roughly how many requests per second are we talking about?",
+  REVIEW_ARCHITECTURE: "Which component owns that decision?",
+  DEEP_DIVE: "Take me a level deeper into that part.",
+  ASK_SCALING: "What breaks first as this grows?",
+  REVIEW_DOMAIN_MODEL: "What is that class the only thing that knows?",
+  REVIEW_CLASS_DESIGN: "Why composition there rather than inheritance?",
+  ASK_SOLID: "Which class has a single reason to change?",
+  ASK_EXTENSIBILITY: "Suppose a second rule is added. What moves?",
+  ASK_TRADEOFFS: "What did that choice cost you?",
+  ASK_WRAP_UP: "Anything you would add with more time?",
+  END_INTERVIEW: "That is all from me — your written feedback is below.",
+};
+
 export class MockProvider implements AIProvider {
   readonly name = "mock";
   readonly defaultModel = "mock-tutor-v1";
@@ -61,49 +90,19 @@ export class MockProvider implements AIProvider {
     // shape the parser expects — which means the real parse, the real
     // validation and the real persistence all run in tests.
     if (/STRICT JSON/i.test(system)) {
+      // The dimensions are read back out of the prompt rather than
+      // hardcoded, because they differ per interview type. A mock that
+      // always answered with the DSA eight would make "code quality" in a
+      // behavioural interview pass its own test.
+      const asked = [...system.matchAll(/^- ([a-zA-Z]+): /gm)].map((m) => m[1]!);
+      const bands = ["solid", "strong", "developing", "not_demonstrated"] as const;
+
       return JSON.stringify({
-        dimensions: [
-          {
-            dimension: "problemUnderstanding",
-            band: "solid",
-            evidence: "Restated the problem before starting.",
-          },
-          {
-            dimension: "communication",
-            band: "strong",
-            evidence: "Narrated each step while writing.",
-          },
-          {
-            dimension: "approach",
-            band: "developing",
-            evidence: "Reached a working idea but did not compare alternatives.",
-          },
-          {
-            dimension: "correctness",
-            band: "solid",
-            evidence: "Handled the empty input case.",
-          },
-          {
-            dimension: "complexityReasoning",
-            band: "not_demonstrated",
-            evidence: "The interview ended before complexity was discussed.",
-          },
-          {
-            dimension: "codeQuality",
-            band: "solid",
-            evidence: "Named variables after what they hold.",
-          },
-          {
-            dimension: "testing",
-            band: "developing",
-            evidence: "Walked one example but no edge case.",
-          },
-          {
-            dimension: "followUps",
-            band: "not_demonstrated",
-            evidence: "No follow-up was reached.",
-          },
-        ],
+        dimensions: asked.map((dimension, index) => ({
+          dimension,
+          band: bands[index % bands.length],
+          evidence: `Evidence for ${dimension} drawn from the transcript.`,
+        })),
         strengths: [
           "Clarified the input range before writing anything.",
           "Talked through the trade-off rather than jumping to code.",
@@ -115,6 +114,20 @@ export class MockProvider implements AIProvider {
         summary:
           "A steady interview with clear communication. The next thing to build is the habit of analysing complexity unprompted.",
       });
+    }
+
+    // An interview turn, not a tutor turn. Echoed so a test can assert
+    // that the server derived the request from the stored stage rather
+    // than taking one from the client.
+    const conducting = /Conduct this turn \(([A-Z_]+)\)\./.exec(prompt)?.[1];
+    if (conducting) {
+      const stage = /^Stage: (.+)$/m.exec(prompt)?.[1] ?? "unknown";
+      return [
+        `Thanks — let's keep going. ${MOCK_INTERVIEWER_LINE[conducting] ?? "Tell me more about that."}`,
+        "",
+        `Interviewer turn: ${conducting}`,
+        `Stage: ${stage}`,
+      ].join("\n");
     }
 
     const rung = /Escalation rung (\d) of (\d)/.exec(system);

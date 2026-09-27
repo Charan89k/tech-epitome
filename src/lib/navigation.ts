@@ -3,6 +3,7 @@ import {
   Blocks,
   Bookmark,
   Boxes,
+  Compass,
   FileText,
   GraduationCap,
   LayoutDashboard,
@@ -136,6 +137,12 @@ export const primaryNav: NavGroup[] = [
   {
     label: "Interview",
     items: [
+      {
+        title: "Preparation",
+        href: "/prepare",
+        icon: Compass,
+        description: "Plans for the shapes interview loops come in",
+      },
       {
         title: "Mock Interviews",
         href: "/interviews",
