@@ -52,3 +52,10 @@ yarn-error.log*
 
 # sandbox scratch
 /.sandbox-tmp
+
+# agent tooling -- vendored from prisma/skills by the Prisma CLI, not product
+# code, referenced by nothing here, and reinstalled on demand. Kept on disk,
+# out of the repository, so the GitHub tree shows the product.
+/.agents
+/.claude
+/skills-lock.json

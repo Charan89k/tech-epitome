@@ -348,7 +348,7 @@ docs/                     engineering reference, screenshots, demo
 nothing at all if you use Prisma's bundled dev database.
 
 ```bash
-git clone https://github.com/Charan89k/CodeForge.git tech-epitome
+git clone https://github.com/Charan89k/tech-epitome.git
 cd tech-epitome
 npm install
 cp .env.example .env
@@ -431,7 +431,7 @@ Tech Epitome is a standard Next.js application and deploys to Vercel without
 modification. You will need a hosted PostgreSQL database — Neon, Supabase and
 Vercel Postgres all work.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FCharan89k%2FCodeForge)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FCharan89k%2Ftech-epitome)
 
 **Or manually:**
 
@@ -506,7 +506,7 @@ The [engineering reference](docs/ENGINEERING.md) has the complete list.
 
 ---
 
-## 📄 Content & licence
+## 📄 Content & originality
 
 All educational content in this repository is **original**. Problem statements,
 explanations, pattern write-ups, visualizations and illustrations were written
