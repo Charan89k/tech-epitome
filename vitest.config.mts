@@ -49,6 +49,21 @@ export default defineConfig({
      * integration tests exist to catch.
      */
     fileParallelism: process.env.VITEST_FILE_PARALLELISM === "true",
+
+    /**
+     * One database connection per worker, for the same reason.
+     *
+     * Serial *files* was not enough: a single test that fans out with
+     * `Promise.all` still opens several connections from the pool, and
+     * PGlite desynchronises on the second one. Playwright's config
+     * already pins this for the dev server; the unit suite talks to the
+     * same database and needs the same pin.
+     *
+     * Overridable, so a run against real PostgreSQL gets a real pool.
+     */
+    env: {
+      DATABASE_POOL_MAX: process.env.DATABASE_POOL_MAX ?? "1",
+    },
     coverage: {
       provider: "v8",
       reportsDirectory: "./coverage",

@@ -25,7 +25,12 @@ const PROTECTED_PREFIXES = [
   "/settings",
   "/profile",
   "/review",
-  "/interview",
+  // "/interviews", plural. It was "/interview" here, which prefix-matches
+  // nothing: the route is /interviews, so the list got no optimistic
+  // redirect. Never a hole — `requireUser` covers it server-side — but it
+  // meant a signed-out visitor paid for a render before being bounced.
+  "/interviews",
+  "/onboarding",
   "/ai-tutor",
   "/admin",
 ];

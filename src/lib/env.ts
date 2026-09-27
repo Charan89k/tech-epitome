@@ -57,6 +57,16 @@ const serverSchema = z.object({
    * users is worse than a switched-off feature — so review reminders are
    * simply not sent until a scheduler and this secret are configured.
    */
+  /**
+   * Set on any deployment running more than one instance. When true and
+   * no distributed store has been installed, `rateLimit` refuses every
+   * request rather than quietly falling back to the per-process counter.
+   */
+  REQUIRE_DISTRIBUTED_RATE_LIMIT: z
+    .enum(["true", "false"])
+    .optional()
+    .default("false"),
+
   CRON_SECRET: z.preprocess(emptyToUndefined, z.string().min(24).optional()),
 
   SEED_ADMIN_EMAIL: z.string().email().default("admin@codeforge.local"),

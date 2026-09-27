@@ -67,6 +67,33 @@ export type QuizPerformance = {
   passed: number;
 };
 
+/**
+ * What the learner has done in the three tracks the dashboard did not
+ * previously know about.
+ *
+ * Counts of their own rows, nothing derived or projected. Zeroes are real
+ * zeroes here — unlike `quizPerformance`, "you have submitted no designs"
+ * is a true and useful statement rather than a confident-looking absence.
+ */
+export type TrackProgress = {
+  systemDesign: { submitted: number; total: number };
+  lld: { submitted: number; total: number };
+  interviews: { completed: number; withFeedback: number };
+};
+
+/**
+ * Progress against the weekly target, when there is one.
+ *
+ * Null when the learner never set one. A target of zero shown as "0 / 0"
+ * would imply they had chosen something.
+ */
+export type WeeklyTarget = {
+  target: number;
+  done: number;
+  /** Monday-anchored, UTC, matching StudyDay and the streak logic. */
+  since: Date;
+};
+
 export type DashboardData = {
   continueLearning: ContinueLearning | null;
   recommendedProblems: RecommendedProblem[];
@@ -74,19 +101,90 @@ export type DashboardData = {
   recentSubmissions: RecentSubmission[];
   dueReviewCount: number;
   quizPerformance: QuizPerformance | null;
+  tracks: TrackProgress;
+  weeklyTarget: WeeklyTarget | null;
 };
 
+/** Monday 00:00 UTC of the week containing `now`. */
+function weekStart(now: Date): Date {
+  const start = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  );
+  // getUTCDay is 0 for Sunday, which is the end of the week here, not
+  // the start.
+  const offset = (start.getUTCDay() + 6) % 7;
+  start.setUTCDate(start.getUTCDate() - offset);
+  return start;
+}
+
+/**
+ * The three tracks the dashboard did not cover, plus the weekly target.
+ *
+ * Batched through `$transaction` for the same reason the admin overview
+ * is: eight concurrent counts is eight connections for one render.
+ */
+async function findTrackProgress(
+  userId: string,
+  since: Date
+): Promise<{ tracks: TrackProgress; weekDone: number; target: number | null }> {
+  const [
+    sdSubmitted,
+    sdTotal,
+    lldSubmitted,
+    lldTotal,
+    interviewsCompleted,
+    withFeedback,
+    chaptersThisWeek,
+    solvedThisWeek,
+    profile,
+  ] = await prisma.$transaction([
+    prisma.systemDesignSubmission.count({
+      where: { userId, submittedAt: { not: null } },
+    }),
+    prisma.systemDesignProblem.count({ where: { status: "PUBLISHED" } }),
+    prisma.lLDSubmission.count({ where: { userId, submittedAt: { not: null } } }),
+    prisma.lLDProblem.count({ where: { status: "PUBLISHED" } }),
+    prisma.interviewSession.count({ where: { userId, status: "COMPLETED" } }),
+    prisma.interviewEvaluation.count({ where: { session: { userId } } }),
+    prisma.userChapterProgress.count({
+      where: { userId, status: "COMPLETED", completedAt: { gte: since } },
+    }),
+    prisma.userProblemProgress.count({
+      where: { userId, status: "SOLVED", firstSolvedAt: { gte: since } },
+    }),
+    prisma.profile.findUnique({
+      where: { userId },
+      select: { weeklyTarget: true },
+    }),
+  ]);
+
+  return {
+    tracks: {
+      systemDesign: { submitted: sdSubmitted, total: sdTotal },
+      lld: { submitted: lldSubmitted, total: lldTotal },
+      interviews: { completed: interviewsCompleted, withFeedback },
+    },
+    weekDone: chaptersThisWeek + solvedThisWeek,
+    target: profile?.weeklyTarget ?? null,
+  };
+}
+
 export async function getDashboardData(userId: string): Promise<DashboardData> {
-  const [inProgress, weakPatterns, recentSubmissions, dueReviewCount, quizPerformance] =
-    await Promise.all([
-      findContinueLearning(userId),
-      findWeakPatterns(userId),
-      findRecentSubmissions(userId),
-      prisma.reviewItem.count({
-        where: { userId, dueAt: { lte: new Date() } },
-      }),
-      findQuizPerformance(userId),
-    ]);
+  const since = weekStart(new Date());
+
+  // Sequential rather than concurrent. Each of these is itself several
+  // queries, so a `Promise.all` here asks for a dozen connections at once
+  // from a pool sized for the whole process — and the local development
+  // database serves exactly one. None of them is slow enough for the
+  // parallelism to pay for the contention it causes.
+  const inProgress = await findContinueLearning(userId);
+  const weakPatterns = await findWeakPatterns(userId);
+  const recentSubmissions = await findRecentSubmissions(userId);
+  const dueReviewCount = await prisma.reviewItem.count({
+    where: { userId, dueAt: { lte: new Date() } },
+  });
+  const quizPerformance = await findQuizPerformance(userId);
+  const trackProgress = await findTrackProgress(userId, since);
 
   const recommendedProblems = await recommendProblems(userId, weakPatterns);
 
@@ -97,6 +195,11 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
     recentSubmissions,
     dueReviewCount,
     quizPerformance,
+    tracks: trackProgress.tracks,
+    weeklyTarget:
+      trackProgress.target === null
+        ? null
+        : { target: trackProgress.target, done: trackProgress.weekDone, since },
   };
 }
 

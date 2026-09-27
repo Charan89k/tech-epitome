@@ -4,11 +4,12 @@ import { z } from "zod";
 
 import { ReviewGrade } from "@/generated/prisma/enums";
 import { recordEvent } from "@/lib/analytics";
+import { awardAchievements } from "@/services/achievements";
 import { requireUserOrThrow } from "@/lib/auth/session";
 import { RATE_LIMITS, rateLimit } from "@/lib/rate-limit";
 import { describeInterval } from "@/lib/review/scheduler";
 import { gradeReviewItem, type GradeOutcome } from "@/services/review";
-import { touchStudyDay } from "@/app/(shell)/learn/actions";
+import { touchStudyDay } from "@/services/study-days";
 
 /**
  * Review mutations.
@@ -66,6 +67,7 @@ export async function gradeReviewAction(
     intervalDays: outcome.intervalDays,
     stage: outcome.stage,
   });
+  await awardAchievements(user.id);
 
   // A completed review is study, so it counts toward the streak and the
   // day's record like any other activity.

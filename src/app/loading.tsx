@@ -1,8 +1,13 @@
 import { LogoMark } from "@/components/brand/logo";
 
 /**
- * Root-level fallback. Route segments define their own skeletons where the
- * layout is known; this covers the first paint of a cold navigation.
+ * The cold-start fallback.
+ *
+ * Every route segment under `(shell)` defines its own skeleton, shaped
+ * like the page that is coming, so a navigation inside the app keeps the
+ * sidebar and top bar. This one covers the first paint before any of that
+ * exists — there is nothing to preserve yet, so a centred mark is
+ * honest rather than lazy.
  */
 export default function Loading() {
   return (

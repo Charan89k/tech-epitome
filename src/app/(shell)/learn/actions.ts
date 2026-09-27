@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 
 import { getCurrentUser, requireUserOrThrow } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
-import { utcDayStart, daysBetweenUtc } from "@/lib/dates";
 import { recordEvent } from "@/lib/analytics";
+import { touchStudyDay } from "@/services/study-days";
+import { awardAchievements } from "@/services/achievements";
 import { ensureReviewItem } from "@/services/review";
 import { gradeQuiz, type QuizResult } from "@/services/quiz";
 import { quizSubmissionSchema } from "@/lib/validation/quiz";
@@ -107,6 +108,7 @@ export async function completeChapterAction(
       xp: 20,
     });
     await recordEvent(user.id, "lesson_completed", { chapterId });
+    await awardAchievements(user.id);
   }
 
   // Schedule the concept for recall. Only chapters that state what should
@@ -171,69 +173,3 @@ function clampSeconds(seconds: number): number {
   return Math.min(Math.round(seconds), 60 * 60);
 }
 
-/**
- * Updates today's StudyDay row, the profile counters, and the streak.
- *
- * The streak is recomputed from `lastActiveOn` rather than incremented
- * blindly: incrementing assumes yesterday was also active, which is exactly
- * the case that needs checking.
- */
-export async function touchStudyDay(
-  userId: string,
-  delta: { seconds: number; chapters: number; xp: number; solved?: number }
-): Promise<void> {
-  const now = new Date();
-  const today = utcDayStart(now);
-
-  await prisma.studyDay.upsert({
-    where: { userId_day: { userId, day: today } },
-    create: {
-      userId,
-      day: today,
-      seconds: delta.seconds,
-      chapters: delta.chapters,
-      solved: delta.solved ?? 0,
-      xp: delta.xp,
-    },
-    update: {
-      seconds: { increment: delta.seconds },
-      chapters: { increment: delta.chapters },
-      solved: { increment: delta.solved ?? 0 },
-      xp: { increment: delta.xp },
-    },
-  });
-
-  const profile = await prisma.profile.findUnique({
-    where: { userId },
-    select: { currentStreak: true, longestStreak: true, lastActiveOn: true },
-  });
-
-  const previous = profile?.lastActiveOn ?? null;
-  const gap = previous ? daysBetweenUtc(previous, now) : null;
-
-  const currentStreak =
-    gap === 0
-      ? (profile?.currentStreak ?? 1) // already counted today
-      : gap === 1
-        ? (profile?.currentStreak ?? 0) + 1 // consecutive day
-        : 1; // first day, or the streak was broken
-
-  await prisma.profile.upsert({
-    where: { userId },
-    create: {
-      userId,
-      currentStreak,
-      longestStreak: currentStreak,
-      studySeconds: delta.seconds,
-      totalXp: delta.xp,
-      lastActiveOn: now,
-    },
-    update: {
-      currentStreak,
-      longestStreak: Math.max(profile?.longestStreak ?? 0, currentStreak),
-      studySeconds: { increment: delta.seconds },
-      totalXp: { increment: delta.xp },
-      lastActiveOn: now,
-    },
-  });
-}

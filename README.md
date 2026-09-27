@@ -784,6 +784,33 @@ Targets Vercel with any PostgreSQL-compatible database.
 3. Build command is `npm run build`, which runs `prisma generate` first.
 4. Set `NEXT_PUBLIC_APP_URL` to the real origin — OAuth callbacks, OpenGraph
    images and the sitemap all derive from it.
+5. Set `CODE_EXECUTION_DRIVER=docker` and give the deployment a reachable
+   Docker daemon. In production the app **refuses to start the executor**
+   rather than falling back to the unsandboxed local one; that refusal is
+   deliberate and must not be worked around.
+6. Running more than one instance? Set
+   `REQUIRE_DISTRIBUTED_RATE_LIMIT=true` and install a shared store at
+   startup:
+
+   ```ts
+   import { createRedisRateLimitStore, setRateLimitStore } from "@/lib/rate-limit";
+   setRateLimitStore(createRedisRateLimitStore(redis));
+   ```
+
+   With the flag set and no shared store installed, rate-limited requests
+   are refused rather than silently admitted. No Redis client is bundled —
+   `RedisLike` is a structural interface that `ioredis` and `node-redis`
+   both satisfy.
+7. Optional: point a scheduler at `POST /api/cron/notifications` with
+   `Authorization: Bearer $CRON_SECRET` to send review reminders. Nothing
+   else depends on it.
+
+### The first admin
+
+`npm run db:seed` creates one from `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`
+— **change both before any deploy**. After that, promotion happens through
+`/admin/users`, and the service refuses to demote the last admin, because an
+installation with no admin has no route back through the UI.
 
 ---
 
@@ -793,6 +820,9 @@ All educational content in this repository is original. Problem statements,
 explanations, pattern write-ups, visualizations and illustrations were written
 for CodeForge and are not copied from any other learning platform.
 
-Company preparation data carries provenance on every row — `source`,
-`sourceUrl`, `reportedAt`, `confidence` — and the product does not assert that
-a company asks a given question without a dated, attributed source.
+Preparation-track data carries provenance on every row — `source`,
+`sourceUrl`, `reportedAt`, `confidence`, and a written reason — and the UI
+prints it beside the recommendation. CodeForge does **not** claim what any
+company asks, because it has no sourced record of that; `/prepare` describes
+the shapes interview loops come in and names no employer. A test fails if one
+ever appears.

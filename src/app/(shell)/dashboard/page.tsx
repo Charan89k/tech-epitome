@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth/session";
-import { route } from "@/lib/utils";
+import { cn, route } from "@/lib/utils";
 import { getDashboardData } from "@/services/dashboard";
 import { getProgressSummary } from "@/services/progress";
 
@@ -69,8 +69,10 @@ export default async function DashboardPage() {
         {/* ---- Primary column -------------------------------------------- */}
         <div className="space-y-5 lg:col-span-2">
           <DueForReviewCard count={data.dueReviewCount} />
+          <WeeklyTargetCard target={data.weeklyTarget} />
           <ContinueLearningCard data={data.continueLearning} />
           <TodaysPracticeCard problems={data.recommendedProblems} />
+          <TracksCard tracks={data.tracks} />
         </div>
 
         {/* ---- Secondary column ------------------------------------------ */}
@@ -116,6 +118,145 @@ export default async function DashboardPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Progress against a weekly target the learner set themselves.
+ *
+ * Absent entirely when they never set one — a bar reading "0 of 0" would
+ * imply a goal they never chose. Over-achieving is shown as over-achieving
+ * rather than clamped to 100%, because clamping hides the interesting part.
+ */
+function WeeklyTargetCard({
+  target,
+}: {
+  target: Awaited<ReturnType<typeof getDashboardData>>["weeklyTarget"];
+}) {
+  if (!target) return null;
+
+  const percent = Math.min(100, Math.round((target.done / target.target) * 100));
+  const met = target.done >= target.target;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm">This week</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="text-sm">
+            <span
+              className={cn(
+                "text-lg font-semibold tabular-nums",
+                met && "text-success"
+              )}
+            >
+              {target.done}
+            </span>
+            <span className="text-muted-foreground">
+              {" "}
+              of {target.target} chapters and problems
+            </span>
+          </p>
+          {met && (
+            <span className="text-success text-xs font-medium">Target met</span>
+          )}
+        </div>
+
+        <div
+          role="progressbar"
+          aria-valuenow={target.done}
+          aria-valuemin={0}
+          aria-valuemax={target.target}
+          aria-label="Progress against your weekly target"
+          className="bg-muted mt-3 h-1.5 overflow-hidden rounded-full"
+        >
+          <div
+            className={cn(
+              "h-full rounded-full transition-all",
+              met ? "bg-success" : "bg-ember-500"
+            )}
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+
+        <p className="text-muted-foreground/70 mt-2 text-xs">
+          Since{" "}
+          {target.since.toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+          })}
+          . Nothing happens if you miss it — change it in settings.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * The three tracks beyond DSA.
+ *
+ * Counts of the learner's own submissions against what is published.
+ * Rendered even at zero: "0 of 3 design exercises submitted" is a true
+ * statement and a useful prompt, unlike a fabricated score.
+ */
+function TracksCard({
+  tracks,
+}: {
+  tracks: Awaited<ReturnType<typeof getDashboardData>>["tracks"];
+}) {
+  const rows = [
+    {
+      label: "System design",
+      href: "/system-design" as const,
+      done: tracks.systemDesign.submitted,
+      total: tracks.systemDesign.total,
+      unit: "submitted",
+    },
+    {
+      label: "Low-level design",
+      href: "/lld" as const,
+      done: tracks.lld.submitted,
+      total: tracks.lld.total,
+      unit: "submitted",
+    },
+  ];
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm">Design and interviews</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-center justify-between gap-3">
+            <Link
+              href={route(row.href)}
+              className="hover:text-ember-300 text-sm transition-colors"
+            >
+              {row.label}
+            </Link>
+            <span className="text-muted-foreground text-xs tabular-nums">
+              {row.done} of {row.total} {row.unit}
+            </span>
+          </div>
+        ))}
+
+        <div className="flex items-center justify-between gap-3">
+          <Link
+            href={route("/interviews")}
+            className="hover:text-ember-300 text-sm transition-colors"
+          >
+            Mock interviews
+          </Link>
+          <span className="text-muted-foreground text-xs tabular-nums">
+            {tracks.interviews.completed} completed ·{" "}
+            {tracks.interviews.withFeedback} with feedback
+          </span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

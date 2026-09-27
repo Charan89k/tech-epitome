@@ -5,12 +5,13 @@ import { z } from "zod";
 
 import { Language } from "@/generated/prisma/enums";
 import { recordEvent } from "@/lib/analytics";
+import { awardAchievements } from "@/services/achievements";
 import { notifySolveMilestone } from "@/services/notifications";
 import { getCurrentUser, requireUserOrThrow } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { RATE_LIMITS, rateLimit } from "@/lib/rate-limit";
 import { getClientIp } from "@/lib/request-context";
-import { touchStudyDay } from "@/app/(shell)/learn/actions";
+import { touchStudyDay } from "@/services/study-days";
 import {
   runAgainstSamples,
   submitSolution,
@@ -110,6 +111,10 @@ export async function submitCodeAction(
         select: { problemsSolved: true },
       });
       if (profile) await notifySolveMilestone(user.id, profile.problemsSolved);
+
+      // Recomputed from the learner's own rows, so this is idempotent and
+      // a second submission awards nothing twice. Never throws.
+      await awardAchievements(user.id);
     }
 
     revalidatePath("/dashboard");
