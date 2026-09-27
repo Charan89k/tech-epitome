@@ -155,6 +155,21 @@ enum InterviewType {
   BEHAVIORAL
 }
 
+/// Server-owned interview position. The client never sends this — the
+/// order of an interview IS the product, so a candidate who could skip
+/// to the feedback stage would not have had an interview.
+enum InterviewStage {
+  INTRO
+  CLARIFYING
+  APPROACH
+  SOLVING
+  TESTING
+  COMPLEXITY
+  FOLLOW_UP
+  WRAP_UP
+  ENDED
+}
+
 enum InterviewStatus {
   IN_PROGRESS
   COMPLETED
@@ -564,6 +579,8 @@ model Problem {
   submissions Submission[]
   progress    UserProblemProgress[]
   chapters    ChapterProblem[]
+
+  interviews InterviewSession[]
 
   @@index([difficulty, status])
   @@index([status, number])
@@ -1107,6 +1124,7 @@ model InterviewSession {
   type       InterviewType
   difficulty Difficulty      @default(MEDIUM)
   status     InterviewStatus @default(IN_PROGRESS)
+  stage      InterviewStage  @default(INTRO)
 
   /// The problem under discussion, if the type uses one.
   problemId             String?
@@ -1121,7 +1139,11 @@ model InterviewSession {
   endedAt         DateTime?
   durationSeconds Int       @default(0)
 
-  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// SetNull rather than Cascade: retiring a problem must not delete a
+  /// candidate's interview history. The transcript stands on its own.
+  problem  Problem? @relation(fields: [problemId], references: [id], onDelete: SetNull)
+
   messages   InterviewMessage[]
   evaluation InterviewEvaluation?
 
@@ -1153,13 +1175,15 @@ model InterviewEvaluation {
   id        String @id @default(cuid())
   sessionId String @unique
 
-  problemUnderstanding Int
-  problemSolving       Int
-  communication        Int
-  codeQuality          Int
-  complexityAnalysis   Int
-  edgeCases            Int
-  overall              Int
+  /// Per-dimension assessments: { dimension, band, evidence }.
+  ///
+  /// Bands rather than numbers, and no composite score. A number would
+  /// read as a measurement and invite ranking one candidate against
+  /// another — a precision a model reading a transcript does not have.
+  /// Every band carries evidence from the transcript so the candidate
+  /// can disagree with it. Phase 1 modelled this as seven integers and
+  /// an `overall`; that was replaced in Phase 9, before any row existed.
+  dimensions Json @default("[]")
 
   strengths     String[]
   improvements  String[]

@@ -29,6 +29,8 @@ export const ANALYTICS_EVENTS = [
   "pattern_viewed",
   "review_graded",
   "design_submitted",
+  "interview_started",
+  "interview_completed",
 ] as const;
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number];

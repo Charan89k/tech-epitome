@@ -56,6 +56,67 @@ export class MockProvider implements AIProvider {
     const last = [...options.messages].reverse().find((m) => m.role === "user");
     const prompt = last?.content ?? "";
 
+    // Interview feedback asks for strict JSON. Returning prose here
+    // would exercise only the error path, so the double answers in the
+    // shape the parser expects — which means the real parse, the real
+    // validation and the real persistence all run in tests.
+    if (/STRICT JSON/i.test(system)) {
+      return JSON.stringify({
+        dimensions: [
+          {
+            dimension: "problemUnderstanding",
+            band: "solid",
+            evidence: "Restated the problem before starting.",
+          },
+          {
+            dimension: "communication",
+            band: "strong",
+            evidence: "Narrated each step while writing.",
+          },
+          {
+            dimension: "approach",
+            band: "developing",
+            evidence: "Reached a working idea but did not compare alternatives.",
+          },
+          {
+            dimension: "correctness",
+            band: "solid",
+            evidence: "Handled the empty input case.",
+          },
+          {
+            dimension: "complexityReasoning",
+            band: "not_demonstrated",
+            evidence: "The interview ended before complexity was discussed.",
+          },
+          {
+            dimension: "codeQuality",
+            band: "solid",
+            evidence: "Named variables after what they hold.",
+          },
+          {
+            dimension: "testing",
+            band: "developing",
+            evidence: "Walked one example but no edge case.",
+          },
+          {
+            dimension: "followUps",
+            band: "not_demonstrated",
+            evidence: "No follow-up was reached.",
+          },
+        ],
+        strengths: [
+          "Clarified the input range before writing anything.",
+          "Talked through the trade-off rather than jumping to code.",
+        ],
+        improvements: [
+          "State the complexity without being asked.",
+          "Test one edge case out loud before declaring it done.",
+        ],
+        summary:
+          "A steady interview with clear communication. The next thing to build is the habit of analysing complexity unprompted.",
+      });
+    }
+
     const rung = /Escalation rung (\d) of (\d)/.exec(system);
     const requestType = /Learner's question \(([A-Z_]+)\):/.exec(prompt)?.[1] ?? "GENERAL_QUESTION";
 

@@ -5,6 +5,10 @@ import { closeDb, makePro } from "./db";
 /**
  * Journey 4: Low-Level Design.
  *
+ * Locators are scoped to `main` throughout. Under parallel load the
+ * Next dev server leaves a hidden prerender copy of the page in the
+ * DOM, so an unscoped `getByTestId` intermittently matches twice.
+ *
  * Track → chapter → exercise → design classes → relate them → save →
  * reload → validate → submit → reference → AI review.
  *
@@ -133,7 +137,7 @@ test("no reference material reaches the browser before submission", async ({
   await makePro(email);
   await page.reload();
   await page.goto(EXERCISE_URL);
-  await expect(page.getByTestId("lld-workspace")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("main").getByTestId("lld-workspace")).toBeVisible({ timeout: 30_000 });
 
   const html = await page.content();
 
@@ -178,7 +182,7 @@ test("full journey: design, relate, save, reload, submit, review", async ({
   await page.reload();
 
   await page.goto(EXERCISE_URL);
-  const workspace = page.getByTestId("lld-workspace");
+  const workspace = page.getByRole("main").getByTestId("lld-workspace");
   await expect(workspace).toBeVisible({ timeout: 30_000 });
 
   // --- add types ----------------------------------------------------------
@@ -262,7 +266,7 @@ test("a design that is barely started cannot be submitted", async ({ page }) => 
   await page.reload();
 
   await page.goto(EXERCISE_URL);
-  const workspace = page.getByTestId("lld-workspace");
+  const workspace = page.getByRole("main").getByTestId("lld-workspace");
   await expect(workspace).toBeVisible({ timeout: 30_000 });
 
   await page.getByRole("button", { name: "Submit design" }).click();
@@ -281,7 +285,7 @@ test("a class diagram is readable as text, not only as a picture", async ({
   await page.reload();
 
   await page.goto(EXERCISE_URL);
-  const workspace = page.getByTestId("lld-workspace");
+  const workspace = page.getByRole("main").getByTestId("lld-workspace");
   await expect(workspace).toBeVisible({ timeout: 30_000 });
 
   await showPane(page, "Design");
@@ -303,7 +307,7 @@ test("a signed-out visitor is asked to sign in rather than shown a broken editor
 }) => {
   await page.goto(EXERCISE_URL);
   await expect(page.getByText("Sign in to design and save.")).toBeVisible();
-  await expect(page.getByTestId("lld-workspace")).toHaveCount(0);
+  await expect(page.getByRole("main").getByTestId("lld-workspace")).toHaveCount(0);
 });
 
 test("one learner cannot reach another's LLD design", async ({ page, browser }) => {
@@ -317,7 +321,7 @@ test("one learner cannot reach another's LLD design", async ({ page, browser }) 
   await page.reload();
   await page.goto(EXERCISE_URL);
 
-  const workspace = page.getByTestId("lld-workspace");
+  const workspace = page.getByRole("main").getByTestId("lld-workspace");
   await expect(workspace).toBeVisible({ timeout: 30_000 });
   await showPane(page, "Design");
   await workspace.getByRole("button", { name: "Class", exact: true }).click();
@@ -334,7 +338,7 @@ test("one learner cannot reach another's LLD design", async ({ page, browser }) 
   await bobPage.reload();
   await bobPage.goto(EXERCISE_URL);
 
-  await expect(bobPage.getByTestId("lld-workspace")).toBeVisible({ timeout: 30_000 });
+  await expect(bobPage.getByRole("main").getByTestId("lld-workspace")).toBeVisible({ timeout: 30_000 });
   // Nothing of Alice's reaches Bob's page — the submission is keyed on
   // (userId, problemId) and there is no way to name hers.
   await expect(bobPage.getByText("alices-private-rationale")).toHaveCount(0);
@@ -349,7 +353,7 @@ test("the workspace works on a phone without overflowing", async ({ page }) => {
   await signUp(page, "mobile");
   await page.goto(EXERCISE_URL);
 
-  const workspace = page.getByTestId("lld-workspace");
+  const workspace = page.getByRole("main").getByTestId("lld-workspace");
   await expect(workspace).toBeVisible({ timeout: 30_000 });
 
   // Mobile gets tabs rather than a squeezed three-column grid.

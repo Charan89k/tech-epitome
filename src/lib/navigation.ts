@@ -7,6 +7,7 @@ import {
   GraduationCap,
   LayoutDashboard,
   ListChecks,
+  MessagesSquare,
   Network,
   PlayCircle,
   Repeat2,
@@ -23,7 +24,7 @@ import { FEATURES, type Feature } from "@/lib/auth/access";
  * new section appears everywhere at once and cannot be half-added.
  *
  * This list contains only routes that exist. Sections belonging to later
- * phases (Interview, Behavioral, Companies) are added
+ * phases (Behavioral, Companies) are added
  * here as they ship - a nav entry that 404s is the same broken promise as a
  * "coming soon" button. The roadmap lives in README.md, not in the UI.
  */
@@ -129,6 +130,18 @@ export const primaryNav: NavGroup[] = [
         feature: FEATURES.AI_TUTOR,
         description:
           "Work through what you are stuck on, without being handed the answer",
+      },
+    ],
+  },
+  {
+    label: "Interview",
+    items: [
+      {
+        title: "Mock Interviews",
+        href: "/interviews",
+        icon: MessagesSquare,
+        feature: FEATURES.AI_MOCK_INTERVIEW,
+        description: "Practise an interview, then read feedback with evidence",
       },
     ],
   },

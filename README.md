@@ -30,8 +30,18 @@ See → Understand → Recognise → Attempt → Struggle → Hint
 | 6 | AI tutor: Socratic tutoring in chapter, problem and code context | **Complete, verified** |
 | 7 | System Design: curriculum, diagram engine, design workspace, AI review | **Complete, verified** |
 | 8 | Low-Level Design: curriculum, class-diagram engine, design workspace, AI review | **Complete, verified** |
-| 9 | AI mock interviews and interview prep | Not started |
+| 9 | Mock interviews: DSA interviewer, server-owned state machine, banded feedback | **Partial** — see below |
 | 10 | Admin, billing, production hardening | Not started |
+
+**Phase 9 is partial and the table says so.** What is implemented and
+verified: DSA mock interviews end to end — session creation, an AI
+interviewer whose stage machine lives on the server, transcript
+persistence, and written feedback with per-dimension bands and evidence
+from the transcript. What is **not** implemented: behavioural
+interviews, company preparation, and the System Design / LLD interview
+types. Those models exist in the schema from Phase 1 and carry no
+implementation; the UI does not offer them and the service refuses to
+create them rather than opening a session that cannot be conducted.
 
 Navigation only ever lists routes that exist. A section absent from the
 sidebar has not shipped yet — there are no "coming soon" buttons.
@@ -424,7 +434,7 @@ npm test              # unit + component
 npm run test:e2e      # browser, desktop + mobile viewports
 ```
 
-462 unit and integration tests; 123 end-to-end tests across desktop and
+525 unit and integration tests; 140 end-to-end tests across desktop and
 mobile viewports.
 
 Test files run one at a time (`fileParallelism: false`). That is a constraint
@@ -437,7 +447,7 @@ authorization tiers, rate-limit policies, auth and quiz validation, content
 document validation, search query sanitisation, quiz scoring, and UTC calendar
 arithmetic for streaks.
 
-Five integration suites execute real code against real runtimes:
+Six integration suites execute real code against real runtimes:
 
 - `lib/code-execution/harness.integration.test.ts` compiles and runs generated
   harnesses in Python, JavaScript, Java and C++ — including resource limits,
@@ -461,6 +471,11 @@ Five integration suites execute real code against real runtimes:
   LLD workspace, plus the hint ladder: that only the unlocked prefix is
   loaded, that autosave cannot rewind the counter, and that neither the
   reference design nor an unopened hint reaches the AI reviewer.
+- `services/interview.integration.test.ts` covers session ownership and
+  the reference boundary: that the interviewer is never given the
+  solution while the interview is running, that `loadFeedbackContext`
+  refuses until it has ended, and that every write scoped to another
+  candidate's session is a no-op rather than a leak.
 
 The tutor's own rules — the escalation ladder, the refusal to dump a
 solution, the fencing of untrusted content, and the context budgets — are
@@ -573,13 +588,26 @@ These are real and currently true. None of them are hidden behind a
 20. **Class-diagram layout is tiered, not free-form.** Supertypes above
     subtypes, deterministic. Deliberate — it works on a phone and makes
     designs comparable — but an arbitrary topology cannot be expressed.
-21. **One observed, unreproduced E2E flake.** A single run saw two tutor
-    composers in the DOM on `/ai-tutor` at mobile width under parallel load,
-    failing a strict locator. It has not recurred across a dozen subsequent
-    runs, isolated or parallel. The tests now wait for the panel to be
-    visible before typing, which removes the race if that was the cause —
-    but the cause was never confirmed, so it is recorded here rather than
-    called fixed.
+21. **RESOLVED.** The Phase 6 "two tutor composers" flake was reproduced
+    in Phase 9 as a general pattern: under parallel load the Next dev
+    server leaves a hidden prerender copy of a page in the DOM, so an
+    unscoped `getByTestId` intermittently matches twice. Test locators
+    for in-page content are now scoped to `main`. It affects the dev
+    server only — the production build does not do this — so it was
+    always a test-harness artefact rather than a product defect.
+22. **Interview feedback is AI-generated and labelled as such.** It is a
+    language model reading a transcript. Every judgement carries evidence
+    so it can be disagreed with, and there is deliberately no composite
+    score, no percentage and no hire recommendation. It is not equivalent
+    to a real interview and the UI says so.
+23. **Only DSA interviews exist.** `createInterview` refuses the other
+    three types rather than opening a session no interviewer can conduct.
+24. **`notFound()` after streaming returns HTTP 200.** Next commits the
+    status when it starts streaming the shell, so a page that calls
+    `notFound()` later renders the not-found UI under a 200. Verified
+    that no data leaks — a non-owner sees the not-found page — but the
+    status code is not a reliable authorization signal for a streamed
+    route.
 
 ---
 
