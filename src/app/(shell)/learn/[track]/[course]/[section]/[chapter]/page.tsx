@@ -21,8 +21,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { lockStateFor } from "@/lib/auth/access";
+import { TutorLauncher } from "@/components/tutor/tutor-launcher";
+import { canAccess, FEATURES, lockStateFor } from "@/lib/auth/access";
 import { getCurrentUser } from "@/lib/auth/session";
+import { labelFor } from "@/lib/tutor/context";
+import { CHAPTER_QUICK_ACTIONS } from "@/lib/tutor/types";
+import { loadContextBundle } from "@/services/tutor";
 import { parseContent } from "@/lib/validation/content";
 import { route } from "@/lib/utils";
 import {
@@ -35,10 +39,10 @@ import {
 import { getQuiz, type QuizView } from "@/services/quiz";
 import type { ContentBlock } from "@/types/content";
 
-type Params = PageProps<"/learn/dsa/[course]/[section]/[chapter]">;
+type Params = PageProps<"/learn/[track]/[course]/[section]/[chapter]">;
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
-  const { course, section, chapter: chapterSlug } = await params;
+  const { track, course, section, chapter: chapterSlug } = await params;
   const chapter = await getChapter(course, section, chapterSlug);
   if (!chapter) return { title: "Chapter not found" };
 
@@ -46,14 +50,18 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     title: chapter.title,
     description: chapter.summary ?? undefined,
     alternates: {
-      canonical: `/learn/dsa/${course}/${section}/${chapterSlug}`,
+      canonical: `/learn/${track}/${course}/${section}/${chapterSlug}`,
     },
   };
 }
 
 export default async function ChapterPage({ params }: Params) {
-  const { course: courseSlug, section: sectionSlug, chapter: chapterSlug } =
-    await params;
+  const {
+    track: trackSegment,
+    course: courseSlug,
+    section: sectionSlug,
+    chapter: chapterSlug,
+  } = await params;
 
   const user = await getCurrentUser();
   const [chapter, courseDetail] = await Promise.all([
@@ -118,8 +126,53 @@ export default async function ChapterPage({ params }: Params) {
     .map((problem) => problems.get(problem.slug))
     .filter((problem): problem is NonNullable<typeof problem> => Boolean(problem));
 
+  // Derived from the same bundle the tutor is given, so the header cannot
+  // claim context the model did not receive. Skipped entirely when the
+  // learner cannot use the tutor — there is no reason to read and flatten
+  // a chapter body for a panel that will render a paywall.
+  const tutorAllowed = canAccess(user, FEATURES.AI_TUTOR);
+  const tutorBundle =
+    user && tutorAllowed && !lock.locked
+      ? await loadContextBundle(
+          {
+            kind: "CHAPTER",
+            courseSlug,
+            sectionSlug,
+            chapterSlug,
+          },
+          user.id
+        )
+      : null;
+
+  const tutor = (
+    <TutorLauncher
+      anchor={{
+        kind: "CHAPTER",
+        courseSlug,
+        sectionSlug,
+        chapterSlug,
+      }}
+      label={
+        tutorBundle
+          ? labelFor(tutorBundle)
+          : {
+              contextType: "CHAPTER",
+              primary: chapter.patterns[0]?.name ?? chapter.section.title,
+              secondary: chapter.title,
+              chips: [
+                chapter.difficulty.charAt(0) +
+                  chapter.difficulty.slice(1).toLowerCase(),
+              ],
+            }
+      }
+      quickActions={CHAPTER_QUICK_ACTIONS}
+      access={!user ? "signin" : tutorAllowed ? "allowed" : "upgrade"}
+    />
+  );
+
   const nav = (
     <ChapterNav
+      trackSegment={trackSegment}
       courseSlug={courseSlug}
       courseTitle={courseDetail.title}
       sections={courseDetail.sections}
@@ -184,6 +237,13 @@ export default async function ChapterPage({ params }: Params) {
                 percent={chapter.progress.percent}
                 objectives={chapter.objectives}
               />
+
+              {/* Rendered once, not once per breakpoint: two launchers would
+                  mean two independent open states and two identical buttons
+                  in the accessibility tree. */}
+              {!lock.locked && (
+                <div className="mt-4 flex justify-end">{tutor}</div>
+              )}
 
               {lock.locked ? (
                 <div className="border-border bg-card mt-8 rounded-lg border p-8 text-center">

@@ -27,11 +27,11 @@ See → Understand → Recognise → Attempt → Struggle → Hint
 | 3 | Monaco editor, code execution, test harness, submissions | **Complete, verified** |
 | 4 | Visualization engine + six algorithms | **Complete, verified** |
 | 5 | Quiz engine and spaced revision | **Complete, verified** |
-| 6 | AI tutor | Provider abstraction only — no tutor UI yet |
-| 7 | AI mock interviews | Not started |
-| 8 | System design and low-level design tracks | Not started |
-| 9 | Admin CMS | Not started |
-| 10 | Production hardening | Not started |
+| 6 | AI tutor: Socratic tutoring in chapter, problem and code context | **Complete, verified** |
+| 7 | System Design: curriculum, diagram engine, design workspace, AI review | **Complete, verified** |
+| 8 | Low-level design track | Not started |
+| 9 | AI mock interviews and interview prep | Not started |
+| 10 | Admin, billing, production hardening | Not started |
 
 Navigation only ever lists routes that exist. A section absent from the
 sidebar has not shipped yet — there are no "coming soon" buttons.
@@ -47,9 +47,26 @@ then schedules it for spaced revision, and `/review` brings it back the day
 after — recall first, answer second, graded on a four-point ladder that sets
 the next interval. That entire loop is covered end to end by browser tests.
 
-Seeded content, all original: **1 course, 10 sections, 29 chapters, 20
+On Pro, an AI tutor sits alongside all of that. It reads the chapter being
+studied or the problem being solved — including the code in the editor and
+the last failing test — and works the learner towards the answer rather than
+supplying it: a hint ladder that climbs one rung per ask, from a conceptual
+nudge to a full walkthrough, and only reaches the walkthrough after the
+learner has been through the three rungs before it.
+
+Phase 7 adds a second track. System Design is the same reader — `Track` has
+had `SYSTEM_DESIGN` since Phase 1, so `/learn/dsa/*` became `/learn/[track]/*`
+with every existing URL preserved — plus two things that are new: diagrams
+stored as nodes and edges rather than images, and a workspace where the
+learner draws their own architecture, writes down what they traded away, and
+submits it. **The reference architecture is withheld by the service until
+they do**, so an exercise cannot be read as a worked example. The AI reviewer
+gets their design as prose and never gets the reference.
+
+Seeded content, all original: **2 courses, 16 sections, 40 chapters, 20
 patterns, 50 problems** (377 test cases, 200 hints, 56 solutions), **15
-quizzes**, and **6 interactive visualizations**.
+quizzes**, **6 interactive visualizations** and **3 system-design
+exercises**.
 
 ---
 
@@ -142,8 +159,12 @@ src/
 │   ├── ui/              shadcn primitives (owned, editable)
 │   ├── brand/ layout/ common/
 │   ├── learning/        content block renderers
+│   ├── tutor/           AI tutor panel, launcher, markdown
 │   ├── problems/ dashboard/ settings/ auth/ marketing/
-├── lib/                 env, db, auth, billing, rate-limit, validation
+├── lib/
+│   ├── ai/              provider adapters: ollama, anthropic, mock
+│   ├── tutor/           request types, Socratic policy, context builder
+│   └── …                env, db, auth, billing, rate-limit, validation
 ├── services/            data access, one module per domain
 ├── types/               shared domain types
 └── data/                seed content
@@ -252,6 +273,65 @@ recognition clues, a chapter's key takeaways, a problem's learning
 objective. No second bank of review questions is authored or stored, because
 two copies of the same idea drift apart the first time an author edits one.
 
+### AI tutor
+
+```
+UI  →  /api/tutor/stream  →  requireUser + canAccess(AI_TUTOR)
+                          →  rateLimit(AI_MESSAGE)
+                          →  context builder   (bounded, per surface)
+                          →  Socratic policy   (system prompt + rung)
+                          →  AIProvider.stream (ollama | anthropic | mock)
+                          →  persist turn + record usage
+```
+
+Three deliberate choices.
+
+**It is a route handler, not a Server Action.** Server Actions resolve to a
+value; a tutor that returns its whole answer at once after eight seconds is
+a tutor nobody waits for. Server-sent events put the first sentence on
+screen in well under a second, and closing the panel aborts the request,
+which aborts the upstream call — so cancelling actually stops the spend.
+
+**Requests are typed, not free text.** `src/lib/tutor/types.ts` defines nine
+request types (`HINT`, `DEBUG_CODE`, `ANALYZE_COMPLEXITY`, …). A quick-action
+button sends `{ type: "HINT" }`, not a sentence that happens to contain the
+word hint, so the server decides what context to gather and what instruction
+to attach.
+
+**The hint ladder is server state.** Escalation lives in
+`src/lib/tutor/policy.ts` as a pure function and the rung is persisted on
+each message, so reloading a thread does not restart at hint 1 and
+double-clicking does not spend two rungs. Only a `HINT` advances it —
+debugging out loud for five turns must not silently exhaust it.
+
+| Rung | Gives | Code |
+|---|---|---|
+| 1 | Conceptual nudge; no technique named | none |
+| 2 | Names the family of technique | none |
+| 3 | The shape: what you maintain, what invariant holds | ≤3 lines of pseudocode |
+| 4 | Full walkthrough with complexity and the recognition cue | yes |
+
+Rung 4 is reachable only after the three before it, or when the learner
+explicitly asks to be told — refusing someone who has genuinely given up is
+stonewalling, not teaching, but it takes those words rather than a
+frustrated tone.
+
+Context is assembled by `src/lib/tutor/context.ts`, which is pure: it
+receives already-fetched data and returns a message array, so "does a
+problem turn actually include the failing test?" and "is history really
+bounded?" are unit tests rather than things you find out from a bill.
+Budgets are explicit (6k chars of chapter body, 2.5k of statement, 4k of
+code, 8 turns of history) because the version that sends everything works
+perfectly in development and is unaffordable in production.
+
+Problem statements, chapter bodies and learner code are fenced in labelled
+delimiters, with any delimiter inside the payload neutralised so content
+cannot close its own fence and escape into instruction position. That is a
+mitigation, not a guarantee — the real control is that the tutor has no
+tools, no database access of its own, and nothing in its context worth
+extracting. **Only the hints a learner has already unlocked are loaded**, so
+the model cannot hand back hint 4 on the first ask.
+
 ### Visualizations
 
 Each visualization is a pure function from an input to a list of frames, plus
@@ -292,7 +372,7 @@ list.
 | `AUTH_SECRET` | yes | 32+ chars; `npx auth secret` |
 | `NEXT_PUBLIC_APP_URL` | yes | Public origin |
 | `AUTH_GOOGLE_ID` / `_SECRET` | no | Both blank hides the Google button |
-| `AI_PROVIDER` | no | `ollama` (default) or `anthropic` |
+| `AI_PROVIDER` | no | `ollama` (default), `anthropic`, or `mock` (tests only; rejected in production) |
 | `AI_API_KEY` | conditional | Required when `AI_PROVIDER=anthropic` |
 | `CODE_EXECUTION_DRIVER` | no | `local` \| `docker` \| `remote` |
 | `STRIPE_*` | no | Blank disables checkout; the pricing page says so |
@@ -332,15 +412,20 @@ npm test              # unit + component
 npm run test:e2e      # browser, desktop + mobile viewports
 ```
 
-236 unit and integration tests; 70 end-to-end tests across desktop and
+383 unit and integration tests; 106 end-to-end tests across desktop and
 mobile viewports.
+
+Test files run one at a time (`fileParallelism: false`). That is a constraint
+of the local `prisma dev` stand-in, not of the tests — see
+[Known limitations](#known-limitations). Against real PostgreSQL, set
+`VITEST_FILE_PARALLELISM=true` to get the parallelism back.
 
 Unit tests cover the logic where a wrong answer is a security or data problem:
 authorization tiers, rate-limit policies, auth and quiz validation, content
 document validation, search query sanitisation, quiz scoring, and UTC calendar
 arithmetic for streaks.
 
-Two integration suites execute real code in real runtimes:
+Four integration suites execute real code against real runtimes:
 
 - `lib/code-execution/harness.integration.test.ts` compiles and runs generated
   harnesses in Python, JavaScript, Java and C++ — including resource limits,
@@ -355,12 +440,33 @@ Two integration suites execute real code in real runtimes:
   catalogue honest: a wrong expected value is worse than a missing problem,
   because the learner writes a correct solution and is told it failed. It
   caught eight bad fixtures on its first run.
+- `services/tutor.integration.test.ts` covers what the tutor is allowed to
+  see: that the hints loaded are exactly the prefix the learner unlocked,
+  that a failing submission reaches the context while an unscored run does
+  not, and that naming another learner's conversation id returns nothing
+  rather than their thread.
+
+The tutor's own rules — the escalation ladder, the refusal to dump a
+solution, the fencing of untrusted content, and the context budgets — are
+unit-tested in `lib/tutor/`. That matters more than usual here: an AI tutor
+that quietly starts answering instead of teaching still produces fluent,
+correct, well-formatted text, and nobody notices until learners stop
+improving.
 
 End-to-end tests run against a real database and the real executor; mocking
 either would defeat the purpose. `e2e/page-health.spec.ts` sweeps every route
 on both viewports for console errors, hydration errors, horizontal overflow
 and broken links. Each test registers its own uniquely-named account, so the
 suite is repeatable and parallel-safe.
+
+`e2e/tutor.spec.ts` streams from `src/lib/ai/mock.ts`, a deterministic
+provider wired in by `playwright.config.ts`. Everything else in the path is
+real — the route handler, the Pro gate, the rate limiter, the context
+builder, the escalation ladder and the database. Only the token source is
+fake, which is what makes the assertions meaningful: the mock echoes a fixed
+summary of the context it received, so a test can prove the learner's failing
+test actually reached the prompt. **CI therefore needs no Anthropic key and
+no local Ollama.**
 
 ---
 
@@ -413,6 +519,37 @@ These are real and currently true. None of them are hidden behind a
     `mysql2` is never loaded at runtime and is not in the production bundle.
 12. **Google OAuth is untested** — no credentials were available. The code
     path is present and the button is hidden unless both variables are set.
+13. **Policy compliance is instructed, not enforced.** The Socratic rules and
+    the escalation rung are pinned by unit tests, and one rung-1 hint from a
+    real local model (`qwen2.5:3b`, through the full stack) came back
+    conceptual, code-free and ending in a question — as intended. But a
+    prompt is a request, not a constraint: no test can prove a model will
+    always obey it, and a stronger model may behave differently. Treat the
+    ladder as a strong default, not a guarantee.
+14. **Anthropic is unverified at runtime** — still no API key. The adapter is
+    exercised through its error paths only, and is unchanged from Phase 2.
+    Ollama is verified end to end through the same interface.
+15. **`qwen2.5:14b` is unusably slow on this machine.** The configured
+    default takes over five minutes for a single tutor turn on CPU, so the
+    live check used `qwen2.5:3b` (~60s). Nothing is wrong with the adapter;
+    the box cannot run a 14B model interactively. Set `OLLAMA_MODEL` to
+    something smaller for local development, or use Anthropic.
+16. **Test files run serially.** `fileParallelism: false` in
+    `vitest.config.mts`, because a fourth database-backed suite pushed the
+    PGlite stand-in past the concurrency it can serve (see limitation 4).
+    Costs ~24s on the full suite. `VITEST_FILE_PARALLELISM=true` restores
+    parallelism against real PostgreSQL.
+17. **Tutor conversations are never pruned.** Threads and messages
+    accumulate for the life of the account; there is no archive, no delete
+    and no retention policy. "New chat" starts a thread, it does not remove
+    the old one. Fine at current scale, not a position to hold forever.
+18. **One observed, unreproduced E2E flake.** A single run saw two tutor
+    composers in the DOM on `/ai-tutor` at mobile width under parallel load,
+    failing a strict locator. It has not recurred across a dozen subsequent
+    runs, isolated or parallel. The tests now wait for the panel to be
+    visible before typing, which removes the race if that was the cause —
+    but the cause was never confirmed, so it is recorded here rather than
+    called fixed.
 
 ---
 

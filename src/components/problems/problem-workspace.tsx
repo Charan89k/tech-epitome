@@ -11,6 +11,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 import { runCodeAction, submitCodeAction } from "@/app/(shell)/problems/actions";
 import { TestResults } from "@/components/problems/test-results";
+import { TutorLauncher } from "@/components/tutor/tutor-launcher";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Language } from "@/generated/prisma/enums";
 import { LANGUAGE_LABEL, SUPPORTED_LANGUAGES } from "@/lib/code-execution/signature";
 import { cn } from "@/lib/utils";
+import type { TutorContextLabel, TutorQuickAction, TutorCodeState } from "@/lib/tutor/types";
 import type { RunOutcome } from "@/services/submissions";
 
 /**
@@ -50,6 +52,21 @@ type Props = {
   signedIn: boolean;
   /** Rendered in the left pane on desktop, and in a tab on mobile. */
   description: React.ReactNode;
+  /**
+   * Tutor wiring.
+   *
+   * The tutor lives inside the workspace rather than beside it because
+   * this component owns the two things that make it code-aware: the
+   * editor buffer and the outcome of the last run. Lifting either of
+   * those out to a sibling would mean duplicating editor state, and two
+   * sources of truth for "what is in the editor" is exactly the bug that
+   * makes a code tutor answer about code the learner is not looking at.
+   */
+  tutor: {
+    label: TutorContextLabel;
+    quickActions: TutorQuickAction[];
+    access: "allowed" | "signin" | "upgrade";
+  };
 };
 
 function draftKey(slug: string, language: Language) {
@@ -83,6 +100,7 @@ export function ProblemWorkspace({
   defaultLanguage,
   signedIn,
   description,
+  tutor,
 }: Props) {
   // Only one layout is rendered at a time. Showing both and hiding one
   // with CSS would put two live Monaco instances on the page: double the
@@ -112,6 +130,38 @@ export function ProblemWorkspace({
     setLoadedFor(language);
     setCode(loadDraft(slug, language, starterCode));
   }
+
+  /**
+   * Live editor state for the tutor.
+   *
+   * Recreated whenever the editor changes, which is the point: the tutor
+   * must reason about the buffer as it is when the learner presses send,
+   * not as it was when the panel mounted. The identity churn is harmless —
+   * nothing subscribes to this function, it is only invoked.
+   */
+  const getTutorCode = useCallback((): TutorCodeState => {
+    const result = outcome?.result;
+
+    return {
+      language,
+      code,
+      lastRun: result
+        ? {
+            mode: mode ?? "run",
+            status: result.status,
+            passed: result.passed,
+            total: result.total,
+            // Compile error first, then the first failing case's stderr.
+            // Only sample cases carry stderr, so a hidden test's output
+            // cannot reach the tutor through here.
+            errorMessage:
+              result.compileError ??
+              result.results.find((test) => test.stderr)?.stderr ??
+              null,
+          }
+        : undefined,
+    };
+  }, [code, language, outcome, mode]);
 
   const persist = useCallback(
     (next: string) => {
@@ -152,6 +202,17 @@ export function ProblemWorkspace({
     });
   }
 
+  const tutorLauncher = (
+    <TutorLauncher
+      anchor={{ kind: "PROBLEM", problemSlug: slug }}
+      label={tutor.label}
+      quickActions={tutor.quickActions}
+      getCode={getTutorCode}
+      access={tutor.access}
+      variant="ghost"
+    />
+  );
+
   const controls = (
     <div className="border-border flex flex-wrap items-center gap-2 border-b px-3 py-2">
       <Select
@@ -182,6 +243,13 @@ export function ProblemWorkspace({
       </Button>
 
       <div className="ml-auto flex items-center gap-2">
+        {/* Desktop only. On a phone the editor lives behind a tab, and a
+            tutor you can only reach from the Code tab is a tutor you
+            cannot reach while reading the problem — so the mobile layout
+            renders it in the persistent header below instead. Exactly one
+            of the two is ever mounted, because only one layout is. */}
+        {!isMobile && tutorLauncher}
+
         <Button
           variant="outline"
           size="sm"
@@ -255,6 +323,10 @@ export function ProblemWorkspace({
     // Stacked tabs: a three-way split at 390px is unusable.
     return (
       <Tabs defaultValue="problem">
+        <div className="border-border flex items-center justify-end border-b px-2 py-1.5">
+          {tutorLauncher}
+        </div>
+
         <TabsList className="w-full rounded-none">
           <TabsTrigger value="problem" className="flex-1">
             Problem

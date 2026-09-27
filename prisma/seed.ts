@@ -6,6 +6,10 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { ACHIEVEMENTS } from "../src/data/achievements";
 import { DSA_COURSE } from "../src/data/curriculum";
+import type { CourseSeed } from "../src/data/curriculum/types";
+import { SYSTEM_DESIGN_COURSE } from "../src/data/system-design";
+import { SYSTEM_DESIGN_EXERCISES } from "../src/data/system-design/exercises";
+import type { Track } from "../src/generated/prisma/enums";
 import { PATTERNS } from "../src/data/patterns";
 import { PROBLEMS } from "../src/data/problems";
 import { QUIZZES } from "../src/data/quizzes";
@@ -269,40 +273,51 @@ async function seedProblems(
   return bySlug;
 }
 
+/**
+ * Seeds one course.
+ *
+ * Track-parameterised since Phase 7: the Course/Section/Chapter models
+ * were always track-agnostic, so System Design reuses this wholesale
+ * rather than getting a second, divergent seeder.
+ */
 async function seedCourse(
+  seed: CourseSeed,
+  track: Track,
+  order: number,
   patternIds: Map<string, string>,
   problemIds: Map<string, string>
 ): Promise<Map<string, string>> {
   const chapterIds = new Map<string, string>();
 
   const course = await prisma.course.upsert({
-    where: { slug: DSA_COURSE.slug },
+    where: { slug: seed.slug },
     create: {
-      slug: DSA_COURSE.slug,
-      title: DSA_COURSE.title,
-      subtitle: DSA_COURSE.subtitle,
-      description: DSA_COURSE.description,
-      track: "DSA",
-      icon: DSA_COURSE.icon,
+      slug: seed.slug,
+      title: seed.title,
+      subtitle: seed.subtitle,
+      description: seed.description,
+      track,
+      icon: seed.icon,
       status: "PUBLISHED",
       access: "FREE",
-      order: 0,
-      estimatedHours: DSA_COURSE.estimatedHours,
+      order,
+      estimatedHours: seed.estimatedHours,
     },
     update: {
-      title: DSA_COURSE.title,
-      subtitle: DSA_COURSE.subtitle,
-      description: DSA_COURSE.description,
-      icon: DSA_COURSE.icon,
+      title: seed.title,
+      subtitle: seed.subtitle,
+      description: seed.description,
+      icon: seed.icon,
       status: "PUBLISHED",
-      estimatedHours: DSA_COURSE.estimatedHours,
+      order,
+      estimatedHours: seed.estimatedHours,
     },
     select: { id: true },
   });
 
   let chapterCount = 0;
 
-  for (const [sectionIndex, section] of DSA_COURSE.sections.entries()) {
+  for (const [sectionIndex, section] of seed.sections.entries()) {
     const sectionRow = await prisma.courseSection.upsert({
       where: { courseId_slug: { courseId: course.id, slug: section.slug } },
       create: {
@@ -388,7 +403,7 @@ async function seedCourse(
   }
 
   console.log(
-    `  curriculum     1 course, ${DSA_COURSE.sections.length} sections, ${chapterCount} chapters`
+    `  ${seed.title.padEnd(14)} ${seed.sections.length} sections, ${chapterCount} chapters`
   );
   return chapterIds;
 }
@@ -443,6 +458,43 @@ async function seedQuizzes(chapterIds: Map<string, string>) {
   console.log(`  quizzes        ${QUIZZES.length} (${questionCount} questions)`);
 }
 
+/**
+ * System-design exercises.
+ *
+ * Upserted on slug like everything else here, so re-running the seed
+ * updates content in place and never duplicates it. Learner submissions
+ * reference these by id and are untouched.
+ */
+async function seedSystemDesignExercises() {
+  for (const [index, exercise] of SYSTEM_DESIGN_EXERCISES.entries()) {
+    const payload = {
+      title: exercise.title,
+      tagline: exercise.tagline,
+      difficulty: exercise.difficulty,
+      access: exercise.access ?? ("FREE" as const),
+      status: "PUBLISHED" as const,
+      order: index * 10,
+      functionalRequirements: exercise.functionalRequirements,
+      nonFunctionalRequirements: exercise.nonFunctionalRequirements,
+      scaleEstimate: exercise.scaleEstimate as object,
+      apiDesign: exercise.apiDesign as object,
+      dataModel: exercise.dataModel as object,
+      architecture: exercise.architecture as object,
+      bottlenecks: exercise.bottlenecks,
+      scalingNotes: exercise.scalingNotes as object,
+      tradeoffs: exercise.tradeoffs as object,
+    };
+
+    await prisma.systemDesignProblem.upsert({
+      where: { slug: exercise.slug },
+      create: { slug: exercise.slug, ...payload },
+      update: payload,
+    });
+  }
+
+  console.log(`  system design  ${SYSTEM_DESIGN_EXERCISES.length} exercises`);
+}
+
 async function main() {
   console.log("Seeding CodeForge…");
 
@@ -452,8 +504,10 @@ async function main() {
   const patternIds = await seedPatterns();
   const topicIds = await seedTopics();
   const problemIds = await seedProblems(patternIds, topicIds);
-  const chapterIds = await seedCourse(patternIds, problemIds);
+  const chapterIds = await seedCourse(DSA_COURSE, "DSA", 0, patternIds, problemIds);
+  await seedCourse(SYSTEM_DESIGN_COURSE, "SYSTEM_DESIGN", 10, patternIds, problemIds);
   await seedQuizzes(chapterIds);
+  await seedSystemDesignExercises();
 
   console.log("Seed complete.");
 }

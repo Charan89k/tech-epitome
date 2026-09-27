@@ -10,7 +10,7 @@ import { route } from "@/lib/utils";
  */
 export default async function SectionPage({
   params,
-}: PageProps<"/learn/dsa/[course]/[section]">) {
-  const { course, section } = await params;
-  redirect(route(`/learn/dsa/${course}#section-${section}`));
+}: PageProps<"/learn/[track]/[course]/[section]">) {
+  const { track, course, section } = await params;
+  redirect(route(`/learn/${track}/${course}#section-${section}`));
 }

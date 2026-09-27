@@ -1,13 +1,16 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Bookmark,
+  Boxes,
   FileText,
   GraduationCap,
   LayoutDashboard,
   ListChecks,
+  Network,
   PlayCircle,
   Repeat2,
   Shapes,
+  Sparkles,
 } from "lucide-react";
 
 import { FEATURES, type Feature } from "@/lib/auth/access";
@@ -19,10 +22,9 @@ import { FEATURES, type Feature } from "@/lib/auth/access";
  * new section appears everywhere at once and cannot be half-added.
  *
  * This list contains only routes that exist. Sections belonging to later
- * phases (Visualize, System Design, LLD, Interview, Behavioral, Companies,
- * AI Tutor, Review) are added here as they ship - a nav entry that 404s is
- * the same broken promise as a "coming soon" button. The roadmap lives in
- * README.md, not in the UI.
+ * phases (System Design, LLD, Interview, Behavioral, Companies) are added
+ * here as they ship - a nav entry that 404s is the same broken promise as a
+ * "coming soon" button. The roadmap lives in README.md, not in the UI.
  */
 
 export type NavItem = {
@@ -78,6 +80,12 @@ export const primaryNav: NavGroup[] = [
         description: "Recognise the shape of a problem",
       },
       {
+        title: "System Design",
+        href: "/learn/system-design",
+        icon: Network,
+        description: "Scale, latency, replication and the trade-offs between them",
+      },
+      {
         title: "Visualize",
         href: "/visualize",
         icon: PlayCircle,
@@ -90,10 +98,24 @@ export const primaryNav: NavGroup[] = [
     label: "Practice",
     items: [
       {
+        title: "Design Exercises",
+        href: "/system-design",
+        icon: Boxes,
+        description: "Draw an architecture, submit it, compare against the reference",
+      },
+      {
         title: "Problems",
         href: "/problems",
         icon: ListChecks,
         description: "Solve, run tests, track attempts",
+      },
+      {
+        title: "AI Tutor",
+        href: "/ai-tutor",
+        icon: Sparkles,
+        feature: FEATURES.AI_TUTOR,
+        description:
+          "Work through what you are stuck on, without being handed the answer",
       },
     ],
   },

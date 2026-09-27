@@ -3,6 +3,7 @@ import "server-only";
 import { getEnv } from "@/lib/env";
 import { prisma } from "@/lib/db";
 import { AnthropicProvider } from "./anthropic";
+import { MockProvider } from "./mock";
 import { OllamaProvider } from "./ollama";
 import type { AIProvider, TokenUsage } from "./types";
 
@@ -11,13 +12,21 @@ export * from "./types";
 /**
  * Provider registry.
  *
- * Both adapters are registered; which one runs is a per-deployment setting
- * and, later, a per-user preference. Nothing above this layer names a
- * vendor.
+ * Both real adapters are registered; which one runs is a per-deployment
+ * setting and, later, a per-user preference. Nothing above this layer names
+ * a vendor.
+ *
+ * `mock` is the deterministic test double. It is registered only outside
+ * production, and `MockProvider` refuses to construct there as well — two
+ * independent guards, because canned text served to a paying learner would
+ * be indistinguishable from a working product until somebody read it.
  */
 const PROVIDERS: Record<string, () => AIProvider> = {
   ollama: () => new OllamaProvider(),
   anthropic: () => new AnthropicProvider(),
+  ...(process.env.NODE_ENV === "production"
+    ? {}
+    : { mock: () => new MockProvider() }),
 };
 
 export type ProviderName = keyof typeof PROVIDERS;

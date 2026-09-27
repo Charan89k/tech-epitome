@@ -36,7 +36,11 @@ const serverSchema = z.object({
   AUTH_GOOGLE_ID: z.preprocess(emptyToUndefined, z.string().optional()),
   AUTH_GOOGLE_SECRET: z.preprocess(emptyToUndefined, z.string().optional()),
 
-  AI_PROVIDER: z.enum(["ollama", "anthropic"]).default("ollama"),
+  // "mock" is the deterministic test double the end-to-end suite runs
+  // against, so CI needs neither an API key nor a local model. It is
+  // rejected outright in production by the cross-field rules in `getEnv`,
+  // and `MockProvider` refuses to construct there as well.
+  AI_PROVIDER: z.enum(["ollama", "anthropic", "mock"]).default("ollama"),
   AI_API_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
   AI_MODEL: z.string().default("claude-sonnet-5"),
   OLLAMA_BASE_URL: z.string().url().default("http://127.0.0.1:11434"),
@@ -115,6 +119,12 @@ export function getEnv(): ServerEnv {
     throw new Error(
       "AI_PROVIDER is 'anthropic' but AI_API_KEY is empty. Set the key, or " +
         "switch AI_PROVIDER to 'ollama' to use a local model."
+    );
+  }
+  if (data.AI_PROVIDER === "mock" && data.NODE_ENV === "production") {
+    throw new Error(
+      "AI_PROVIDER is 'mock', which serves canned responses and exists only " +
+        "for the test suite. Set it to 'ollama' or 'anthropic' in production."
     );
   }
   if (data.CODE_EXECUTION_DRIVER === "remote" && !data.CODE_EXECUTION_API_URL) {

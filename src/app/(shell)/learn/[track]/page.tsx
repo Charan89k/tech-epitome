@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ArrowRight, BookOpen, Clock, Lock } from "lucide-react";
 
 import { EmptyState } from "@/components/common/empty-state";
@@ -9,26 +10,78 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/session";
 import { lockStateFor } from "@/lib/auth/access";
+import { READER_TRACKS, trackForSegment } from "@/lib/tracks";
 import { route } from "@/lib/utils";
 import { listCourses } from "@/services/curriculum";
 
-export const metadata: Metadata = {
-  title: "DSA curriculum",
-  description:
-    "A structured data structures and algorithms curriculum, ordered by dependency: complexity analysis through advanced dynamic programming.",
-  alternates: { canonical: "/learn/dsa" },
+/**
+ * Per-track copy.
+ *
+ * The page itself is track-agnostic — `listCourses` has taken a `Track`
+ * since Phase 1 — so the only thing that differs is what the track is
+ * called and why it is ordered the way it is.
+ */
+const TRACK_COPY: Record<
+  string,
+  { heading: string; description: string; metaTitle: string; metaDescription: string }
+> = {
+  DSA: {
+    heading: "Data Structures & Algorithms",
+    description:
+      "Ordered by dependency, not by topic popularity. Each chapter states what you should be able to do afterwards, then checks it.",
+    metaTitle: "DSA curriculum",
+    metaDescription:
+      "A structured data structures and algorithms curriculum, ordered by dependency: complexity analysis through advanced dynamic programming.",
+  },
+  SYSTEM_DESIGN: {
+    heading: "System Design",
+    description:
+      "Vocabulary first, then components, then arrangements. Every diagram is data you can also read as text.",
+    metaTitle: "System design curriculum",
+    metaDescription:
+      "Reason about large systems: scale, latency, replication, partitioning, consistency and the trade-offs between them.",
+  },
+  LLD: {
+    heading: "Low-Level Design",
+    description:
+      "Designing the objects inside a service: responsibilities, relationships, and the patterns worth knowing by name.",
+    metaTitle: "Low-level design curriculum",
+    metaDescription:
+      "Object-oriented design, SOLID and the design patterns that actually come up, with their costs stated.",
+  },
 };
 
-export default async function DsaRoadmapPage() {
+export async function generateMetadata({
+  params,
+}: PageProps<"/learn/[track]">): Promise<Metadata> {
+  const { track: segment } = await params;
+  const track = trackForSegment(segment);
+  if (!track || !READER_TRACKS.includes(track)) return { title: "Not found" };
+
+  const copy = TRACK_COPY[track]!;
+  return {
+    title: copy.metaTitle,
+    description: copy.metaDescription,
+    alternates: { canonical: `/learn/${segment}` },
+  };
+}
+
+export default async function TrackRoadmapPage({
+  params,
+}: PageProps<"/learn/[track]">) {
+  const { track: segment } = await params;
+  const track = trackForSegment(segment);
+  // An unknown or non-reader track 404s rather than rendering an empty
+  // roadmap, so /learn/nonsense is not a valid-looking page.
+  if (!track || !READER_TRACKS.includes(track)) notFound();
+
+  const copy = TRACK_COPY[track]!;
   const user = await getCurrentUser();
-  const courses = await listCourses("DSA", user?.id);
+  const courses = await listCourses(track, user?.id);
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-      <PageHeader
-        title="Data Structures & Algorithms"
-        description="Ordered by dependency, not by topic popularity. Each chapter states what you should be able to do afterwards, then checks it."
-      />
+      <PageHeader title={copy.heading} description={copy.description} />
 
       {courses.length === 0 ? (
         <div className="border-border mt-8 rounded-lg border border-dashed">
@@ -52,7 +105,7 @@ export default async function DsaRoadmapPage() {
             return (
               <li key={course.id}>
                 <Link
-                  href={route(`/learn/dsa/${course.slug}`)}
+                  href={route(`/learn/${segment}/${course.slug}`)}
                   className="border-border bg-card hover:border-ember-500/35 group flex items-center gap-5 rounded-lg border p-5 transition-colors"
                 >
                   <ProgressRing

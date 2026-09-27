@@ -1,4 +1,5 @@
-import type { EntityType } from "@/generated/prisma/enums";
+import type { EntityType, Track } from "@/generated/prisma/enums";
+import { chapterHref } from "@/lib/tracks";
 
 /**
  * Review prompts, derived from the curriculum that already exists.
@@ -54,6 +55,8 @@ export type ChapterContent = {
   objectives: string[];
   sectionSlug: string;
   courseSlug: string;
+  /** Needed to build the link: chapters now live under several tracks. */
+  track: Track;
 };
 
 export type ProblemContent = {
@@ -99,7 +102,12 @@ export function chapterPrompt(chapter: ChapterContent): ReviewPrompt {
     kind: "Concept",
     title: chapter.title,
     question: `From memory: what were the key ideas in "${chapter.title}"?`,
-    href: `/learn/dsa/${chapter.courseSlug}/${chapter.sectionSlug}/${chapter.slug}`,
+    href: chapterHref(
+      chapter.track,
+      chapter.courseSlug,
+      chapter.sectionSlug,
+      chapter.slug
+    ),
     answer: [
       ...section("Key takeaways", trim(chapter.keyTakeaways, 5)),
       ...section("You should be able to", trim(chapter.objectives, 3)),

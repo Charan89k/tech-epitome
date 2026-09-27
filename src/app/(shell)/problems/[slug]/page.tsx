@@ -15,6 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { canAccess, FEATURES, lockStateFor } from "@/lib/auth/access";
+import { labelFor } from "@/lib/tutor/context";
+import {
+  CODE_QUICK_ACTIONS,
+  PROBLEM_QUICK_ACTIONS,
+} from "@/lib/tutor/types";
+import { loadContextBundle } from "@/services/tutor";
 import { getCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { parseContent } from "@/lib/validation/content";
@@ -259,6 +265,28 @@ export default async function ProblemPage({
     </div>
   );
 
+  // The context header must describe what the model will actually be sent,
+  // so it is derived from the same bundle the tutor uses rather than being
+  // reassembled from the page's own props. A header that drifts from the
+  // prompt is worse than no header: it is a confident lie about what the
+  // tutor knows.
+  const tutorAllowed = canAccess(user, FEATURES.AI_TUTOR);
+  const bundle = user && tutorAllowed
+    ? await loadContextBundle({ kind: "PROBLEM", problemSlug: problem.slug }, user.id)
+    : null;
+
+  const tutorLabel = bundle
+    ? labelFor(bundle)
+    : {
+        contextType: "PROBLEM" as const,
+        primary: problem.patterns[0]?.name ?? null,
+        secondary: problem.title,
+        chips: [
+          problem.difficulty.charAt(0) +
+            problem.difficulty.slice(1).toLowerCase(),
+        ],
+      };
+
   return (
     <ProblemWorkspace
       slug={problem.slug}
@@ -266,6 +294,11 @@ export default async function ProblemPage({
       defaultLanguage="PYTHON"
       signedIn={Boolean(user)}
       description={description}
+      tutor={{
+        label: tutorLabel,
+        quickActions: [...PROBLEM_QUICK_ACTIONS, ...CODE_QUICK_ACTIONS],
+        access: !user ? "signin" : tutorAllowed ? "allowed" : "upgrade",
+      }}
     />
   );
 }

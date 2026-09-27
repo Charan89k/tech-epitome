@@ -163,7 +163,10 @@ async function resolvePrompts(
             keyTakeaways: true,
             objectives: true,
             section: {
-              select: { slug: true, course: { select: { slug: true } } },
+              select: {
+                slug: true,
+                course: { select: { slug: true, track: true } },
+              },
             },
           },
         })
@@ -211,6 +214,7 @@ async function resolvePrompts(
         objectives: chapter.objectives,
         sectionSlug: chapter.section.slug,
         courseSlug: chapter.section.course.slug,
+        track: chapter.section.course.track,
       })
     );
   }

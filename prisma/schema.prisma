@@ -235,6 +235,7 @@ model User {
   aiUsage           AIUsageRecord[]
   interviews        InterviewSession[]
   behavioralStories BehavioralStory[]
+  systemDesigns     SystemDesignSubmission[]
 
   @@index([role])
   @@index([createdAt])
@@ -1060,6 +1061,9 @@ model AIMessage {
   /// Escalation level the tutor was at when it produced this turn, so a
   /// reloaded thread does not restart at hint 1.
   hintLevel      Int         @default(0)
+  /// Which structured tutor request produced this turn (HINT, DEBUG_CODE, ...).
+  /// Null for turns that predate the tutor UI, and for plain free-text asks.
+  requestType    String?
   createdAt      DateTime    @default(now())
 
   conversation AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
@@ -1206,11 +1210,44 @@ model SystemDesignProblem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  companies CompanySystemDesignTopic[]
+  companies   CompanySystemDesignTopic[]
+  submissions SystemDesignSubmission[]
 
   @@index([status, order])
   @@index([searchVector], type: Gin)
   @@map("system_design_problems")
+}
+
+/// A learner's own architecture for a system-design exercise.
+///
+/// One row per (user, problem): the workspace autosaves into it and
+/// "submit" flips `submittedAt`, so a learner can keep iterating without
+/// accumulating a pile of half-finished designs. History is deliberately
+/// not kept -- the teaching value is in the current design and the review
+/// of it, and versioning would be a feature nobody asked for.
+model SystemDesignSubmission {
+  id        String @id @default(cuid())
+  userId    String
+  problemId String
+
+  /// Nodes and edges, validated by src/lib/diagram/schema.ts before write.
+  diagram Json @default("{\"nodes\":[],\"edges\":[]}")
+  /// The learner's written reasoning: why these components, what they
+  /// traded away. An architecture without its rationale is not a design.
+  notes   String @default("") @db.Text
+
+  status      ProgressStatus @default(IN_PROGRESS)
+  submittedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem SystemDesignProblem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, problemId])
+  @@index([userId, updatedAt])
+  @@map("system_design_submissions")
 }
 
 model LLDProblem {

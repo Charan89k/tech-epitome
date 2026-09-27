@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { getCurrentUser } from "@/lib/auth/session";
 import { LANGUAGE_LABEL } from "@/lib/code-execution/signature";
+import { chapterHref } from "@/lib/tracks";
 import { route } from "@/lib/utils";
 import { getPattern } from "@/services/patterns";
 
@@ -201,7 +202,12 @@ export default async function PatternPage({
               <li key={chapter.slug}>
                 <Link
                   href={route(
-                    `/learn/dsa/${chapter.courseSlug}/${chapter.sectionSlug}/${chapter.slug}`
+                    chapterHref(
+                      chapter.track,
+                      chapter.courseSlug,
+                      chapter.sectionSlug,
+                      chapter.slug
+                    )
                   )}
                   className="hover:bg-accent/40 flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
                 >

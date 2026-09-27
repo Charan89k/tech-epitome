@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { diagramSchema } from "@/lib/diagram/schema";
 import type { ContentBlock, ContentDocument } from "@/types/content";
 
 /**
@@ -55,6 +56,13 @@ export const contentBlockSchema: z.ZodType<ContentBlock> =
       code: z.string(),
       caption: z.string().optional(),
       highlightLines: z.array(z.number().int().positive()).optional(),
+    }),
+    z.object({
+      type: z.literal("architecture"),
+      caption: z.string().optional(),
+      // Delegated to the diagram schema, which is also what validates a
+      // learner's own design — one definition of "a valid diagram".
+      diagram: diagramSchema,
     }),
     z.object({
       type: z.literal("callout"),

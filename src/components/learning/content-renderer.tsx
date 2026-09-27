@@ -1,3 +1,4 @@
+import { ArchitectureDiagram } from "@/components/diagram/architecture-diagram";
 import { Callout } from "@/components/learning/callout";
 import { CodeBlock } from "@/components/learning/code-block";
 import { ComplexityCard } from "@/components/learning/complexity-card";
@@ -12,6 +13,7 @@ import { RecognitionDrill } from "@/components/learning/recognition-drill";
 import { VisualizationBlock } from "@/components/learning/visualization-block";
 import { WorkedExample } from "@/components/learning/worked-example";
 import { Separator } from "@/components/ui/separator";
+import { parseDiagram } from "@/lib/diagram/schema";
 import type { QuizView } from "@/services/quiz";
 import type { ContentBlock } from "@/types/content";
 
@@ -175,6 +177,14 @@ function Block({
           input={block.input}
           steps={block.steps}
           output={block.output}
+        />
+      );
+
+    case "architecture":
+      return (
+        <ArchitectureDiagram
+          diagram={parseDiagram(block.diagram, "chapter content")}
+          caption={block.caption}
         />
       );
 

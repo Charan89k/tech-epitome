@@ -22,12 +22,15 @@ import type { SectionSummary } from "@/services/curriculum";
  * doubles as a progress view.
  */
 export function ChapterNav({
+  trackSegment,
   courseSlug,
   courseTitle,
   sections,
   currentChapterSlug,
   onNavigate,
 }: {
+  /** URL segment for the track this course belongs to. */
+  trackSegment: string;
   courseSlug: string;
   courseTitle: string;
   sections: SectionSummary[];
@@ -49,7 +52,7 @@ export function ChapterNav({
     <nav aria-label="Course contents" className="flex h-full flex-col">
       <div className="border-border border-b px-4 py-3">
         <Link
-          href={route(`/learn/dsa/${courseSlug}`)}
+          href={route(`/learn/${trackSegment}/${courseSlug}`)}
           className="text-muted-foreground hover:text-foreground text-[0.68rem] tracking-wider uppercase transition-colors"
         >
           Course
@@ -106,7 +109,7 @@ export function ChapterNav({
                         <li key={chapter.slug}>
                           <Link
                             href={route(
-                              `/learn/dsa/${courseSlug}/${section.slug}/${chapter.slug}`
+                              `/learn/${trackSegment}/${courseSlug}/${section.slug}/${chapter.slug}`
                             )}
                             onClick={onNavigate}
                             aria-current={active ? "page" : undefined}

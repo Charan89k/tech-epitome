@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
-import type { AccessTier, Difficulty } from "@/generated/prisma/enums";
+import type { AccessTier, Difficulty, Track } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 
 /**
@@ -94,7 +94,13 @@ export type PatternDetail = {
     isPrimary: boolean;
     status: "NOT_STARTED" | "ATTEMPTED" | "SOLVED";
   }[];
-  chapters: { slug: string; title: string; sectionSlug: string; courseSlug: string }[];
+  chapters: {
+    slug: string;
+    title: string;
+    sectionSlug: string;
+    courseSlug: string;
+    track: Track;
+  }[];
 };
 
 export const getPattern = cache(
@@ -141,7 +147,10 @@ export const getPattern = cache(
                 slug: true,
                 title: true,
                 section: {
-                  select: { slug: true, course: { select: { slug: true } } },
+                  select: {
+                    slug: true,
+                    course: { select: { slug: true, track: true } },
+                  },
                 },
               },
             },
@@ -194,6 +203,7 @@ export const getPattern = cache(
         title: row.chapter.title,
         sectionSlug: row.chapter.section.slug,
         courseSlug: row.chapter.section.course.slug,
+        track: row.chapter.section.course.track,
       })),
     };
   }

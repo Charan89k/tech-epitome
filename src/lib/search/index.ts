@@ -1,7 +1,9 @@
 import "server-only";
 
 import { Prisma } from "@/generated/prisma/client";
+import type { Track } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
+import { chapterHref, courseHref } from "@/lib/tracks";
 import { toPrefixQuery } from "./query";
 
 /**
@@ -52,10 +54,10 @@ class PostgresSearchService implements SearchService {
     // index-backed queries are simpler to read and just as fast.
     const [chapters, patterns, problems, courses] = await Promise.all([
       prisma.$queryRaw<
-        { id: string; title: string; summary: string | null; slug: string; section_slug: string; course_slug: string; rank: number }[]
+        { id: string; title: string; summary: string | null; slug: string; section_slug: string; course_slug: string; track: Track; rank: number }[]
       >(Prisma.sql`
         SELECT c.id, c.title, c.summary, c.slug,
-               s.slug AS section_slug, co.slug AS course_slug,
+               s.slug AS section_slug, co.slug AS course_slug, co.track AS track,
                ts_rank(c."searchVector", to_tsquery('english', ${tsquery})) AS rank
         FROM chapters c
         JOIN course_sections s ON s.id = c."sectionId"
@@ -104,7 +106,7 @@ class PostgresSearchService implements SearchService {
           ],
         },
         take: 3,
-        select: { id: true, slug: true, title: true, subtitle: true },
+        select: { id: true, slug: true, title: true, subtitle: true, track: true },
       }),
     ]);
 
@@ -114,7 +116,7 @@ class PostgresSearchService implements SearchService {
         id: course.id,
         title: course.title,
         description: course.subtitle ?? "Course",
-        href: `/learn/dsa/${course.slug}`,
+        href: courseHref(course.track, course.slug),
         // Courses are few and exact-matched, so they are ranked just above
         // a typical text hit rather than competing on ts_rank.
         rank: 0.5,
@@ -124,7 +126,12 @@ class PostgresSearchService implements SearchService {
         id: chapter.id,
         title: chapter.title,
         description: chapter.summary ?? "Chapter",
-        href: `/learn/dsa/${chapter.course_slug}/${chapter.section_slug}/${chapter.slug}`,
+        href: chapterHref(
+          chapter.track,
+          chapter.course_slug,
+          chapter.section_slug,
+          chapter.slug
+        ),
         rank: Number(chapter.rank),
       })),
       ...patterns.map((pattern) => ({

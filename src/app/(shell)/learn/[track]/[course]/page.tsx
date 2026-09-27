@@ -17,33 +17,38 @@ import {
 } from "@/components/ui/breadcrumb";
 import { lockStateFor } from "@/lib/auth/access";
 import { getCurrentUser } from "@/lib/auth/session";
+import { TRACK_LABELS } from "@/lib/tracks";
 import { cn, route } from "@/lib/utils";
 import { findNextIncompleteChapter, getCourse } from "@/services/curriculum";
 
 export async function generateMetadata({
   params,
-}: PageProps<"/learn/dsa/[course]">): Promise<Metadata> {
-  const { course: slug } = await params;
+}: PageProps<"/learn/[track]/[course]">): Promise<Metadata> {
+  const { track: segment, course: slug } = await params;
   const course = await getCourse(slug);
   if (!course) return { title: "Course not found" };
 
   return {
     title: course.title,
     description: course.description,
-    alternates: { canonical: `/learn/dsa/${course.slug}` },
+    alternates: { canonical: `/learn/${segment}/${course.slug}` },
   };
 }
 
 export default async function CoursePage({
   params,
-}: PageProps<"/learn/dsa/[course]">) {
-  const { course: slug } = await params;
+}: PageProps<"/learn/[track]/[course]">) {
+  const { track: segment, course: slug } = await params;
   const user = await getCurrentUser();
   const course = await getCourse(slug, user?.id);
 
   if (!course) notFound();
 
-  const nextChapter = await findNextIncompleteChapter(course.slug, user?.id);
+  const nextChapter = await findNextIncompleteChapter(
+    course.slug,
+    user?.id,
+    course.track
+  );
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
@@ -51,7 +56,7 @@ export default async function CoursePage({
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <Link href="/learn/dsa">DSA</Link>
+              <Link href={route(`/learn/${segment}`)}>{TRACK_LABELS[course.track]}</Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
@@ -111,7 +116,7 @@ export default async function CoursePage({
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   <Link
-                    href={route(`/learn/dsa/${course.slug}/${section.slug}`)}
+                    href={route(`/learn/${segment}/${course.slug}/${section.slug}`)}
                     className="hover:text-ember-400 transition-colors"
                   >
                     {section.title}
@@ -136,7 +141,7 @@ export default async function CoursePage({
                     <li key={chapter.id}>
                       <Link
                         href={route(
-                          `/learn/dsa/${course.slug}/${section.slug}/${chapter.slug}`
+                          `/learn/${segment}/${course.slug}/${section.slug}/${chapter.slug}`
                         )}
                         className="hover:bg-accent/40 group flex items-center gap-3 px-4 py-3 transition-colors"
                       >

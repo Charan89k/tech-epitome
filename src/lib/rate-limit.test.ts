@@ -97,3 +97,53 @@ describe("the test-only bypass", () => {
     expect((await rateLimit(key, policy)).success).toBe(false);
   });
 });
+
+describe("the tutor policy", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
+
+  it("caps tutor turns per user and then refuses", async () => {
+    const key = `tutor:user-${Math.random()}`;
+
+    for (let i = 0; i < RATE_LIMITS.AI_MESSAGE.limit; i += 1) {
+      expect((await rateLimit(key, RATE_LIMITS.AI_MESSAGE)).success).toBe(true);
+    }
+
+    // Every tutor turn costs real money, so the ceiling has to be a wall
+    // rather than a suggestion.
+    const blocked = await rateLimit(key, RATE_LIMITS.AI_MESSAGE);
+    expect(blocked.success).toBe(false);
+    expect(blocked.remaining).toBe(0);
+    expect(blocked.resetAt).toBeGreaterThan(Date.now());
+  });
+
+  it("limits one learner without affecting another", async () => {
+    const alice = `tutor:alice-${Math.random()}`;
+    const bob = `tutor:bob-${Math.random()}`;
+
+    for (let i = 0; i <= RATE_LIMITS.AI_MESSAGE.limit; i += 1) {
+      await rateLimit(alice, RATE_LIMITS.AI_MESSAGE);
+    }
+
+    expect((await rateLimit(alice, RATE_LIMITS.AI_MESSAGE)).success).toBe(false);
+    expect((await rateLimit(bob, RATE_LIMITS.AI_MESSAGE)).success).toBe(true);
+  });
+
+  it("recovers once the window passes", async () => {
+    const key = `tutor:recover-${Math.random()}`;
+
+    for (let i = 0; i <= RATE_LIMITS.AI_MESSAGE.limit; i += 1) {
+      await rateLimit(key, RATE_LIMITS.AI_MESSAGE);
+    }
+    expect((await rateLimit(key, RATE_LIMITS.AI_MESSAGE)).success).toBe(false);
+
+    vi.advanceTimersByTime(RATE_LIMITS.AI_MESSAGE.windowMs + 1_000);
+    expect((await rateLimit(key, RATE_LIMITS.AI_MESSAGE)).success).toBe(true);
+  });
+});

@@ -2,6 +2,7 @@ import "server-only";
 
 import type { EntityType } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
+import { chapterHref } from "@/lib/tracks";
 
 /**
  * Bookmarks and notes.
@@ -71,7 +72,11 @@ export async function resolveEntities(
         slug: true,
         title: true,
         section: {
-          select: { slug: true, title: true, course: { select: { slug: true } } },
+          select: {
+            slug: true,
+            title: true,
+            course: { select: { slug: true, track: true } },
+          },
         },
       },
     });
@@ -79,7 +84,12 @@ export async function resolveEntities(
       resolved.set(key("CHAPTER", row.id), {
         title: row.title,
         subtitle: row.section.title,
-        href: `/learn/dsa/${row.section.course.slug}/${row.section.slug}/${row.slug}`,
+        href: chapterHref(
+          row.section.course.track,
+          row.section.course.slug,
+          row.section.slug,
+          row.slug
+        ),
       });
     }
   }

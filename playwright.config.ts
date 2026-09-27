@@ -43,6 +43,12 @@ export default defineConfig({
       RATE_LIMIT_DISABLED: "true",
       // See src/lib/db/prisma.ts. Harmless against real Postgres.
       DATABASE_POOL_MAX: process.env.DATABASE_POOL_MAX ?? "1",
+      // The tutor streams from a deterministic double, so the suite needs
+      // neither an API key nor a local model, and assertions about what
+      // the context builder sent are stable. `src/lib/ai/mock.ts` refuses
+      // to load in production, and `src/lib/env.ts` rejects this value
+      // there, so it cannot escape the test environment.
+      AI_PROVIDER: process.env.AI_PROVIDER ?? "mock",
     },
     url: baseURL,
     reuseExistingServer: !process.env.CI,

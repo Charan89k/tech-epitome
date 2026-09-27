@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/db";
+import { chapterHref } from "@/lib/tracks";
 import { PATTERN_MASTERY_THRESHOLD } from "@/services/progress";
 
 /**
@@ -175,7 +176,12 @@ async function findContinueLearning(
       courseTitle: c.section.course.title,
       courseSlug: c.section.course.slug,
       percent: inProgress.percent,
-      href: `/learn/dsa/${c.section.course.slug}/${c.section.slug}/${c.slug}`,
+      href: chapterHref(
+        c.section.course.track,
+        c.section.course.slug,
+        c.section.slug,
+        c.slug
+      ),
     };
   }
 
@@ -208,7 +214,7 @@ async function findContinueLearning(
         select: {
           slug: true,
           title: true,
-          course: { select: { slug: true, title: true } },
+          course: { select: { slug: true, title: true, track: true } },
         },
       },
     },
@@ -225,7 +231,12 @@ async function findContinueLearning(
     courseTitle: next.section.course.title,
     courseSlug: next.section.course.slug,
     percent: 0,
-    href: `/learn/dsa/${next.section.course.slug}/${next.section.slug}/${next.slug}`,
+    href: chapterHref(
+      next.section.course.track,
+      next.section.course.slug,
+      next.section.slug,
+      next.slug
+    ),
   };
 }
 

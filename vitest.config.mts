@@ -27,6 +27,28 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.test.{ts,tsx}", "tests/**/*.test.{ts,tsx}"],
     exclude: ["node_modules", ".next", "e2e"],
+
+    /**
+     * Test files run one at a time.
+     *
+     * Vitest gives each worker its own module registry, so each one builds
+     * its own Prisma client and opens its own connection. Against real
+     * PostgreSQL that is fine. Against the local `prisma dev` stand-in it
+     * is not: PGlite cannot service concurrent connections, and the wire
+     * protocol desynchronises into "bind message supplies N parameters,
+     * but prepared statement requires 0" — a confused connection, reported
+     * as a query error. See README "Known limitations".
+     *
+     * This is a constraint of the development database, not of the tests.
+     * Set `VITEST_FILE_PARALLELISM=true` against real PostgreSQL to get
+     * the parallelism back.
+     *
+     * The alternative — retrying failed queries inside the suite — was
+     * rejected: it would let a genuinely flaky query masquerade as the
+     * stand-in misbehaving, which is precisely the bug class these
+     * integration tests exist to catch.
+     */
+    fileParallelism: process.env.VITEST_FILE_PARALLELISM === "true",
     coverage: {
       provider: "v8",
       reportsDirectory: "./coverage",

@@ -11,6 +11,9 @@
  * a stable address (block index + offset) to anchor to.
  */
 
+import { describeDiagram } from "@/lib/diagram/layout";
+import { parseDiagram } from "@/lib/diagram/schema";
+
 export type InlineMark = "code" | "strong" | "em" | "link";
 
 /** A run of text with at most one mark. Keeps the model flat and cheap. */
@@ -66,6 +69,18 @@ export type ContentBlock =
       input: string;
       steps: { state: string; note: string }[];
       output: string;
+    }
+  /**
+   * An architecture diagram, stored as nodes and edges rather than an
+   * image. Phase 7 added this so a system-design lesson can show a request
+   * path that is themeable, screen-reader readable, and comparable against
+   * what a learner draws in the workspace. The payload is validated by
+   * `src/lib/diagram/schema.ts`, which owns its shape.
+   */
+  | {
+      type: "architecture";
+      caption?: string;
+      diagram: unknown;
     }
   /** Embeds one of the registered visualizations by key. */
   | {
@@ -134,6 +149,13 @@ export function blockToPlainText(block: ContentBlock): string {
       return [block.title, inlineToPlainText(block.content)]
         .filter(Boolean)
         .join(": ");
+    case "architecture":
+      // The caption plus the component vocabulary, so "which lesson shows a
+      // CDN in front of object storage" is a findable question. The
+      // geometry is not indexed; it carries no meaning.
+      return [block.caption, describeDiagram(parseDiagram(block.diagram))]
+        .filter(Boolean)
+        .join("\n");
     case "table":
       return [block.headers.join(" "), ...block.rows.map((r) => r.join(" "))].join(
         "\n"

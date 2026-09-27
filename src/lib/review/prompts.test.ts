@@ -70,6 +70,7 @@ const CHAPTER = {
   objectives: ["State what O(f(n)) claims", "Simplify an expression"],
   sectionSlug: "complexity-analysis",
   courseSlug: "dsa-foundations",
+  track: "DSA" as const,
 };
 
 describe("chapterPrompt", () => {

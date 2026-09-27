@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import type { AccessTier, Difficulty, Track } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
+import { chapterHref } from "@/lib/tracks";
 
 /**
  * Curriculum reads.
@@ -332,7 +333,8 @@ export const getChapter = cache(
       chapter.section.course.id,
       chapter.section.order,
       chapter.order,
-      courseSlug
+      courseSlug,
+      chapter.section.course.track
     );
 
     return {
@@ -383,7 +385,8 @@ async function findNeighbours(
   courseId: string,
   sectionOrder: number,
   chapterOrder: number,
-  courseSlug: string
+  courseSlug: string,
+  track: Track
 ): Promise<{ previous: ChapterNeighbour; next: ChapterNeighbour }> {
   const all = await prisma.chapter.findMany({
     where: {
@@ -410,7 +413,7 @@ async function findNeighbours(
     c
       ? {
           title: c.title,
-          href: `/learn/dsa/${courseSlug}/${c.section.slug}/${c.slug}`,
+          href: chapterHref(track, courseSlug, c.section.slug, c.slug),
         }
       : null;
 
@@ -426,7 +429,8 @@ async function findNeighbours(
  */
 export async function findNextIncompleteChapter(
   courseSlug: string,
-  userId: string | undefined
+  userId: string | undefined,
+  track: Track = "DSA"
 ): Promise<ChapterNeighbour> {
   const chapters = await prisma.chapter.findMany({
     where: {
@@ -451,7 +455,7 @@ export async function findNextIncompleteChapter(
     const first = chapters[0]!;
     return {
       title: first.title,
-      href: `/learn/dsa/${courseSlug}/${first.section.slug}/${first.slug}`,
+      href: chapterHref(track, courseSlug, first.section.slug, first.slug),
     };
   }
 
@@ -470,7 +474,7 @@ export async function findNextIncompleteChapter(
 
   return {
     title: next.title,
-    href: `/learn/dsa/${courseSlug}/${next.section.slug}/${next.slug}`,
+    href: chapterHref(track, courseSlug, next.section.slug, next.slug),
   };
 }
 

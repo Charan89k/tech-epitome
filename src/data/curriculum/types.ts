@@ -1,4 +1,5 @@
 import type { AccessTier, Difficulty } from "@/generated/prisma/enums";
+import type { Diagram, NodeKind } from "@/lib/diagram/types";
 import type { ContentBlock, InlineNode } from "@/types/content";
 
 /**
@@ -186,6 +187,36 @@ export function visual(
   input?: unknown
 ): ContentBlock {
   return { type: "visualization", visualizationKey, title, input };
+}
+
+/**
+ * An architecture diagram, authored as nodes and edges.
+ *
+ * Stored as data rather than an image so the same picture is themeable,
+ * readable by a screen reader, and comparable against what a learner draws
+ * in the system-design workspace.
+ */
+export function arch(diagram: Diagram, caption?: string): ContentBlock {
+  return { type: "architecture", diagram, caption };
+}
+
+/** Shorthand for a linear request path, which is most lesson diagrams. */
+export function flow(
+  steps: { id: string; kind: NodeKind; label: string; note?: string }[],
+  caption?: string
+): ContentBlock {
+  return arch(
+    {
+      nodes: steps.map(({ id, kind, label, note }) => ({ id, kind, label, note })),
+      edges: steps.slice(1).map((step, i) => ({
+        id: `e${i}`,
+        from: steps[i]!.id,
+        to: step.id,
+        kind: "sync" as const,
+      })),
+    },
+    caption
+  );
 }
 
 export function quizBlock(quizSlug: string): ContentBlock {
