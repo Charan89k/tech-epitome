@@ -1,5 +1,3 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
 /node_modules
 /.pnp
@@ -12,10 +10,15 @@
 
 # testing
 /coverage
+/test-results
+/playwright-report
+/blob-report
+/playwright/.cache
 
 # next.js
 /.next/
 /out/
+next-env.d.ts
 
 # production
 /build
@@ -30,12 +33,22 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files -- never commit real secrets
+.env
+.env*.local
+!.env.example
 
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+
+# prisma -- generated client is reproducible from the schema
+/src/generated
+
+# local database volume
+/.docker-data
+
+# sandbox scratch
+/.sandbox-tmp

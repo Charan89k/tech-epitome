@@ -1,0 +1,33 @@
+# Local development services for CodeForge.
+#
+#   docker compose up -d      start Postgres
+#   docker compose down       stop
+#   docker compose down -v    stop and wipe the volume
+#
+# Production uses a managed Postgres; this file is for local work only, which
+# is why the credentials are deliberately boring and the port is published.
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: codeforge-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: codeforge
+      POSTGRES_PASSWORD: codeforge
+      POSTGRES_DB: codeforge
+      # Deterministic collation so ORDER BY matches production regardless of
+      # the host locale.
+      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=en-US"
+    ports:
+      - "5432:5432"
+    volumes:
+      - codeforge-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codeforge -d codeforge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  codeforge-pgdata:

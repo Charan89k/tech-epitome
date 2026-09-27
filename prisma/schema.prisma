@@ -1,0 +1,1373 @@
+// ===========================================================================
+// CODEFORGE - data model
+//
+// Design notes that are not obvious from the field list:
+//
+//  * A Chapter IS the lesson. The route tree stops at /[course]/[section]/
+//    /[chapter], so adding a Lesson table below Chapter would add a level the
+//    product never navigates. Rich content lives in Chapter.content as an
+//    array of typed blocks (see src/types/content.ts), which is what lets a
+//    chapter embed callouts, visualizations and quizzes inline.
+//
+//  * Course is track-scoped (DSA / SYSTEM_DESIGN / LLD / BEHAVIORAL) so the
+//    same curriculum, progress and review machinery serves every track
+//    instead of being rebuilt per track.
+//
+//  * Bookmark, Note, Highlight and ReviewItem are polymorphic over
+//    (entityType, entityId). This is the "unified bookmark system" - the
+//    alternative is eight nullable foreign keys per table. Referential
+//    integrity for these is enforced in the service layer, not by the DB;
+//    src/services/entity-ref.ts is the single place that resolves them.
+//
+//  * Progress is stored, never derived on read. Deriving chapter completion
+//    from events is correct but too slow for a dashboard that loads on every
+//    visit.
+// ===========================================================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ===========================================================================
+// ENUMS
+// ===========================================================================
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Track {
+  DSA
+  SYSTEM_DESIGN
+  LLD
+  BEHAVIORAL
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+/// Gate used by canAccess(). Content declares the tier it needs; the
+/// authorization service decides, never the component.
+enum AccessTier {
+  FREE
+  PRO
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ProblemStatus {
+  NOT_STARTED
+  ATTEMPTED
+  SOLVED
+}
+
+enum SubmissionStatus {
+  QUEUED
+  RUNNING
+  ACCEPTED
+  WRONG_ANSWER
+  TIME_LIMIT_EXCEEDED
+  MEMORY_LIMIT_EXCEEDED
+  RUNTIME_ERROR
+  COMPILE_ERROR
+  INTERNAL_ERROR
+}
+
+enum Language {
+  PYTHON
+  JAVASCRIPT
+  TYPESCRIPT
+  JAVA
+  CPP
+  GO
+}
+
+/// Targets that can be bookmarked, annotated or scheduled for review.
+enum EntityType {
+  COURSE
+  CHAPTER
+  PATTERN
+  PROBLEM
+  SYSTEM_DESIGN_PROBLEM
+  LLD_PROBLEM
+  BEHAVIORAL_QUESTION
+  QUIZ
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  MULTI_SELECT
+  TRUE_FALSE
+  CODE_OUTPUT
+  CODE_COMPLETION
+  COMPLEXITY
+  MATCHING
+}
+
+/// Self-graded recall quality, mapped to an interval by the scheduler.
+///
+/// Four levels rather than three: without a plain "GOOD" there is no way to
+/// say "I recalled this correctly, at the expected difficulty", which is the
+/// most common outcome and the one the interval growth is calibrated on.
+enum ReviewGrade {
+  AGAIN
+  HARD
+  GOOD
+  EASY
+}
+
+/// Where an item sits in its lifecycle.
+///
+/// Derivable from `repetitions` and `intervalDays`, but stored explicitly:
+/// the queue filters and the history panel both group by it, and an explicit
+/// state machine is far easier to test than one inferred from two numbers
+/// at every call site.
+enum ReviewStage {
+  NEW
+  LEARNING
+  REVIEW
+  MATURE
+}
+
+enum InterviewType {
+  DSA
+  SYSTEM_DESIGN
+  LLD
+  BEHAVIORAL
+}
+
+enum InterviewStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+enum MessageRole {
+  SYSTEM
+  USER
+  ASSISTANT
+}
+
+enum TutorMode {
+  TUTOR
+  INTERVIEWER
+  DEBUGGER
+  QUIZ_MASTER
+}
+
+enum PlanTier {
+  FREE
+  PRO_MONTHLY
+  PRO_YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+enum AchievementKind {
+  PROBLEMS_SOLVED
+  DIFFICULTY_MILESTONE
+  STREAK
+  PATTERN_MASTERY
+  COURSE_COMPLETION
+  REVIEW_CONSISTENCY
+}
+
+// ===========================================================================
+// IDENTITY & ACCESS  (Auth.js core models + CodeForge extensions)
+// ===========================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  /// Argon2id hash. Null for OAuth-only accounts.
+  passwordHash  String?
+  role          Role      @default(USER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts     Account[]
+  sessions     Session[]
+  profile      Profile?
+  subscription Subscription?
+
+  chapterProgress   UserChapterProgress[]
+  problemProgress   UserProblemProgress[]
+  patternMastery    UserPatternMastery[]
+  submissions       Submission[]
+  quizAttempts      QuizAttempt[]
+  bookmarks         Bookmark[]
+  notes             Note[]
+  highlights        Highlight[]
+  reviewItems       ReviewItem[]
+  activity          ActivityEvent[]
+  studyDays         StudyDay[]
+  achievements      UserAchievement[]
+  conversations     AIConversation[]
+  aiUsage           AIUsageRecord[]
+  interviews        InterviewSession[]
+  behavioralStories BehavioralStory[]
+
+  @@index([role])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Profile {
+  id             String  @id @default(cuid())
+  userId         String  @unique
+  username       String? @unique
+  bio            String? @db.Text
+  githubUrl      String?
+  websiteUrl     String?
+  targetRole     String?
+  /// Denormalised counters. Recomputed by the progress service on write so
+  /// the dashboard and profile never aggregate across millions of rows.
+  currentStreak  Int     @default(0)
+  longestStreak  Int     @default(0)
+  totalXp        Int     @default(0)
+  studySeconds   Int     @default(0)
+  problemsSolved Int     @default(0)
+  easySolved     Int     @default(0)
+  mediumSolved   Int     @default(0)
+  hardSolved     Int     @default(0)
+
+  preferredLanguage Language @default(PYTHON)
+  reducedMotion     Boolean  @default(false)
+  emailDigest       Boolean  @default(true)
+
+  lastActiveOn DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([totalXp])
+  @@map("profiles")
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  plan                 PlanTier           @default(FREE)
+  status               SubscriptionStatus @default(ACTIVE)
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  /// Stripe identifiers. Written only by the webhook handler - subscription
+  /// state is never trusted from the client.
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("subscriptions")
+}
+
+// ===========================================================================
+// CURRICULUM
+// ===========================================================================
+
+model Course {
+  id             String        @id @default(cuid())
+  slug           String        @unique
+  title          String
+  subtitle       String?
+  description    String        @db.Text
+  track          Track
+  /// Lucide icon name, resolved through a whitelist at render time.
+  icon           String?
+  status         ContentStatus @default(DRAFT)
+  access         AccessTier    @default(FREE)
+  order          Int           @default(0)
+  estimatedHours Int           @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sections CourseSection[]
+
+  @@index([track, status, order])
+  @@index([status])
+  @@map("courses")
+}
+
+model CourseSection {
+  id       String        @id @default(cuid())
+  courseId String
+  slug     String
+  title    String
+  summary  String?       @db.Text
+  order    Int           @default(0)
+  status   ContentStatus @default(DRAFT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  course   Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  chapters Chapter[]
+
+  @@unique([courseId, slug])
+  @@index([courseId, order])
+  @@map("course_sections")
+}
+
+model Chapter {
+  id        String  @id @default(cuid())
+  sectionId String
+  slug      String
+  title     String
+  summary   String? @db.Text
+
+  /// Ordered array of typed content blocks. Discriminated union validated by
+  /// the Zod schema in src/lib/validation/content.ts before any write.
+  content Json @default("[]")
+
+  /// Plain bullet strings shown above the body and reused in the chapter
+  /// footer recap.
+  objectives   String[]
+  keyTakeaways String[]
+
+  readingMinutes Int           @default(5)
+  /// Shown in the chapter header. This is the difficulty of the *material*,
+  /// which is not the same as the difficulty of the problems it links to -
+  /// an Easy chapter can legitimately end with a Hard practice problem.
+  difficulty     Difficulty    @default(EASY)
+  order          Int           @default(0)
+  status         ContentStatus @default(DRAFT)
+  access         AccessTier    @default(FREE)
+
+  /// Full-text search vector maintained by a Postgres trigger (see the
+  /// search migration). Kept Unsupported so Prisma does not try to manage it.
+  searchVector Unsupported("tsvector")?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  section  CourseSection         @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  patterns ChapterPattern[]
+  problems ChapterProblem[]
+  quizzes  Quiz[]
+  progress UserChapterProgress[]
+
+  @@unique([sectionId, slug])
+  @@index([sectionId, order])
+  @@index([status, access])
+  @@index([searchVector], type: Gin)
+  @@map("chapters")
+}
+
+// ===========================================================================
+// PATTERNS  -- first-class entities, the spine of the teaching method
+// ===========================================================================
+
+model Pattern {
+  id          String @id @default(cuid())
+  slug        String @unique
+  name        String
+  tagline     String
+  description String @db.Text
+
+  /// The core teaching asset: the checklist a learner runs against a new
+  /// problem statement to decide whether this pattern applies.
+  recognitionClues String[]
+  /// Signals that look like this pattern but are not - prevents the
+  /// "everything is sliding window" failure mode.
+  antiPatterns     String[]
+
+  coreIdea       String   @db.Text
+  templateCode   Json     @default("{}") // { PYTHON: "...", JAVA: "...", ... }
+  commonMistakes String[]
+
+  timeComplexity  String?
+  spaceComplexity String?
+
+  difficulty Difficulty    @default(MEDIUM)
+  order      Int           @default(0)
+  status     ContentStatus @default(DRAFT)
+  access     AccessTier    @default(FREE)
+
+  searchVector Unsupported("tsvector")?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  problems ProblemPattern[]
+  chapters ChapterPattern[]
+  mastery  UserPatternMastery[]
+
+  @@index([status, order])
+  @@index([searchVector], type: Gin)
+  @@map("patterns")
+}
+
+model ChapterPattern {
+  chapterId String
+  patternId String
+
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  pattern Pattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
+
+  @@id([chapterId, patternId])
+  @@index([patternId])
+  @@map("chapter_patterns")
+}
+
+// ===========================================================================
+// TAXONOMY
+// ===========================================================================
+
+model Topic {
+  id    String @id @default(cuid())
+  slug  String @unique
+  name  String
+  order Int    @default(0)
+
+  problems ProblemTopic[]
+
+  @@map("topics")
+}
+
+model Tag {
+  id   String @id @default(cuid())
+  slug String @unique
+  name String
+
+  problems ProblemTag[]
+
+  @@map("tags")
+}
+
+// ===========================================================================
+// CODING PROBLEMS
+// ===========================================================================
+
+model Problem {
+  id     String @id @default(cuid())
+  /// Stable public number shown in the UI (#42). Separate from id so the
+  /// display order is editable without breaking links.
+  number Int    @unique @default(autoincrement())
+  slug   String @unique
+  title  String
+
+  /// Content blocks: statement, examples, notes.
+  statement         Json          @default("[]")
+  /// One sentence: what this problem exists to teach. Shown to the learner
+  /// after they solve it, and used by the recommender to explain a pick.
+  /// A problem that cannot fill this in is a variation, not a lesson.
+  learningObjective String?       @db.Text
+  constraints       String[]
+  difficulty        Difficulty
+  access            AccessTier    @default(FREE)
+  status            ContentStatus @default(DRAFT)
+
+  /// Per-language function signature + starter body.
+  starterCode Json @default("{}")
+  /// Per-language harness that reads stdin, calls the user function and
+  /// prints the result. Never shown to the user.
+  harnessCode Json @default("{}")
+
+  timeLimitMs   Int @default(4000)
+  memoryLimitMb Int @default(256)
+
+  expectedTime  String?
+  expectedSpace String?
+
+  searchVector Unsupported("tsvector")?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  testCases   TestCase[]
+  hints       Hint[]
+  solutions   Solution[]
+  patterns    ProblemPattern[]
+  topics      ProblemTopic[]
+  tags        ProblemTag[]
+  companies   CompanyProblem[]
+  submissions Submission[]
+  progress    UserProblemProgress[]
+  chapters    ChapterProblem[]
+
+  @@index([difficulty, status])
+  @@index([status, number])
+  @@index([searchVector], type: Gin)
+  /// Trigram index for fuzzy title matching, so a typo still finds the
+  /// problem. Requires the pg_trgm extension, created by the first migration.
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@map("problems")
+}
+
+model ProblemPattern {
+  problemId String
+  patternId String
+  /// Marks the pattern the problem is meant to teach, vs. one it merely
+  /// touches. Drives "problems for this pattern" ordering.
+  isPrimary Boolean @default(false)
+
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  pattern Pattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
+
+  @@id([problemId, patternId])
+  @@index([patternId, isPrimary])
+  @@map("problem_patterns")
+}
+
+model ProblemTopic {
+  problemId String
+  topicId   String
+
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  topic   Topic   @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([problemId, topicId])
+  @@index([topicId])
+  @@map("problem_topics")
+}
+
+model ProblemTag {
+  problemId String
+  tagId     String
+
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([problemId, tagId])
+  @@index([tagId])
+  @@map("problem_tags")
+}
+
+model ChapterProblem {
+  chapterId String
+  problemId String
+  order     Int    @default(0)
+
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@id([chapterId, problemId])
+  @@index([problemId])
+  @@map("chapter_problems")
+}
+
+model TestCase {
+  id          String  @id @default(cuid())
+  problemId   String
+  /// stdin fed to the harness.
+  input       String  @db.Text
+  /// Exact expected stdout, compared after trailing-whitespace normalisation.
+  expected    String  @db.Text
+  /// Sample cases are shown in the problem statement and run by "Run";
+  /// the rest are hidden and only run by "Submit".
+  isSample    Boolean @default(false)
+  explanation String? @db.Text
+  order       Int     @default(0)
+
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@index([problemId, isSample, order])
+  @@map("test_cases")
+}
+
+model Hint {
+  id        String @id @default(cuid())
+  problemId String
+  /// 1-based. Revealed strictly in order by the hint service.
+  order     Int
+  body      String @db.Text
+
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([problemId, order])
+  @@map("hints")
+}
+
+model Solution {
+  id        String @id @default(cuid())
+  problemId String
+  title     String
+  /// "Brute force" / "Optimal" etc. Ordered worst-to-best so the reader walks
+  /// the same path they would in an interview.
+  order     Int    @default(0)
+
+  intuition       String   @db.Text
+  approach        Json     @default("[]")
+  code            Json     @default("{}")
+  timeComplexity  String
+  spaceComplexity String
+  edgeCases       String[]
+  commonMistakes  String[]
+
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@index([problemId, order])
+  @@map("solutions")
+}
+
+model Submission {
+  id        String @id @default(cuid())
+  userId    String
+  problemId String
+
+  language Language
+  code     String           @db.Text
+  status   SubmissionStatus @default(QUEUED)
+
+  /// Null until the worker reports back.
+  passedCount  Int?
+  totalCount   Int?
+  runtimeMs    Int?
+  memoryKb     Int?
+  /// Compile/runtime stderr, truncated by the worker before storage.
+  errorMessage String? @db.Text
+  /// Per-test outcomes for the results panel. Hidden-case inputs are stripped
+  /// before this reaches the client.
+  testResults  Json?
+  /// Distinguishes a "Run" against sample cases from a scored "Submit".
+  isRun        Boolean @default(false)
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, problemId, createdAt])
+  @@index([problemId, status])
+  @@index([status, createdAt])
+  @@map("submissions")
+}
+
+// ===========================================================================
+// QUIZZES
+// ===========================================================================
+
+model Quiz {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  title       String
+  description String?       @db.Text
+  chapterId   String?
+  passScore   Int           @default(70)
+  status      ContentStatus @default(DRAFT)
+  access      AccessTier    @default(FREE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chapter   Chapter?       @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+
+  @@index([chapterId])
+  @@index([status])
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id     String       @id @default(cuid())
+  quizId String
+  type   QuestionType
+  order  Int          @default(0)
+
+  prompt      String  @db.Text
+  /// Optional snippet shown above the options, for CODE_OUTPUT questions.
+  code        String? @db.Text
+  /// Options for choice questions, or pairs for MATCHING. Shape is validated
+  /// per `type` by the quiz Zod schema.
+  options     Json    @default("[]")
+  /// Option ids (choice) or pair mapping (matching). Never sent to the client
+  /// before the answer is submitted.
+  answer      Json
+  explanation String  @db.Text
+  points      Int     @default(1)
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId, order])
+  @@map("quiz_questions")
+}
+
+model QuizAttempt {
+  id     String @id @default(cuid())
+  userId String
+  quizId String
+
+  /// { [questionId]: submittedAnswer }
+  answers     Json      @default("{}")
+  score       Int       @default(0)
+  maxScore    Int       @default(0)
+  passed      Boolean   @default(false)
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([userId, quizId, startedAt])
+  @@index([quizId])
+  @@map("quiz_attempts")
+}
+
+// ===========================================================================
+// PROGRESS, MASTERY & REVIEW
+// ===========================================================================
+
+model UserChapterProgress {
+  id        String         @id @default(cuid())
+  userId    String
+  chapterId String
+  status    ProgressStatus @default(NOT_STARTED)
+  /// 0-100. Scroll depth while in progress, pinned to 100 on completion.
+  percent   Int            @default(0)
+  seconds   Int            @default(0)
+
+  startedAt   DateTime?
+  completedAt DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, chapterId])
+  @@index([userId, status])
+  @@index([userId, updatedAt])
+  @@map("user_chapter_progress")
+}
+
+model UserProblemProgress {
+  id        String        @id @default(cuid())
+  userId    String
+  problemId String
+  status    ProblemStatus @default(NOT_STARTED)
+
+  attempts         Int       @default(0)
+  /// How far into the hint ladder the user went. Feeds both the review
+  /// scheduler and the "needs work" signal on the dashboard.
+  hintsRevealed    Int       @default(0)
+  solutionViewedAt DateTime?
+  firstSolvedAt    DateTime?
+  lastAttemptAt    DateTime?
+  /// Language of the accepted submission, for the profile breakdown.
+  solvedLanguage   Language?
+
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, problemId])
+  @@index([userId, status])
+  @@index([userId, updatedAt])
+  @@map("user_problem_progress")
+}
+
+/// Per-pattern competence, recomputed after each scored submission and quiz.
+/// This is what "weak patterns" and "patterns mastered" read - both must come
+/// from observed attempts, never from a guess.
+model UserPatternMastery {
+  id        String @id @default(cuid())
+  userId    String
+  patternId String
+
+  /// 0-100, exponentially weighted toward recent attempts.
+  score        Int @default(0)
+  attempts     Int @default(0)
+  solved       Int @default(0)
+  solvedNoHint Int @default(0)
+
+  lastPracticedAt DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pattern Pattern @relation(fields: [patternId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, patternId])
+  @@index([userId, score])
+  @@map("user_pattern_mastery")
+}
+
+/// Spaced repetition queue. One row per (user, thing worth recalling).
+model ReviewItem {
+  id         String     @id @default(cuid())
+  userId     String
+  entityType EntityType
+  entityId   String
+
+  stage ReviewStage @default(NEW)
+
+  /// Day-granular by design. `dueAt` is always midnight UTC, matching the
+  /// convention StudyDay and streaks already use, so "due today" means the
+  /// same thing everywhere regardless of the reviewer's timezone.
+  dueAt          DateTime
+  intervalDays   Int          @default(1)
+  /// Consecutive successful reviews. Reset to zero by an AGAIN.
+  repetitions    Int          @default(0)
+  /// Ease factor x100 (250 = 2.5), integer to avoid float drift.
+  ease           Int          @default(250)
+  /// Total AGAIN ratings, ever. Never reset - it is a history of how hard
+  /// this item has been, and it is what lets the queue put genuinely
+  /// troublesome items in front of merely-due ones.
+  lapses         Int          @default(0)
+  /// Total graded reviews, for the history panel.
+  totalReviews   Int          @default(0)
+  lastGrade      ReviewGrade?
+  lastReviewedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entityType, entityId])
+  @@index([userId, dueAt])
+  @@map("review_items")
+}
+
+// ===========================================================================
+// ANNOTATIONS
+// ===========================================================================
+
+model Bookmark {
+  id         String     @id @default(cuid())
+  userId     String
+  entityType EntityType
+  entityId   String
+  createdAt  DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entityType, entityId])
+  @@index([userId, createdAt])
+  @@map("bookmarks")
+}
+
+model Note {
+  id         String     @id @default(cuid())
+  userId     String
+  entityType EntityType
+  entityId   String
+  body       String     @db.Text
+
+  searchVector Unsupported("tsvector")?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+  @@index([userId, entityType, entityId])
+  @@index([searchVector], type: Gin)
+  @@map("notes")
+}
+
+model Highlight {
+  id          String     @id @default(cuid())
+  userId      String
+  entityType  EntityType
+  entityId    String
+  /// Index of the content block the selection falls in, plus the offsets
+  /// within its plain-text projection. Survives re-render; does not survive
+  /// an edit to the block, which is why `quote` is stored for repair.
+  blockIndex  Int
+  startOffset Int
+  endOffset   Int
+  quote       String     @db.Text
+  color       String     @default("ember")
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, entityType, entityId])
+  @@map("highlights")
+}
+
+// ===========================================================================
+// ACTIVITY, STREAKS & ACHIEVEMENTS
+// ===========================================================================
+
+/// Append-only analytics log. Also the source for the activity heatmap.
+model ActivityEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  props     Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([name, createdAt])
+  @@map("activity_events")
+}
+
+/// One row per user per UTC day with activity. Streaks are computed from
+/// this, not from scanning every event.
+model StudyDay {
+  id       String   @id @default(cuid())
+  userId   String
+  day      DateTime @db.Date
+  seconds  Int      @default(0)
+  solved   Int      @default(0)
+  chapters Int      @default(0)
+  xp       Int      @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day])
+  @@index([userId, day])
+  @@map("study_days")
+}
+
+model Achievement {
+  id          String          @id @default(cuid())
+  slug        String          @unique
+  name        String
+  description String
+  kind        AchievementKind
+  /// Numeric bar the counter must reach, interpreted per `kind`.
+  threshold   Int
+  icon        String
+  xp          Int             @default(0)
+  order       Int             @default(0)
+
+  users UserAchievement[]
+
+  @@index([kind])
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId, unlockedAt])
+  @@map("user_achievements")
+}
+
+// ===========================================================================
+// AI TUTOR
+// ===========================================================================
+
+model AIConversation {
+  id     String    @id @default(cuid())
+  userId String
+  title  String    @default("New conversation")
+  mode   TutorMode @default(TUTOR)
+
+  /// What the user was looking at when the thread started, so the tutor can
+  /// ground itself without the user restating the problem.
+  contextType EntityType?
+  contextId   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages AIMessage[]
+
+  @@index([userId, updatedAt])
+  @@map("ai_conversations")
+}
+
+model AIMessage {
+  id             String      @id @default(cuid())
+  conversationId String
+  role           MessageRole
+  content        String      @db.Text
+  /// Escalation level the tutor was at when it produced this turn, so a
+  /// reloaded thread does not restart at hint 1.
+  hintLevel      Int         @default(0)
+  createdAt      DateTime    @default(now())
+
+  conversation AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("ai_messages")
+}
+
+/// Per-call usage. Exists from day one so metering and billing can be added
+/// without backfilling history.
+model AIUsageRecord {
+  id               String  @id @default(cuid())
+  userId           String
+  provider         String
+  model            String
+  feature          String
+  promptTokens     Int     @default(0)
+  completionTokens Int     @default(0)
+  /// Tenth-of-a-cent integers; floats accumulate error across millions of rows.
+  costMilliCents   Int     @default(0)
+  latencyMs        Int     @default(0)
+  success          Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([feature, createdAt])
+  @@map("ai_usage_records")
+}
+
+// ===========================================================================
+// MOCK INTERVIEWS
+// ===========================================================================
+
+model InterviewSession {
+  id         String          @id @default(cuid())
+  userId     String
+  type       InterviewType
+  difficulty Difficulty      @default(MEDIUM)
+  status     InterviewStatus @default(IN_PROGRESS)
+
+  /// The problem under discussion, if the type uses one.
+  problemId             String?
+  systemDesignProblemId String?
+  lldProblemId          String?
+  behavioralQuestionId  String?
+
+  language Language @default(PYTHON)
+  code     String?  @db.Text
+
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime?
+  durationSeconds Int       @default(0)
+
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages   InterviewMessage[]
+  evaluation InterviewEvaluation?
+
+  @@index([userId, startedAt])
+  @@index([status])
+  @@map("interview_sessions")
+}
+
+model InterviewMessage {
+  id         String      @id @default(cuid())
+  sessionId  String
+  role       MessageRole
+  content    String      @db.Text
+  /// Marks the turns where the candidate pasted or edited code, which the
+  /// evaluator weighs differently from spoken reasoning.
+  isCodeTurn Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+
+  session InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+  @@map("interview_messages")
+}
+
+/// Scores are interview-performance feedback derived from observable session
+/// behaviour. They are not, and must never be presented as, general ability
+/// or psychological measurements.
+model InterviewEvaluation {
+  id        String @id @default(cuid())
+  sessionId String @unique
+
+  problemUnderstanding Int
+  problemSolving       Int
+  communication        Int
+  codeQuality          Int
+  complexityAnalysis   Int
+  edgeCases            Int
+  overall              Int
+
+  strengths     String[]
+  improvements  String[]
+  struggledWith String[]
+  summary       String   @db.Text
+
+  /// Concrete next steps, resolved to real chapters/problems at write time so
+  /// the report never links to content that does not exist.
+  recommendedChapterIds String[]
+  recommendedProblemIds String[]
+
+  createdAt DateTime @default(now())
+
+  session InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("interview_evaluations")
+}
+
+// ===========================================================================
+// SYSTEM DESIGN / LLD / BEHAVIORAL
+// ===========================================================================
+
+model SystemDesignProblem {
+  id         String        @id @default(cuid())
+  slug       String        @unique
+  title      String
+  tagline    String
+  difficulty Difficulty
+  access     AccessTier    @default(FREE)
+  status     ContentStatus @default(DRAFT)
+  order      Int           @default(0)
+
+  functionalRequirements    String[]
+  nonFunctionalRequirements String[]
+  /// { dau, qps, storagePerYear, ... } - shown as a worked estimate, not a
+  /// claim about any real company's numbers.
+  scaleEstimate             Json     @default("{}")
+  apiDesign                 Json     @default("[]")
+  dataModel                 Json     @default("[]")
+  /// Architecture diagram as structured nodes/edges, rendered to SVG. Stored
+  /// as data so it can be themed and made accessible, not as an image.
+  architecture              Json     @default("{}")
+  bottlenecks               String[]
+  scalingNotes              Json     @default("[]")
+  tradeoffs                 Json     @default("[]")
+
+  searchVector Unsupported("tsvector")?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companies CompanySystemDesignTopic[]
+
+  @@index([status, order])
+  @@index([searchVector], type: Gin)
+  @@map("system_design_problems")
+}
+
+model LLDProblem {
+  id         String        @id @default(cuid())
+  slug       String        @unique
+  title      String
+  tagline    String
+  difficulty Difficulty
+  access     AccessTier    @default(FREE)
+  status     ContentStatus @default(DRAFT)
+  order      Int           @default(0)
+
+  requirements   String[]
+  entities       Json     @default("[]")
+  /// UML-ish class diagram stored as data for the same reason as above.
+  classDiagram   Json     @default("{}")
+  designPatterns String[]
+  /// Reference implementation per language.
+  code           Json     @default("{}")
+  tradeoffs      Json     @default("[]")
+  extensions     String[]
+
+  searchVector Unsupported("tsvector")?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, order])
+  @@index([searchVector], type: Gin)
+  @@map("lld_problems")
+}
+
+model BehavioralCategory {
+  id          String @id @default(cuid())
+  slug        String @unique
+  name        String
+  description String @db.Text
+  order       Int    @default(0)
+
+  questions BehavioralQuestion[]
+
+  @@map("behavioral_categories")
+}
+
+model BehavioralQuestion {
+  id         String        @id @default(cuid())
+  categoryId String
+  slug       String        @unique
+  prompt     String        @db.Text
+  /// What a strong answer demonstrates - the rubric shown after the user
+  /// drafts their own story, never before.
+  lookingFor String[]
+  followUps  String[]
+  order      Int           @default(0)
+  status     ContentStatus @default(DRAFT)
+
+  category BehavioralCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  stories  BehavioralStory[]
+
+  @@index([categoryId, order])
+  @@map("behavioral_questions")
+}
+
+/// A user's own STAR story. Reusable across questions, which is the point -
+/// strong candidates have ~8 stories, not 40.
+model BehavioralStory {
+  id         String  @id @default(cuid())
+  userId     String
+  questionId String?
+  title      String
+
+  situation String @db.Text
+  task      String @db.Text
+  action    String @db.Text
+  result    String @db.Text
+
+  tags String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question BehavioralQuestion? @relation(fields: [questionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, updatedAt])
+  @@index([questionId])
+  @@map("behavioral_stories")
+}
+
+// ===========================================================================
+// COMPANIES
+//
+// Every company-to-topic association carries provenance. The product must not
+// assert that a company asks a given question without a dated, attributed
+// source, so the source fields are required by the service layer and surfaced
+// in the UI next to the claim.
+// ===========================================================================
+
+model Company {
+  id       String        @id @default(cuid())
+  slug     String        @unique
+  name     String
+  /// Inline SVG path data or a token resolved to a generated monogram mark.
+  logoMark String?
+  blurb    String        @db.Text
+  status   ContentStatus @default(DRAFT)
+  order    Int           @default(0)
+
+  interviewStages Json     @default("[]")
+  focusAreas      String[]
+  roadmap         Json     @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  problems           CompanyProblem[]
+  systemDesignTopics CompanySystemDesignTopic[]
+
+  @@index([status, order])
+  @@map("companies")
+}
+
+model CompanyProblem {
+  id        String @id @default(cuid())
+  companyId String
+  problemId String
+
+  /// Provenance. `source` is a human-readable attribution, `sourceUrl` the
+  /// citation, `reportedAt` when the report is from, `confidence` 0-100.
+  source     String
+  sourceUrl  String?
+  reportedAt DateTime
+  confidence Int      @default(50)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, problemId])
+  @@index([problemId])
+  @@index([companyId, reportedAt])
+  @@map("company_problems")
+}
+
+model CompanySystemDesignTopic {
+  id                    String @id @default(cuid())
+  companyId             String
+  systemDesignProblemId String
+
+  source     String
+  sourceUrl  String?
+  reportedAt DateTime
+  confidence Int      @default(50)
+
+  company Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  problem SystemDesignProblem @relation(fields: [systemDesignProblemId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, systemDesignProblemId])
+  @@index([systemDesignProblemId])
+  @@map("company_system_design_topics")
+}

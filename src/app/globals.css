@@ -1,26 +1,368 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
+
+/* ==========================================================================
+   CODEFORGE DESIGN TOKENS
+   Dark-first. Neutral charcoal chrome, single ember accent used sparingly.
+   Every colour is oklch so lightness ramps stay perceptually even.
+   ========================================================================== */
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-geist-sans);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Brand ember ramp -- the one saturated colour in the product. */
+  --color-ember-50: var(--ember-50);
+  --color-ember-100: var(--ember-100);
+  --color-ember-200: var(--ember-200);
+  --color-ember-300: var(--ember-300);
+  --color-ember-400: var(--ember-400);
+  --color-ember-500: var(--ember-500);
+  --color-ember-600: var(--ember-600);
+  --color-ember-700: var(--ember-700);
+
+  /* Semantic status */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
+  /* Difficulty triad -- deliberately distinct from the ember brand accent
+     so a "Medium" badge can never be mistaken for a brand affordance. */
+  --color-difficulty-easy: var(--difficulty-easy);
+  --color-difficulty-medium: var(--difficulty-medium);
+  --color-difficulty-hard: var(--difficulty-hard);
+
+  /* Sidebar */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Visualization palette -- for algorithm canvases, not chrome. */
+  --color-viz-idle: var(--viz-idle);
+  --color-viz-active: var(--viz-active);
+  --color-viz-compare: var(--viz-compare);
+  --color-viz-visited: var(--viz-visited);
+  --color-viz-done: var(--viz-done);
+  --color-viz-pivot: var(--viz-pivot);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.75);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.5);
+  --radius-2xl: calc(var(--radius) * 2);
+
+  /* Layout rhythm -- shared by the three-column chapter reader. */
+  --spacing-sidebar: 16rem;
+  --spacing-toc: 15rem;
+  --spacing-reader: 44rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* --------------------------------------------------------------------------
+   Dark theme (default). Charcoal, never pure black -- pure black kills the
+   elevation ramp and makes long reading sessions harsher.
+   -------------------------------------------------------------------------- */
+:root {
+  --background: oklch(0.163 0.005 265);
+  --foreground: oklch(0.958 0.003 265);
+
+  --card: oklch(0.203 0.006 265);
+  --card-foreground: oklch(0.958 0.003 265);
+  --popover: oklch(0.223 0.007 265);
+  --popover-foreground: oklch(0.958 0.003 265);
+
+  --primary: oklch(0.769 0.155 62);
+  --primary-foreground: oklch(0.19 0.03 55);
+
+  --secondary: oklch(0.262 0.007 265);
+  --secondary-foreground: oklch(0.958 0.003 265);
+
+  --muted: oklch(0.252 0.007 265);
+  --muted-foreground: oklch(0.687 0.012 265);
+
+  --accent: oklch(0.282 0.008 265);
+  --accent-foreground: oklch(0.958 0.003 265);
+
+  --destructive: oklch(0.645 0.201 18);
+  --destructive-foreground: oklch(0.98 0.01 18);
+
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.769 0.155 62 / 65%);
+
+  --ember-50: oklch(0.965 0.021 68);
+  --ember-100: oklch(0.925 0.049 68);
+  --ember-200: oklch(0.872 0.085 66);
+  --ember-300: oklch(0.822 0.118 64);
+  --ember-400: oklch(0.796 0.139 63);
+  --ember-500: oklch(0.769 0.155 62);
+  --ember-600: oklch(0.682 0.153 55);
+  --ember-700: oklch(0.572 0.135 48);
+
+  --success: oklch(0.742 0.144 163);
+  --success-foreground: oklch(0.18 0.03 163);
+  --warning: oklch(0.812 0.142 88);
+  --warning-foreground: oklch(0.2 0.03 88);
+  --info: oklch(0.715 0.124 240);
+  --info-foreground: oklch(0.18 0.03 240);
+
+  --difficulty-easy: oklch(0.755 0.135 172);
+  --difficulty-medium: oklch(0.715 0.124 245);
+  --difficulty-hard: oklch(0.678 0.183 8);
+
+  --sidebar: oklch(0.184 0.005 265);
+  --sidebar-foreground: oklch(0.882 0.005 265);
+  --sidebar-primary: oklch(0.769 0.155 62);
+  --sidebar-primary-foreground: oklch(0.19 0.03 55);
+  --sidebar-accent: oklch(0.252 0.007 265);
+  --sidebar-accent-foreground: oklch(0.958 0.003 265);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: oklch(0.769 0.155 62 / 65%);
+
+  --viz-idle: oklch(0.362 0.009 265);
+  --viz-active: oklch(0.769 0.155 62);
+  --viz-compare: oklch(0.715 0.124 245);
+  --viz-visited: oklch(0.612 0.098 295);
+  --viz-done: oklch(0.742 0.144 163);
+  --viz-pivot: oklch(0.678 0.183 8);
+
+  --chart-1: oklch(0.769 0.155 62);
+  --chart-2: oklch(0.715 0.124 245);
+  --chart-3: oklch(0.742 0.144 163);
+  --chart-4: oklch(0.678 0.183 8);
+  --chart-5: oklch(0.662 0.128 295);
+
+  --radius: 0.5rem;
+}
+
+/* Explicit .dark keeps shadcn's `dark:` variants working while dark is also
+   the :root default, so a themed component behaves the same either way. */
+.dark {
+  --background: oklch(0.163 0.005 265);
+  --foreground: oklch(0.958 0.003 265);
+  --card: oklch(0.203 0.006 265);
+  --card-foreground: oklch(0.958 0.003 265);
+  --popover: oklch(0.223 0.007 265);
+  --popover-foreground: oklch(0.958 0.003 265);
+  --primary: oklch(0.769 0.155 62);
+  --primary-foreground: oklch(0.19 0.03 55);
+  --secondary: oklch(0.262 0.007 265);
+  --secondary-foreground: oklch(0.958 0.003 265);
+  --muted: oklch(0.252 0.007 265);
+  --muted-foreground: oklch(0.687 0.012 265);
+  --accent: oklch(0.282 0.008 265);
+  --accent-foreground: oklch(0.958 0.003 265);
+  --destructive: oklch(0.645 0.201 18);
+  --destructive-foreground: oklch(0.98 0.01 18);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 13%);
+  --ring: oklch(0.769 0.155 62 / 65%);
+  --sidebar: oklch(0.184 0.005 265);
+  --sidebar-foreground: oklch(0.882 0.005 265);
+  --sidebar-accent: oklch(0.252 0.007 265);
+  --sidebar-accent-foreground: oklch(0.958 0.003 265);
+  --sidebar-border: oklch(1 0 0 / 8%);
+}
+
+/* --------------------------------------------------------------------------
+   Light theme -- supported, but the product is designed dark-first.
+   -------------------------------------------------------------------------- */
+.light {
+  --background: oklch(0.992 0.002 265);
+  --foreground: oklch(0.212 0.008 265);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.212 0.008 265);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.212 0.008 265);
+
+  --primary: oklch(0.592 0.143 50);
+  --primary-foreground: oklch(0.995 0.005 60);
+
+  --secondary: oklch(0.962 0.003 265);
+  --secondary-foreground: oklch(0.262 0.008 265);
+
+  --muted: oklch(0.962 0.003 265);
+  --muted-foreground: oklch(0.492 0.011 265);
+
+  --accent: oklch(0.948 0.004 265);
+  --accent-foreground: oklch(0.262 0.008 265);
+
+  --destructive: oklch(0.552 0.201 18);
+  --destructive-foreground: oklch(0.995 0.005 18);
+
+  --border: oklch(0.898 0.004 265);
+  --input: oklch(0.878 0.005 265);
+  --ring: oklch(0.592 0.143 50 / 55%);
+
+  --ember-50: oklch(0.975 0.015 68);
+  --ember-100: oklch(0.938 0.042 68);
+  --ember-200: oklch(0.878 0.078 66);
+  --ember-300: oklch(0.798 0.115 60);
+  --ember-400: oklch(0.692 0.146 55);
+  --ember-500: oklch(0.592 0.143 50);
+  --ember-600: oklch(0.512 0.126 46);
+  --ember-700: oklch(0.432 0.104 42);
+
+  --success: oklch(0.542 0.128 163);
+  --success-foreground: oklch(0.99 0.01 163);
+  --warning: oklch(0.638 0.138 78);
+  --warning-foreground: oklch(0.99 0.01 78);
+  --info: oklch(0.548 0.152 250);
+  --info-foreground: oklch(0.99 0.01 250);
+
+  --difficulty-easy: oklch(0.545 0.118 172);
+  --difficulty-medium: oklch(0.538 0.148 250);
+  --difficulty-hard: oklch(0.552 0.192 12);
+
+  --sidebar: oklch(0.975 0.002 265);
+  --sidebar-foreground: oklch(0.262 0.008 265);
+  --sidebar-primary: oklch(0.592 0.143 50);
+  --sidebar-primary-foreground: oklch(0.995 0.005 60);
+  --sidebar-accent: oklch(0.938 0.004 265);
+  --sidebar-accent-foreground: oklch(0.262 0.008 265);
+  --sidebar-border: oklch(0.898 0.004 265);
+  --sidebar-ring: oklch(0.592 0.143 50 / 55%);
+
+  --viz-idle: oklch(0.858 0.005 265);
+  --viz-active: oklch(0.592 0.143 50);
+  --viz-compare: oklch(0.538 0.148 250);
+  --viz-visited: oklch(0.548 0.128 295);
+  --viz-done: oklch(0.542 0.128 163);
+  --viz-pivot: oklch(0.552 0.192 12);
+
+  --chart-1: oklch(0.592 0.143 50);
+  --chart-2: oklch(0.538 0.148 250);
+  --chart-3: oklch(0.542 0.128 163);
+  --chart-4: oklch(0.552 0.192 12);
+  --chart-5: oklch(0.548 0.128 295);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Numbers in stats, timers and complexity tables must not jitter. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklch, var(--ember-500) 28%, transparent);
+  }
+
+  /* A single, consistent focus ring everywhere -- never remove it. */
+  :focus-visible {
+    @apply outline-ring outline-2 outline-offset-2;
+  }
+
+  /* Scrollbars that belong to a dark developer tool. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklch, var(--muted-foreground) 30%, transparent);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklch, var(--muted-foreground) 55%, transparent);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  /* Hairline top highlight used on elevated panels. Cheaper and calmer than
+     a drop shadow on a dark surface. */
+  .surface-edge {
+    box-shadow: inset 0 1px 0 0 oklch(1 0 0 / 6%);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /* Faint grid used behind the hero and empty states. */
+  .grid-backdrop {
+    background-image:
+      linear-gradient(to right, var(--border) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, #000 20%, transparent 78%);
+  }
+}
+
+/* Honour the OS setting globally. Visualizations additionally read this via
+   the useReducedMotion hook so they snap between steps instead of tweening. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

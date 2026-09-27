@@ -1,0 +1,287 @@
+import { expect, test, type Page } from "@playwright/test";
+
+/**
+ * The critical product loop, end to end.
+ *
+ *   sign up → dashboard → DSA roadmap → chapter → quiz → complete
+ *   → problem → hint → write code → run → submit → progress updates
+ *
+ * Runs against the real database and the real code executor. Mocking either
+ * would defeat the point: the reason this test exists is that all of those
+ * steps have to work together, and no unit test can tell you that they do.
+ */
+
+const PASSWORD = "forge-e2e-password";
+
+function uniqueEmail(tag: string): string {
+  return `e2e-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@codeforge.test`;
+}
+
+async function signUp(page: Page, tag: string): Promise<string> {
+  const email = uniqueEmail(tag);
+  await page.goto("/signup");
+  await page.getByLabel("Name").fill("Loop Learner");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Create account" }).click();
+  await page.waitForURL("**/dashboard", { timeout: 30_000 });
+  return email;
+}
+
+/** The problem page collapses to tabs below the `lg` breakpoint. */
+function isNarrow(page: Page): boolean {
+  const viewport = page.viewportSize();
+  return (viewport?.width ?? 1280) < 1024;
+}
+
+/**
+ * Brings a problem-page pane into view.
+ *
+ * On desktop the description, editor and results are a three-way split and
+ * all are already visible. Below `lg` they are tabs, because a three-way
+ * split at 390px is unusable — so the pane has to be selected first.
+ */
+async function showPane(page: Page, pane: "Problem" | "Code" | "Results") {
+  if (!isNarrow(page)) return;
+  await page.getByRole("tab", { name: pane }).click();
+}
+
+/**
+ * Sets the editor's contents through Monaco's own API.
+ *
+ * Typing multi-line Python through the keyboard fights the editor's
+ * auto-indent, which tests Monaco rather than CodeForge. A separate test
+ * below covers real keystrokes; this one is for getting a known program in
+ * so the execution pipeline can be exercised.
+ */
+async function setEditorCode(page: Page, code: string): Promise<void> {
+  await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 60_000 });
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(() => {
+          const monaco = (window as unknown as { monaco?: unknown }).monaco as
+            | { editor: { getModels: () => unknown[] } }
+            | undefined;
+          return monaco ? monaco.editor.getModels().length : 0;
+        }),
+      { timeout: 60_000 }
+    )
+    .toBeGreaterThan(0);
+
+  await page.evaluate((source) => {
+    const monaco = (
+      window as unknown as {
+        monaco: {
+          editor: { getModels: () => { setValue: (value: string) => void }[] };
+        };
+      }
+    ).monaco;
+    monaco.editor.getModels()[0]!.setValue(source);
+  }, code);
+}
+
+const CORRECT_SOLUTION = [
+  "def highestAltitude(changes):",
+  "    altitude = 0",
+  "    highest = 0",
+  "    for change in changes:",
+  "        altitude += change",
+  "        if altitude > highest:",
+  "            highest = altitude",
+  "    return highest",
+].join("\n");
+
+test("a new learner can go from signup to a solved problem", async ({ page }) => {
+  test.slow();
+  await signUp(page, "loop");
+
+  // ---- Dashboard ---------------------------------------------------------
+  await expect(
+    page.getByRole("heading", { name: /Good (morning|afternoon|evening)/ })
+  ).toBeVisible();
+  // A fresh account has no history, so the recommender falls back to the
+  // start of the catalogue and says why.
+  await expect(page.getByText("Next in the catalogue").first()).toBeVisible();
+
+  // ---- Roadmap -----------------------------------------------------------
+  await page.goto("/learn/dsa");
+  await expect(
+    page.getByRole("heading", { name: "Data Structures & Algorithms" })
+  ).toBeVisible();
+  await page.getByRole("link", { name: /DSA Foundations/ }).click();
+  await page.waitForURL("**/learn/dsa/dsa-foundations", { timeout: 30_000 });
+
+  // ---- Chapter -----------------------------------------------------------
+  await page.getByRole("link", { name: "Why Complexity Matters" }).first().click();
+  await page.waitForURL("**/why-complexity-matters", { timeout: 30_000 });
+
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Why Complexity Matters" })
+  ).toBeVisible();
+  await expect(page.getByText("By the end of this chapter")).toBeVisible();
+
+  // The table of contents is a sidebar on desktop and a drawer on mobile.
+  if (!isNarrow(page)) {
+    await expect(page.getByRole("navigation", { name: "On this page" })).toBeVisible();
+  } else {
+    await page.getByRole("button", { name: "On this page" }).click();
+    await expect(page.getByRole("navigation", { name: "On this page" })).toBeVisible();
+    await page.keyboard.press("Escape");
+  }
+
+  // ---- Quiz: answer, submit, get graded ----------------------------------
+  await expect(page.getByText("Quick quiz")).toBeVisible();
+  const radioGroups = page.locator('[role="radiogroup"]');
+  const groupCount = await radioGroups.count();
+  expect(groupCount).toBeGreaterThan(0);
+  for (let i = 0; i < groupCount; i += 1) {
+    await radioGroups.nth(i).locator('[role="radio"]').first().click();
+  }
+  await page.getByRole("button", { name: "Check answers" }).click();
+  // Grading happens server-side and returns explanations either way.
+  await expect(page.getByRole("button", { name: "Try again" })).toBeVisible({
+    timeout: 30_000,
+  });
+
+  // ---- Completion is explicit, never automatic ---------------------------
+  const completeButton = page.getByRole("button", { name: "Mark chapter complete" });
+  await expect(completeButton).toBeVisible();
+  await completeButton.click();
+  await expect(page.getByRole("button", { name: "Mark as not complete" })).toBeVisible({
+    timeout: 30_000,
+  });
+
+  // ---- The dashboard reflects it -----------------------------------------
+  await page.goto("/dashboard");
+  await expect(page.getByText("1 chapters")).toBeVisible();
+
+  // ---- Problem ------------------------------------------------------------
+  await page.goto("/problems/running-altitude");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Running Altitude" })
+  ).toBeVisible();
+
+  // Hints escalate one at a time; the server decides which comes next.
+  await showPane(page, "Problem");
+  await page.getByRole("button", { name: /Show a hint/ }).click();
+  await expect(page.getByText("Hint 1")).toBeVisible({ timeout: 30_000 });
+
+  // ---- Run against the sample tests ---------------------------------------
+  await showPane(page, "Code");
+  await setEditorCode(page, CORRECT_SOLUTION);
+  await page.getByRole("button", { name: "Run", exact: true }).click();
+  await showPane(page, "Results");
+  await expect(page.getByText("Accepted")).toBeVisible({ timeout: 180_000 });
+
+  // ---- Submit: the full suite, recorded -----------------------------------
+  await showPane(page, "Code");
+  await page.getByRole("button", { name: "Submit" }).click();
+  await showPane(page, "Results");
+  await expect(page.getByText("8/8 tests")).toBeVisible({ timeout: 180_000 });
+
+  // ---- Progress updated everywhere ----------------------------------------
+  await page.goto("/dashboard");
+  await expect(page.getByText("1E · 0M · 0H")).toBeVisible();
+
+  await page.goto("/problems");
+  // Scoped to the results list: the filter panel also has a "Solved"
+  // control, and on mobile that one lives in a closed drawer.
+  await expect(
+    page.getByRole("list").getByLabel("Solved").first()
+  ).toBeVisible();
+});
+
+test("typing in the editor drives the submitted code", async ({ page }) => {
+  test.slow();
+  await signUp(page, "typing");
+
+  await page.goto("/problems/running-altitude");
+  await showPane(page, "Code");
+  await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 60_000 });
+
+  // Real input through the editor, on a single line so auto-indent cannot
+  // interfere. `insertText` rather than `type`, because Monaco's bracket
+  // auto-close reacts to the "(" keystroke and would turn the signature
+  // into `(changes))` — a syntax error, which would test nothing useful.
+  await page.locator(".monaco-editor .view-lines").first().click();
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.insertText("def highestAltitude(changes): return 12345");
+
+  await page.getByRole("button", { name: "Run", exact: true }).click();
+  await showPane(page, "Results");
+  await expect(page.getByText("Wrong answer").first()).toBeVisible({ timeout: 180_000 });
+  // The typed value reached the executor and came back as the actual output.
+  await expect(page.getByText("12345").first()).toBeVisible();
+});
+
+test("hidden test inputs are never exposed in the results panel", async ({ page }) => {
+  test.slow();
+  await signUp(page, "hidden");
+
+  await page.goto("/problems/running-altitude");
+  await showPane(page, "Code");
+  await setEditorCode(page, "def highestAltitude(changes):\n    return -999");
+
+  await page.getByRole("button", { name: "Submit" }).click();
+  await showPane(page, "Results");
+  await expect(page.getByText("Wrong answer").first()).toBeVisible({ timeout: 180_000 });
+
+  // Samples show their data; hidden cases must not. "10000 10000 10000" is
+  // a hidden input for this problem and must appear nowhere on the page.
+  const body = await page.locator("body").innerText();
+  expect(body).not.toContain("10000 10000 10000");
+});
+
+test("the visualization player steps through real algorithm frames", async ({
+  page,
+}) => {
+  await page.goto("/visualize/binary-search");
+
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Binary Search" })
+  ).toBeVisible();
+
+  const stepCounter = page.locator("footer").getByText(/^\d+\/\d+$/);
+  await expect(stepCounter).toBeVisible({ timeout: 40_000 });
+  const firstStep = await stepCounter.innerText();
+
+  await page.getByRole("button", { name: "Next step" }).click();
+  await expect(stepCounter).not.toHaveText(firstStep);
+
+  // Pseudocode highlighting tracks the frame, which is what makes this a
+  // teaching tool rather than an animation.
+  await expect(page.getByText("lo = 0, hi = n - 1")).toBeVisible();
+});
+
+test("the command palette searches real content", async ({ page }) => {
+  await page.goto("/patterns");
+
+  await page.getByRole("button", { name: /Search/ }).first().click();
+  const input = page.getByPlaceholder(/Search chapters, patterns and problems/);
+  await expect(input).toBeVisible();
+
+  await input.fill("sliding");
+  await expect(page.getByRole("option", { name: /Sliding Window/ }).first()).toBeVisible({
+    timeout: 30_000,
+  });
+});
+
+test("an anonymous visitor can read the curriculum but not track progress", async ({
+  page,
+}) => {
+  // Course content is public and indexable; only progress needs an account.
+  await page.goto("/learn/dsa/dsa-foundations/complexity-analysis/big-o-notation");
+
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Big O Notation" })
+  ).toBeVisible();
+  await expect(page.getByText("Drop constants and keep only")).toBeVisible();
+
+  await expect(
+    page.getByRole("link", { name: "Sign in to track progress" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Mark chapter complete" })
+  ).toHaveCount(0);
+});
