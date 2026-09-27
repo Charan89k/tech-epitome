@@ -291,6 +291,7 @@ describe("conversations", () => {
 
     await appendMessage({
       conversationId: conversation!.id,
+      userId: alice,
       role: "USER",
       content: "Give me a hint.",
       requestType: "HINT",
@@ -298,6 +299,7 @@ describe("conversations", () => {
     });
     await appendMessage({
       conversationId: conversation!.id,
+      userId: alice,
       role: "ASSISTANT",
       content: "What must be true inside your window?",
       requestType: "HINT",
@@ -324,6 +326,7 @@ describe("conversations", () => {
 
     await appendMessage({
       conversationId: created!.id,
+      userId: alice,
       role: "ASSISTANT",
       content: "hint two",
       requestType: "HINT",
@@ -360,6 +363,7 @@ describe("conversations", () => {
 
     await appendMessage({
       conversationId: conversation!.id,
+      userId: alice,
       role: "USER",
       content: "first",
       requestType: "GENERAL_QUESTION",
@@ -367,6 +371,7 @@ describe("conversations", () => {
     });
     await appendMessage({
       conversationId: conversation!.id,
+      userId: alice,
       role: "ASSISTANT",
       content: "second",
       requestType: "GENERAL_QUESTION",
@@ -394,6 +399,7 @@ describe("authorization", () => {
 
     await appendMessage({
       conversationId: aliceConversation,
+      userId: alice,
       role: "USER",
       content: "alice's private question",
       requestType: "GENERAL_QUESTION",

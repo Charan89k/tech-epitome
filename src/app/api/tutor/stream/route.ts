@@ -166,6 +166,7 @@ export async function POST(request: NextRequest) {
   // one where their question vanished.
   const userMessageId = await appendMessage({
     conversationId: conversation.id,
+    userId: user.id,
     role: "USER",
     content: utterance,
     requestType: input.requestType,
@@ -191,7 +192,7 @@ export async function POST(request: NextRequest) {
       send({
         type: "meta",
         conversationId: conversation.id,
-        messageId: userMessageId,
+        messageId: userMessageId ?? "",
         hintLevel,
       });
 
@@ -242,6 +243,7 @@ export async function POST(request: NextRequest) {
         try {
           await appendMessage({
             conversationId: conversation.id,
+            userId: user.id,
             role: "ASSISTANT",
             content: answer,
             requestType: input.requestType,

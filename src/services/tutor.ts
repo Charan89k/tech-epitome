@@ -446,13 +446,28 @@ export async function loadHistory(
   }));
 }
 
+/**
+ * Appends a turn.
+ *
+ * Takes `userId` and verifies ownership itself rather than trusting the
+ * caller to have done it. Every current caller has, but a write keyed
+ * only on a conversation id is an IDOR waiting for its second caller —
+ * and this function is exactly the kind that acquires one.
+ */
 export async function appendMessage(params: {
   conversationId: string;
+  userId: string;
   role: "USER" | "ASSISTANT";
   content: string;
   requestType: TutorRequestType | null;
   hintLevel: number;
-}): Promise<string> {
+}): Promise<string | null> {
+  const owns = await prisma.aIConversation.findFirst({
+    where: { id: params.conversationId, userId: params.userId },
+    select: { id: true },
+  });
+  if (!owns) return null;
+
   const message = await prisma.aIMessage.create({
     data: {
       conversationId: params.conversationId,
@@ -464,9 +479,10 @@ export async function appendMessage(params: {
     select: { id: true },
   });
 
-  // Keeps the thread list ordered by real activity.
-  await prisma.aIConversation.update({
-    where: { id: params.conversationId },
+  // Keeps the thread list ordered by real activity. Scoped, so it
+  // cannot touch a conversation this user does not own.
+  await prisma.aIConversation.updateMany({
+    where: { id: params.conversationId, userId: params.userId },
     data: { updatedAt: new Date() },
   });
 

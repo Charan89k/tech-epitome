@@ -114,6 +114,7 @@ export async function POST(request: NextRequest) {
   if (input.message?.trim()) {
     await appendTranscript({
       sessionId: input.sessionId,
+      userId: user.id,
       role: "USER",
       content: input.message.trim(),
     });
@@ -212,6 +213,7 @@ export async function POST(request: NextRequest) {
         try {
           await appendTranscript({
             sessionId: input.sessionId,
+            userId: user.id,
             role: "ASSISTANT",
             content: answer,
           });

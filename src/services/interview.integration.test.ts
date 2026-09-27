@@ -162,11 +162,13 @@ describe("the reference boundary", () => {
   it("supplies the reference once the interview has ended", async () => {
     await appendTranscript({
       sessionId,
+      userId: alice,
       role: "ASSISTANT",
       content: "Tell me how you would approach this.",
     });
     await appendTranscript({
       sessionId,
+      userId: alice,
       role: "USER",
       content: "I would scan once and track a running maximum.",
     });
@@ -294,6 +296,7 @@ describe("cascade behaviour", () => {
 
     await appendTranscript({
       sessionId: created.id,
+      userId: throwaway.id,
       role: "USER",
       content: "hello",
     });

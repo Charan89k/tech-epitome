@@ -602,7 +602,14 @@ These are real and currently true. None of them are hidden behind a
     to a real interview and the UI says so.
 23. **Only DSA interviews exist.** `createInterview` refuses the other
     three types rather than opening a session no interviewer can conduct.
-24. **`notFound()` after streaming returns HTTP 200.** Next commits the
+24. **No admin area exists yet.** `requireAdmin` and `FEATURES.ADMIN`
+    are present from Phase 1 and unused; there is no `/admin` route and
+    no admin-only query. There is therefore nothing for an ordinary user
+    to bypass — but equally, none of Phase 10's admin work is done.
+25. **Billing is not wired up** (unchanged from Phase 1). Entitlements
+    are enforced; there is no checkout, no webhook handler and no
+    payment provider. `STRIPE_*` variables are read and unused.
+26. **`notFound()` after streaming returns HTTP 200.** Next commits the
     status when it starts streaming the shell, so a page that calls
     `notFound()` later renders the not-found UI under a 200. Verified
     that no data leaks — a non-owner sees the not-found page — but the

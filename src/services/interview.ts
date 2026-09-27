@@ -324,12 +324,26 @@ export async function loadFeedbackContext(
   return { ...base, reference };
 }
 
+/**
+ * Appends a transcript turn.
+ *
+ * Verifies ownership itself rather than trusting the caller. Every
+ * current caller has already checked, but a write keyed only on a
+ * session id is an IDOR waiting for its second caller.
+ */
 export async function appendTranscript(params: {
   sessionId: string;
+  userId: string;
   role: "USER" | "ASSISTANT";
   content: string;
   isCodeTurn?: boolean;
-}): Promise<string> {
+}): Promise<string | null> {
+  const owns = await prisma.interviewSession.findFirst({
+    where: { id: params.sessionId, userId: params.userId },
+    select: { id: true },
+  });
+  if (!owns) return null;
+
   const message = await prisma.interviewMessage.create({
     data: {
       sessionId: params.sessionId,
