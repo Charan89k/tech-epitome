@@ -21,11 +21,11 @@ let problemIds: string[] = [];
 beforeAll(async () => {
   const [a, b] = await Promise.all([
     prisma.user.create({
-      data: { email: `ach-alice-${SUFFIX}@codeforge.test`, profile: { create: {} } },
+      data: { email: `ach-alice-${SUFFIX}@techepitome.test`, profile: { create: {} } },
       select: { id: true },
     }),
     prisma.user.create({
-      data: { email: `ach-bob-${SUFFIX}@codeforge.test`, profile: { create: {} } },
+      data: { email: `ach-bob-${SUFFIX}@techepitome.test`, profile: { create: {} } },
       select: { id: true },
     }),
   ]);

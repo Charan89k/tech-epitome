@@ -173,7 +173,7 @@ export function CommandPaletteProvider({ children }: { children: ReactNode }) {
       <CommandDialog
         open={open}
         onOpenChange={handleOpenChange}
-        title="Search CodeForge"
+        title="Search Tech Epitome"
         description="Jump to a section"
       >
         <CommandInput

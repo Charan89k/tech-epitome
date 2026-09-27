@@ -13,7 +13,7 @@ import { notifyReviewsDue } from "@/services/notifications";
  * the in-app bell (`notifyReviewsDue`) and email
  * (`runReviewReminders`). A learner can have either, both or neither.
  *
- * CodeForge has no background worker, so this is an HTTP endpoint meant
+ * Tech Epitome has no background worker, so this is an HTTP endpoint meant
  * to be called by whatever scheduler the deployment already has — a
  * platform cron, a Kubernetes CronJob, a systemd timer. **If nothing
  * calls it, no review reminders are sent.** That is stated here, in the

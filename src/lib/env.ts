@@ -62,8 +62,8 @@ const serverSchema = z.object({
   // the mock AI provider. `resend` needs both of the values below.
   EMAIL_PROVIDER: z.enum(["resend", "console"]).default("console"),
   RESEND_API_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
-  /** The verified sender. `CodeForge <noreply@example.com>` is fine. */
-  EMAIL_FROM: z.string().default("CodeForge <noreply@codeforge.local>"),
+  /** The verified sender. `Tech Epitome <noreply@example.com>` is fine. */
+  EMAIL_FROM: z.string().default("Tech Epitome <noreply@techepitome.local>"),
 
   /**
    * Set on any deployment running more than one instance. When true and
@@ -77,9 +77,9 @@ const serverSchema = z.object({
 
   CRON_SECRET: z.preprocess(emptyToUndefined, z.string().min(24).optional()),
 
-  SEED_ADMIN_EMAIL: z.string().email().default("admin@codeforge.local"),
+  SEED_ADMIN_EMAIL: z.string().email().default("admin@techepitome.local"),
   SEED_ADMIN_PASSWORD: z.string().min(8).default("forge-admin-dev"),
-  SEED_DEMO_EMAIL: z.string().email().default("demo@codeforge.local"),
+  SEED_DEMO_EMAIL: z.string().email().default("demo@techepitome.local"),
   SEED_DEMO_PASSWORD: z.string().min(8).default("forge-demo-dev"),
 });
 

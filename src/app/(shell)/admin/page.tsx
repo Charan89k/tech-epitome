@@ -68,7 +68,7 @@ export default async function AdminOverviewPage() {
           AI, last 30 days
         </h2>
         <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-          Nobody is charged for this — CodeForge is free. These figures exist so
+          Nobody is charged for this — Tech Epitome is free. These figures exist so
           the cost of running the free AI features is a measured number rather
           than a guess.
         </p>

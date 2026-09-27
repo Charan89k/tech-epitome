@@ -34,7 +34,7 @@ export function StatusScreen({
     <div className="flex min-h-dvh flex-col items-center justify-center px-5 py-16 text-center">
       <div className="grid-backdrop pointer-events-none absolute inset-0 -z-10 opacity-40" />
 
-      <Link href="/" aria-label="CodeForge home">
+      <Link href="/" aria-label="Tech Epitome home">
         <LogoMark gradient idSuffix="status" className="size-8" />
       </Link>
 

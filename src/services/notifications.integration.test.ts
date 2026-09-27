@@ -31,14 +31,14 @@ beforeAll(async () => {
   const [a, b] = await Promise.all([
     prisma.user.create({
       data: {
-        email: `notif-alice-${SUFFIX}@codeforge.test`,
+        email: `notif-alice-${SUFFIX}@techepitome.test`,
         profile: { create: {} },
       },
       select: { id: true },
     }),
     prisma.user.create({
       data: {
-        email: `notif-bob-${SUFFIX}@codeforge.test`,
+        email: `notif-bob-${SUFFIX}@techepitome.test`,
         profile: { create: {} },
       },
       select: { id: true },

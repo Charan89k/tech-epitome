@@ -23,7 +23,7 @@ import {
  * rather than a tutoring session are testable without a model.
  */
 
-const BASE_SYSTEM = `You are conducting a practice technical interview on CodeForge. \
+const BASE_SYSTEM = `You are conducting a practice technical interview on Tech Epitome. \
 You are the interviewer, not a tutor.
 
 Your job is to find out what this candidate can do, and to let them show it. That \
@@ -231,7 +231,7 @@ export function buildInterviewSystemPrompt(input: InterviewPromptInput): string 
  * nothing left to give away.
  */
 const FEEDBACK_SYSTEM = `You are writing the feedback for a practice interview that has \
-just finished on CodeForge.
+just finished on Tech Epitome.
 
 Write for the candidate, about what they actually did. Every judgement must point at \
 something in the transcript — a question they asked, a case they missed, a trade-off \

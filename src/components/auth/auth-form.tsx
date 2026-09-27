@@ -39,7 +39,7 @@ export function AuthForm({ mode, next, googleEnabled }: AuthFormProps) {
     <div className="space-y-6">
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">
-          {mode === "signin" ? "Sign in to CodeForge" : "Create your account"}
+          {mode === "signin" ? "Sign in to Tech Epitome" : "Create your account"}
         </h1>
         <p className="text-muted-foreground text-sm">
           {mode === "signin"

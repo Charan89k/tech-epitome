@@ -19,7 +19,7 @@ let sdProblemId = "";
 
 beforeAll(async () => {
   const user = await prisma.user.create({
-    data: { email: `db-${SUFFIX}@codeforge.test`, profile: { create: {} } },
+    data: { email: `db-${SUFFIX}@techepitome.test`, profile: { create: {} } },
     select: { id: true },
   });
   userId = user.id;
@@ -47,7 +47,7 @@ describe("deleting an account", () => {
     // A throwaway account with one row in each owned table.
     const victim = await prisma.user.create({
       data: {
-        email: `db-victim-${SUFFIX}@codeforge.test`,
+        email: `db-victim-${SUFFIX}@techepitome.test`,
         profile: { create: {} },
         bookmarks: { create: { entityType: "PROBLEM", entityId: problemId } },
         notes: {
@@ -121,7 +121,7 @@ describe("deleting an account", () => {
     // Deliberately no foreign key: deleting an admin must not erase the
     // record of what they did.
     const admin = await prisma.user.create({
-      data: { email: `db-admin-${SUFFIX}@codeforge.test`, role: "ADMIN" },
+      data: { email: `db-admin-${SUFFIX}@techepitome.test`, role: "ADMIN" },
       select: { id: true, email: true },
     });
 
@@ -214,7 +214,7 @@ describe("uniqueness", () => {
   });
 
   it("refuses a second account on the same email", async () => {
-    const email = `db-dupe-${SUFFIX}@codeforge.test`;
+    const email = `db-dupe-${SUFFIX}@techepitome.test`;
     const first = await prisma.user.create({
       data: { email },
       select: { id: true },

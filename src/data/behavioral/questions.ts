@@ -1,7 +1,7 @@
 /**
  * The behavioural question bank.
  *
- * Written for CodeForge, not collected from anywhere. Each question is
+ * Written for Tech Epitome, not collected from anywhere. Each question is
  * phrased the way a competent interviewer actually asks it — open, about
  * something that happened, and impossible to answer well in the abstract.
  *

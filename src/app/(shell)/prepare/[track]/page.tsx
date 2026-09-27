@@ -120,7 +120,7 @@ export default async function PrepTrackPage({
         />
         <p className="text-muted-foreground text-xs leading-relaxed">
           This describes a <em>kind</em> of interview loop, not any particular
-          employer&rsquo;s. It is CodeForge&rsquo;s own editorial judgement
+          employer&rsquo;s. It is Tech Epitome&rsquo;s own editorial judgement
           about common industry practice — not a report of questions anyone has
           been asked. Each recommendation below carries its attribution.
         </p>

@@ -15,7 +15,7 @@ import type { Role } from "@/generated/prisma/enums";
  * directly, so swapping the auth provider later touches this file and not the
  * hundreds of call sites.
  *
- * CodeForge is free, so there is no plan to resolve here. The role is
+ * Tech Epitome is free, so there is no plan to resolve here. The role is
  * read from the database rather than the JWT for the same reason a plan
  * would have been: a token minted before a role change would be stale,
  * and role is the one thing that actually gates anything.

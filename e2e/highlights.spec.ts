@@ -23,7 +23,7 @@ const CHAPTER_URL =
 const PROBLEM_URL = "/problems/running-altitude";
 
 function uniqueEmail(tag: string): string {
-  return `e2e-hl-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@codeforge.test`;
+  return `e2e-hl-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@techepitome.test`;
 }
 
 async function signUp(page: Page, tag: string): Promise<string> {

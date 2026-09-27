@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ==========================================================================
-   CODEFORGE DESIGN TOKENS
+   TECH EPITOME DESIGN TOKENS
    Dark-first. Neutral charcoal chrome, single ember accent used sparingly.
    Every colour is oklch so lightness ramps stay perceptually even.
    ========================================================================== */
@@ -371,7 +371,7 @@
    the media query above rather than folded into it, because the two are
    independent: the OS setting applies everywhere and cannot be overridden
    here, while this one is a per-account choice for people who want a still
-   interface on CodeForge without turning animation off system-wide. */
+   interface on Tech Epitome without turning animation off system-wide. */
 body[data-reduced-motion="true"],
 body[data-reduced-motion="true"] *,
 body[data-reduced-motion="true"] *::before,

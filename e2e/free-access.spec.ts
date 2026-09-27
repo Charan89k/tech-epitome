@@ -4,7 +4,7 @@ import { closeDb } from "./db";
 import { finishSignup } from "./helpers";
 
 /**
- * CodeForge is free, proven rather than asserted.
+ * Tech Epitome is free, proven rather than asserted.
  *
  * One ordinary account — nothing bought, no role, no flag — opens every
  * surface in the product and is never shown a price. The check is
@@ -22,7 +22,7 @@ const PASSWORD = "forge-e2e-password";
  * Phrases that must never appear to a signed-in learner.
  *
  * Narrower than it first looks, and deliberately so. Bare "payment",
- * "billing" and "checkout" are *not* here: CodeForge teaches design, and
+ * "billing" and "checkout" are *not* here: Tech Epitome teaches design, and
  * its own parking-garage exercise asks the learner to model a fee
  * policy. Failing on those would make this a thesaurus test that
  * eventually gets weakened or deleted — which is worse than a slightly
@@ -87,7 +87,7 @@ const ROUTES = [
 ] as const;
 
 function uniqueEmail(tag: string): string {
-  return `e2e-free-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@codeforge.test`;
+  return `e2e-free-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@techepitome.test`;
 }
 
 async function signUp(page: Page, tag: string): Promise<string> {

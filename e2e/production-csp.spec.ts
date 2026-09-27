@@ -53,9 +53,9 @@ test.describe("production CSP", () => {
 
     // A controlled input proves client state is running too.
     await page.goto(`${base}/signup`, { waitUntil: "domcontentloaded" });
-    await page.getByLabel("Email").fill("hydration@codeforge.test");
+    await page.getByLabel("Email").fill("hydration@techepitome.test");
     await expect(page.getByLabel("Email")).toHaveValue(
-      "hydration@codeforge.test"
+      "hydration@techepitome.test"
     );
 
     expect(violations, violations.join("\n")).toEqual([]);

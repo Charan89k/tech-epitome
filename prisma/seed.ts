@@ -66,13 +66,13 @@ function titleise(slug: string): string {
 async function seedUsers() {
   const accounts = [
     {
-      email: (process.env.SEED_ADMIN_EMAIL ?? "admin@codeforge.local").toLowerCase(),
+      email: (process.env.SEED_ADMIN_EMAIL ?? "admin@techepitome.local").toLowerCase(),
       password: process.env.SEED_ADMIN_PASSWORD ?? "forge-admin-dev",
-      name: "CodeForge Admin",
+      name: "Tech Epitome Admin",
       role: "ADMIN" as const,
     },
     {
-      email: (process.env.SEED_DEMO_EMAIL ?? "demo@codeforge.local").toLowerCase(),
+      email: (process.env.SEED_DEMO_EMAIL ?? "demo@techepitome.local").toLowerCase(),
       password: process.env.SEED_DEMO_PASSWORD ?? "forge-demo-dev",
       name: "Demo Learner",
       role: "USER" as const,
@@ -575,7 +575,7 @@ async function seedBehavioral() {
  *
  * Every association is written with its provenance and its reason, because
  * the columns are NOT NULL and the UI prints them. `reportedAt` is the seed
- * run's own date: these are CodeForge's current editorial judgements, and
+ * run's own date: these are Tech Epitome's current editorial judgements, and
  * dating them is how they become reviewable rather than permanent.
  */
 async function seedPrepTracks() {
@@ -670,7 +670,7 @@ async function seedPrepTracks() {
   );
 }
 
-  console.log("Seeding CodeForge…");
+  console.log("Seeding Tech Epitome…");
 
   await seedUsers();
   await seedAchievements();

@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 /**
- * CodeForge mark.
+ * Tech Epitome mark.
  *
  * The glyph is a capital F built out of graph nodes and edges: the product is
  * about seeing structure in problems, so the letterform is literally a small
@@ -87,7 +87,7 @@ export function Wordmark({ className, responsive = false }: WordmarkProps) {
         className
       )}
     >
-      Code<span className="text-ember-500">Forge</span>
+      Tech <span className="text-ember-500">Epitome</span>
     </span>
   );
 }
@@ -118,7 +118,7 @@ export function Logo({
         className={cn("size-6 shrink-0", markClassName)}
       />
       <Wordmark responsive={responsive} className={wordmarkClassName} />
-      <span className="sr-only">CodeForge</span>
+      <span className="sr-only">Tech Epitome</span>
     </span>
   );
 }

@@ -19,7 +19,7 @@ const CHAPTER_URL =
 const PROBLEM_URL = "/problems/running-altitude";
 
 function uniqueEmail(tag: string): string {
-  return `e2e-lib-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@codeforge.test`;
+  return `e2e-lib-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@techepitome.test`;
 }
 
 async function signUp(page: Page, tag: string): Promise<string> {
@@ -299,12 +299,12 @@ test("notification preferences suppress a kind at write time", async ({ page }) 
 
   const body = await page.getByRole("main").innerText();
   // One email exists now, and the page is precise about which: a review
-  // reminder, opt-in, and nothing else. The old copy claimed CodeForge
+  // reminder, opt-in, and nothing else. The old copy claimed Tech Epitome
   // sent no email at all, which stopped being true when the provider
   // landed — a test asserting it would have kept passing while the page
   // lied.
   await expect(page.getByRole("heading", { name: "Email" })).toBeVisible();
-  expect(body).toMatch(/only email codeforge sends/i);
+  expect(body).toMatch(/only email tech epitome sends/i);
   expect(body).toMatch(/no marketing of any kind/i);
   // Off unless asked for: mail cannot be un-sent.
   await expect(page.getByLabel("Review reminders by email")).not.toBeChecked();

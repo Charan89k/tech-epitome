@@ -26,7 +26,7 @@ const LESSON_URL =
 const EXERCISE_URL = "/lld/parking-garage";
 
 function uniqueEmail(tag: string): string {
-  return `e2e-lld-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@codeforge.test`;
+  return `e2e-lld-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@techepitome.test`;
 }
 
 async function signUp(page: Page, tag: string): Promise<string> {

@@ -44,7 +44,7 @@ export default function GlobalError({
       >
         <main style={{ maxWidth: "28rem", textAlign: "center" }}>
           <h1 style={{ fontSize: "1.25rem", fontWeight: 600, margin: 0 }}>
-            CodeForge could not start
+            Tech Epitome could not start
           </h1>
           <p
             style={{

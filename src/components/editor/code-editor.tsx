@@ -32,7 +32,7 @@ export function CodeEditor({
   const onMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
 
-    monaco.editor.defineTheme("codeforge", {
+    monaco.editor.defineTheme("tech-epitome", {
       base: "vs-dark",
       inherit: true,
       rules: [],
@@ -47,7 +47,7 @@ export function CodeEditor({
         "editor.selectionBackground": "#f29b3f33",
       },
     });
-    monaco.editor.setTheme("codeforge");
+    monaco.editor.setTheme("tech-epitome");
 
     // Tab moves focus instead of indenting, so the editor is not a trap.
     // Ctrl+M toggles it back for anyone who wants Tab to indent.

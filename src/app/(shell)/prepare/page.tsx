@@ -36,7 +36,7 @@ export default async function PrepareIndexPage() {
         <div>
           <p className="text-sm font-medium">These are shapes, not employers.</p>
           <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-            CodeForge has no sourced record of what any company asks, so it does
+            Tech Epitome has no sourced record of what any company asks, so it does
             not claim to. Every plan below is our own description of how a kind
             of interview loop commonly runs, and every recommendation says who
             made the judgement and how confident it is.

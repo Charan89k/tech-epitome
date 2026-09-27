@@ -10,7 +10,7 @@ import type { RedisLike } from "@/lib/rate-limit";
  *
  * Why not `ioredis`? Because `RedisLike` is deliberately a structural
  * interface: the point of the rate limiter's design is that a deployment
- * brings its own client and CodeForge bundles none. Shipping a
+ * brings its own client and Tech Epitome bundles none. Shipping a
  * dependency here would undo that.
  *
  * So this exists for one reason — **so the adapter can be tested against

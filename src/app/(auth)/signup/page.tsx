@@ -8,7 +8,7 @@ import { route } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Create your account",
-  description: "Start learning algorithms, patterns and system design on CodeForge.",
+  description: "Start learning algorithms, patterns and system design on Tech Epitome.",
   robots: { index: false, follow: false },
 };
 

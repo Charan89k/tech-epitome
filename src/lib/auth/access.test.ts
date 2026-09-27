@@ -8,7 +8,7 @@ import { FEATURES, canAccess, isAdmin, type Feature } from "./access";
  * explicitly rather than inferred from a loop over the same data the
  * implementation uses.
  *
- * CodeForge is free, so there is exactly one boundary left that matters to a
+ * Tech Epitome is free, so there is exactly one boundary left that matters to a
  * learner ("do you have an account?") and one that matters to staff ("are you
  * an admin?"). Any future test that starts talking about plans or tiers means
  * the product decision changed.

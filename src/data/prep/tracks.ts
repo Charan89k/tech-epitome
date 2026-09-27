@@ -4,7 +4,7 @@
  * ## Why these are not companies
  *
  * An earlier iteration of the schema had a `Company` table, and the obvious
- * feature to build on it was "prepare for <employer>". CodeForge does not
+ * feature to build on it was "prepare for <employer>". Tech Epitome does not
  * build that, because it cannot do it honestly: it has no sourced, dated,
  * attributable record of what any company asks. Filling the provenance
  * columns with invented citations would have produced a feature that looks
@@ -19,7 +19,7 @@
  *
  * Every problem and exercise on a track carries `source`, `reportedAt`,
  * `confidence` and a one-sentence `rationale`, and the UI prints them beside
- * the recommendation. Here `source` is "CodeForge editorial" and
+ * the recommendation. Here `source` is "Tech Epitome editorial" and
  * `sourceUrl` is null, because that is the truth: these are our judgements
  * about which of our own exercises rehearse which skill. The columns exist
  * so that if a real citation ever arrives, there is somewhere honest to put
@@ -48,7 +48,7 @@ export type PrepTrackSeed = {
  * defaulted, so a future row from a real source is a visible difference in
  * the seed rather than an omission nobody notices.
  */
-export const PREP_SOURCE = "CodeForge editorial" as const;
+export const PREP_SOURCE = "Tech Epitome editorial" as const;
 
 export const PREP_TRACKS: PrepTrackSeed[] = [
   {

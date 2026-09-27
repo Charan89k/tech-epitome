@@ -3,7 +3,7 @@ import type { CurrentUser } from "@/lib/auth/session";
 /**
  * Feature authorization.
  *
- * CodeForge is free. There is no paid tier, no plan, and no feature that
+ * Tech Epitome is free. There is no paid tier, no plan, and no feature that
  * costs money to reach — so this file answers exactly two questions:
  *
  *   1. Is this readable without an account? (a small public browse set)

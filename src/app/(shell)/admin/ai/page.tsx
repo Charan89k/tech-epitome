@@ -33,7 +33,7 @@ export default async function AdminAIPage() {
     <div>
       <p className="text-muted-foreground text-sm leading-relaxed">
         The last 30 days, by feature. Nobody is charged for any of this —
-        CodeForge is free. The ledger exists so the cost of running the free AI
+        Tech Epitome is free. The ledger exists so the cost of running the free AI
         features is a measured number, and so a provider failing is visible.
       </p>
 

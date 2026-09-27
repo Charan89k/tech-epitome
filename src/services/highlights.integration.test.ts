@@ -57,11 +57,11 @@ function anchor(
 
 beforeAll(async () => {
   const a = await prisma.user.create({
-    data: { email: `hl-alice-${SUFFIX}@codeforge.test` },
+    data: { email: `hl-alice-${SUFFIX}@techepitome.test` },
     select: { id: true },
   });
   const b = await prisma.user.create({
-    data: { email: `hl-bob-${SUFFIX}@codeforge.test` },
+    data: { email: `hl-bob-${SUFFIX}@techepitome.test` },
     select: { id: true },
   });
   alice = a.id;
@@ -368,7 +368,7 @@ describe("the library listing", () => {
 
   it("shows nothing at all to a learner with none", async () => {
     const fresh = await prisma.user.create({
-      data: { email: `hl-empty-${SUFFIX}@codeforge.test` },
+      data: { email: `hl-empty-${SUFFIX}@techepitome.test` },
       select: { id: true },
     });
     expect(await listHighlights(fresh.id)).toHaveLength(0);
@@ -380,7 +380,7 @@ describe("the library listing", () => {
 describe("cascade", () => {
   it("removes a learner's highlights with their account, and no content", async () => {
     const victim = await prisma.user.create({
-      data: { email: `hl-victim-${SUFFIX}@codeforge.test` },
+      data: { email: `hl-victim-${SUFFIX}@techepitome.test` },
       select: { id: true },
     });
     await createHighlight({

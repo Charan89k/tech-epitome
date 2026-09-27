@@ -40,7 +40,7 @@ async function makeLearner(options: {
 }): Promise<string> {
   const user = await prisma.user.create({
     data: {
-      email: `mail-${options.tag}-${SUFFIX}@codeforge.test`,
+      email: `mail-${options.tag}-${SUFFIX}@techepitome.test`,
       name: "Learner",
       profile: { create: { emailReviewReminders: options.emailOptIn } },
     },

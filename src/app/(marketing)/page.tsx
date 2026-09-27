@@ -76,9 +76,9 @@ export default function LandingPage() {
             </p>
 
             <h1 className="mt-5 text-4xl leading-[1.08] font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl">
-              Master Algorithms.
+              Master Technology.
               <br />
-              <span className="text-muted-foreground">Build Better Systems.</span>
+              <span className="text-muted-foreground">Build with Confidence.</span>
             </h1>
 
             <p className="text-muted-foreground mt-5 max-w-xl text-base leading-relaxed text-pretty sm:text-lg">

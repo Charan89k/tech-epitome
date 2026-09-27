@@ -22,11 +22,11 @@ let bob = "";
 beforeAll(async () => {
   const [a, b] = await Promise.all([
     prisma.user.create({
-      data: { email: `prep-alice-${SUFFIX}@codeforge.test`, name: "Alice" },
+      data: { email: `prep-alice-${SUFFIX}@techepitome.test`, name: "Alice" },
       select: { id: true },
     }),
     prisma.user.create({
-      data: { email: `prep-bob-${SUFFIX}@codeforge.test`, name: "Bob" },
+      data: { email: `prep-bob-${SUFFIX}@techepitome.test`, name: "Bob" },
       select: { id: true },
     }),
   ]);
@@ -84,7 +84,7 @@ describe("the provenance rule", () => {
 
   it("names no employer anywhere in the published content", async () => {
     // The entire reason the tables were renamed. A track that named a
-    // company would be asserting something CodeForge cannot support.
+    // company would be asserting something Tech Epitome cannot support.
     const named = /\b(Google|Amazon|Meta|Facebook|Apple|Microsoft|Netflix|Uber|Stripe|Airbnb|OpenAI|Anthropic)\b/i;
 
     for (const slug of await listPrepTrackSlugs()) {

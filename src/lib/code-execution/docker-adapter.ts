@@ -107,7 +107,7 @@ export class DockerExecutionAdapter implements CodeExecutionService {
     // conservatively trace the entire project into the server output,
     // which bloats the deployment and can trip size limits.
     const dir = await mkdtemp(
-      join(/* turbopackIgnore: true */ tmpdir(), "codeforge-docker-")
+      join(/* turbopackIgnore: true */ tmpdir(), "tech-epitome-docker-")
     );
     const started = Date.now();
 

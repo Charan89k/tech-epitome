@@ -70,7 +70,7 @@ type Props = {
 };
 
 function draftKey(slug: string, language: Language) {
-  return `codeforge:draft:${slug}:${language}`;
+  return `tech-epitome:draft:${slug}:${language}`;
 }
 
 /**
@@ -356,7 +356,7 @@ export function ProblemWorkspace({
 
   return (
     <div className="h-[calc(100dvh-3.5rem)]">
-      <Group orientation="horizontal" id="codeforge-problem-h" className="h-full">
+      <Group orientation="horizontal" id="tech-epitome-problem-h" className="h-full">
         <Panel defaultSize="42%" minSize="25%">
           <div className="h-full overflow-y-auto px-6 py-6">{description}</div>
         </Panel>
@@ -364,7 +364,7 @@ export function ProblemWorkspace({
         <ResizeHandle orientation="horizontal" />
 
         <Panel defaultSize="58%" minSize="30%">
-          <Group orientation="vertical" id="codeforge-problem-v" className="h-full">
+          <Group orientation="vertical" id="tech-epitome-problem-v" className="h-full">
             <Panel defaultSize="62%" minSize="25%">
               {editorPane}
             </Panel>

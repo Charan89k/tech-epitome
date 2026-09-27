@@ -48,11 +48,11 @@ const design: ClassDiagram = {
 beforeAll(async () => {
   const [a, b] = await Promise.all([
     prisma.user.create({
-      data: { email: `lld-alice-${SUFFIX}@codeforge.test`, name: "Alice" },
+      data: { email: `lld-alice-${SUFFIX}@techepitome.test`, name: "Alice" },
       select: { id: true },
     }),
     prisma.user.create({
-      data: { email: `lld-bob-${SUFFIX}@codeforge.test`, name: "Bob" },
+      data: { email: `lld-bob-${SUFFIX}@techepitome.test`, name: "Bob" },
       select: { id: true },
     }),
   ]);

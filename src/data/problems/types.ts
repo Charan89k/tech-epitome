@@ -6,7 +6,7 @@ import type { ContentBlock } from "@/types/content";
  * Authoring format for a coding problem.
  *
  * All problem statements, hints and solutions in this directory are original
- * work written for CodeForge. Where a problem is inspired by a classic
+ * work written for Tech Epitome. Where a problem is inspired by a classic
  * algorithmic idea - and most fundamentals are, they are shared mathematics -
  * the framing, wording, constraints, examples and explanations are written
  * from scratch rather than adapted from any existing platform.

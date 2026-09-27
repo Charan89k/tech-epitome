@@ -140,7 +140,7 @@ describe("the console provider", () => {
 });
 
 describe("the Resend adapter", () => {
-  const from = "CodeForge <noreply@codeforge.test>";
+  const from = "Tech Epitome <noreply@techepitome.test>";
   const message = {
     to: { email: "learner@example.test" },
     subject: "Subject",

@@ -9,7 +9,7 @@ import { finishSignup } from "./helpers";
  */
 
 function uniqueEmail(tag: string): string {
-  return `e2e-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@codeforge.test`;
+  return `e2e-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@techepitome.test`;
 }
 
 const PASSWORD = "forge-e2e-password";

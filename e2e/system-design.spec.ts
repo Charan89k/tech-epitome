@@ -21,7 +21,7 @@ const LESSON_URL =
 const EXERCISE_URL = "/system-design/short-link-service";
 
 function uniqueEmail(tag: string): string {
-  return `e2e-sd-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@codeforge.test`;
+  return `e2e-sd-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@techepitome.test`;
 }
 
 async function signUp(page: Page, tag: string): Promise<string> {

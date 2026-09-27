@@ -20,7 +20,7 @@ import { finishSignup } from "./helpers";
 const PASSWORD = "forge-e2e-password";
 
 function uniqueEmail(tag: string): string {
-  return `e2e-admin-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@codeforge.test`;
+  return `e2e-admin-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@techepitome.test`;
 }
 
 async function signUp(page: Page, tag: string): Promise<string> {

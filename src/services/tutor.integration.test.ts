@@ -41,11 +41,11 @@ let chapterAnchor = {
 beforeAll(async () => {
   const [a, b] = await Promise.all([
     prisma.user.create({
-      data: { email: `tutor-alice-${SUFFIX}@codeforge.test`, name: "Alice" },
+      data: { email: `tutor-alice-${SUFFIX}@techepitome.test`, name: "Alice" },
       select: { id: true },
     }),
     prisma.user.create({
-      data: { email: `tutor-bob-${SUFFIX}@codeforge.test`, name: "Bob" },
+      data: { email: `tutor-bob-${SUFFIX}@techepitome.test`, name: "Bob" },
       select: { id: true },
     }),
   ]);

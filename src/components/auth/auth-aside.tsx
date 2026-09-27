@@ -27,7 +27,7 @@ export function AuthAside() {
         </h2>
         <p className="text-muted-foreground mt-4 text-sm leading-relaxed">
           Every chapter ends with the same question an interviewer is really
-          asking: <em>what shape is this problem?</em> CodeForge trains the
+          asking: <em>what shape is this problem?</em> Tech Epitome trains the
           recognition step first, then the code.
         </p>
 

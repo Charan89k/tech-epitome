@@ -156,7 +156,7 @@ export class LocalExecutionAdapter implements CodeExecutionService {
     // conservatively trace the entire project into the server output,
     // which bloats the deployment and can trip size limits.
     const dir = await mkdtemp(
-      join(/* turbopackIgnore: true */ tmpdir(), "codeforge-run-")
+      join(/* turbopackIgnore: true */ tmpdir(), "tech-epitome-run-")
     );
     const started = Date.now();
 

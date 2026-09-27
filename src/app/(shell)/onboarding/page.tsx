@@ -46,7 +46,7 @@ export default async function OnboardingPage() {
       <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
         {returning
           ? "Change any of these, or clear them. They only steer what the dashboard suggests first."
-          : "Five questions, all optional, so the dashboard can suggest something sensible first. None of them lock anything — every part of CodeForge is open to every account, and all of it is free."}
+          : "Five questions, all optional, so the dashboard can suggest something sensible first. None of them lock anything — every part of Tech Epitome is open to every account, and all of it is free."}
       </p>
 
       <div className="mt-8">

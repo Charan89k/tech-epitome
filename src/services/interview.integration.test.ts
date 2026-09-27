@@ -37,11 +37,11 @@ const otherSessions: Record<string, string | undefined> = {};
 beforeAll(async () => {
   const [a, b] = await Promise.all([
     prisma.user.create({
-      data: { email: `iv-alice-${SUFFIX}@codeforge.test`, name: "Alice" },
+      data: { email: `iv-alice-${SUFFIX}@techepitome.test`, name: "Alice" },
       select: { id: true },
     }),
     prisma.user.create({
-      data: { email: `iv-bob-${SUFFIX}@codeforge.test`, name: "Bob" },
+      data: { email: `iv-bob-${SUFFIX}@techepitome.test`, name: "Bob" },
       select: { id: true },
     }),
   ]);
@@ -394,7 +394,7 @@ describe("stats", () => {
 describe("cascade behaviour", () => {
   it("removes sessions, transcript and evaluation when a user is deleted", async () => {
     const throwaway = await prisma.user.create({
-      data: { email: `iv-temp-${SUFFIX}@codeforge.test` },
+      data: { email: `iv-temp-${SUFFIX}@techepitome.test` },
       select: { id: true },
     });
     const created = await createInterview({

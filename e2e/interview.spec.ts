@@ -18,7 +18,7 @@ import { finishSignup } from "./helpers";
 const PASSWORD = "forge-e2e-password";
 
 function uniqueEmail(tag: string): string {
-  return `e2e-iv-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@codeforge.test`;
+  return `e2e-iv-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@techepitome.test`;
 }
 
 async function signUpAsLearner(page: Page, tag: string): Promise<string> {
@@ -71,7 +71,7 @@ test.afterAll(async () => {
 test("an ordinary account can start an interview, with nothing to buy", async ({
   page,
 }) => {
-  // CodeForge is free: a plain account reaches the interviewer directly.
+  // Tech Epitome is free: a plain account reaches the interviewer directly.
   await page.goto("/signup");
   await page.getByLabel("Name").fill("Plain");
   await page.getByLabel("Email").fill(uniqueEmail("plain"));
@@ -465,7 +465,7 @@ test("preparation tracks describe loop shapes, never an employer", async ({
   }
 
   // Every recommendation says who judged it and how sure they are.
-  await expect(page.getByText(/CodeForge editorial/).first()).toBeVisible();
+  await expect(page.getByText(/Tech Epitome editorial/).first()).toBeVisible();
   await expect(page.getByText(/confidence/).first()).toBeVisible();
 });
 

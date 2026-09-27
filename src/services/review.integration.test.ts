@@ -38,11 +38,11 @@ let chapterId = "";
 beforeAll(async () => {
   const [a, b] = await Promise.all([
     prisma.user.create({
-      data: { email: `review-alice-${SUFFIX}@codeforge.test`, name: "Alice" },
+      data: { email: `review-alice-${SUFFIX}@techepitome.test`, name: "Alice" },
       select: { id: true },
     }),
     prisma.user.create({
-      data: { email: `review-bob-${SUFFIX}@codeforge.test`, name: "Bob" },
+      data: { email: `review-bob-${SUFFIX}@techepitome.test`, name: "Bob" },
       select: { id: true },
     }),
   ]);
@@ -293,7 +293,7 @@ describe("the queue", () => {
     // A user of their own, so the ordering assertion is not affected by
     // anything the other tests left behind.
     const carol = await prisma.user.create({
-      data: { email: `review-carol-${SUFFIX}@codeforge.test`, name: "Carol" },
+      data: { email: `review-carol-${SUFFIX}@techepitome.test`, name: "Carol" },
       select: { id: true },
     });
 
@@ -393,7 +393,7 @@ describe("the queue", () => {
 describe("priority bumping", () => {
   it("pulls a future item forward to today", async () => {
     const dave = await prisma.user.create({
-      data: { email: `review-dave-${SUFFIX}@codeforge.test`, name: "Dave" },
+      data: { email: `review-dave-${SUFFIX}@techepitome.test`, name: "Dave" },
       select: { id: true },
     });
 
@@ -434,7 +434,7 @@ describe("priority bumping", () => {
 
   it("never pushes an already-due item further out", async () => {
     const erin = await prisma.user.create({
-      data: { email: `review-erin-${SUFFIX}@codeforge.test`, name: "Erin" },
+      data: { email: `review-erin-${SUFFIX}@techepitome.test`, name: "Erin" },
       select: { id: true },
     });
 

@@ -6,7 +6,7 @@ import type { EmailMessage } from "./types";
  *
  * Plain text first and always; HTML is the optional part. A text-only
  * mail arrives everywhere and is never mistaken for marketing, which is
- * the right register for the one thing CodeForge sends.
+ * the right register for the one thing Tech Epitome sends.
  *
  * No tracking pixel, no click wrapper, no unsubscribe-by-link-only: the
  * preference lives in settings, the mail says so, and there is nothing
@@ -37,7 +37,7 @@ export type ReviewReminderInput = {
 /**
  * The review reminder.
  *
- * The only email CodeForge sends. It says what is waiting, links to the
+ * The only email Tech Epitome sends. It says what is waiting, links to the
  * queue, and tells the reader exactly where to turn it off — in one
  * sentence, not in six-point grey text at the bottom.
  */

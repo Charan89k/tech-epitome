@@ -66,7 +66,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   {items.map((item) => {
                     const active = isNavItemActive(item, pathname);
                     // The only remaining reason to withhold anything is that
-                    // there is no account. CodeForge is free; there is no
+                    // there is no account. Tech Epitome is free; there is no
                     // upgrade branch here and there must never be one again.
                     const needsAccount = item.feature
                       ? !canAccess(user, item.feature)

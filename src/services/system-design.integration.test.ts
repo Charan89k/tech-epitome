@@ -44,11 +44,11 @@ const design: Diagram = {
 beforeAll(async () => {
   const [a, b] = await Promise.all([
     prisma.user.create({
-      data: { email: `sd-alice-${SUFFIX}@codeforge.test`, name: "Alice" },
+      data: { email: `sd-alice-${SUFFIX}@techepitome.test`, name: "Alice" },
       select: { id: true },
     }),
     prisma.user.create({
-      data: { email: `sd-bob-${SUFFIX}@codeforge.test`, name: "Bob" },
+      data: { email: `sd-bob-${SUFFIX}@techepitome.test`, name: "Bob" },
       select: { id: true },
     }),
   ]);

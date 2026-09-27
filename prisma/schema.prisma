@@ -1,5 +1,5 @@
 // ===========================================================================
-// CODEFORGE - data model
+// TECH EPITOME - data model
 //
 // Design notes that are not obvious from the field list:
 //
@@ -234,7 +234,7 @@ enum AchievementKind {
 }
 
 // ===========================================================================
-// IDENTITY & ACCESS  (Auth.js core models + CodeForge extensions)
+// IDENTITY & ACCESS  (Auth.js core models + Tech Epitome extensions)
 // ===========================================================================
 
 model User {
@@ -1111,7 +1111,7 @@ model AIMessage {
   @@map("ai_messages")
 }
 
-/// Per-call usage of the AI provider. Nobody is billed for this - CodeForge
+/// Per-call usage of the AI provider. Nobody is billed for this - Tech Epitome
 /// is free - but knowing what the free features cost to run, and spotting
 /// abuse, both need real history rather than a backfill.
 model AIUsageRecord {
@@ -1552,14 +1552,14 @@ model AuditLog {
 // PREPARATION TRACKS
 //
 // These were `Company` tables in an earlier iteration, meant to answer "what
-// does <employer> ask?". They are not, because CodeForge cannot answer that
+// does <employer> ask?". They are not, because Tech Epitome cannot answer that
 // honestly: it has no sourced, dated report of any company's interview
 // questions, and inventing provenance to fill the columns would have been a
 // fabrication dressed as data.
 //
 // What it can do honestly is describe the SHAPES interview loops come in —
 // a generalist big-tech loop, a startup's full-stack loop, an infrastructure
-// role — and lay out a preparation plan against each. Those are CodeForge's
+// role — and lay out a preparation plan against each. Those are Tech Epitome's
 // own editorial judgements about common industry practice, they name no
 // employer, and they assert nothing about anyone.
 //

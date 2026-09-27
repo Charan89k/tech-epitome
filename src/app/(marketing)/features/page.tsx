@@ -17,16 +17,16 @@ import { Button } from "@/components/ui/button";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Everything in CodeForge",
+  title: "Everything in Tech Epitome",
   description:
-    "Every track, tool and AI feature in CodeForge, and what each one is for. All of it is free — there is no paid tier.",
+    "Every track, tool and AI feature in Tech Epitome, and what each one is for. All of it is free — there is no paid tier.",
   alternates: { canonical: "/features" },
 };
 
 /**
  * What used to be the pricing page.
  *
- * CodeForge is free, so the question this page answers is no longer "what
+ * Tech Epitome is free, so the question this page answers is no longer "what
  * does it cost" but "what is actually in it". The route `/pricing` redirects
  * here (see `next.config.ts`) rather than 404ing, because a pricing link that
  * dies is a worse answer than one that explains there is nothing to pay.

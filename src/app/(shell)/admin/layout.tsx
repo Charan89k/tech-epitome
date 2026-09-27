@@ -4,7 +4,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
-  title: { default: "Admin", template: "%s · Admin · CodeForge" },
+  title: { default: "Admin", template: "%s · Admin · Tech Epitome" },
   robots: { index: false, follow: false, nocache: true },
 };
 

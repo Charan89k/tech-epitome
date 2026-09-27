@@ -32,11 +32,11 @@ let chapterId = "";
 beforeAll(async () => {
   const [a, b] = await Promise.all([
     prisma.user.create({
-      data: { email: `lib-alice-${SUFFIX}@codeforge.test` },
+      data: { email: `lib-alice-${SUFFIX}@techepitome.test` },
       select: { id: true },
     }),
     prisma.user.create({
-      data: { email: `lib-bob-${SUFFIX}@codeforge.test` },
+      data: { email: `lib-bob-${SUFFIX}@techepitome.test` },
       select: { id: true },
     }),
   ]);

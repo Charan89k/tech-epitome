@@ -3,7 +3,7 @@ import type { Difficulty } from "@/generated/prisma/enums";
 /**
  * The pattern library.
  *
- * All content here is original, written for CodeForge.
+ * All content here is original, written for Tech Epitome.
  *
  * The field that matters most is `recognitionClues`. Anyone can look up how
  * a sliding window works; the skill an interview actually tests is reading an

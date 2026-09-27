@@ -15,7 +15,7 @@ import { finishSignup } from "./helpers";
 const PASSWORD = "forge-e2e-password";
 
 function uniqueEmail(tag: string): string {
-  return `e2e-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@codeforge.test`;
+  return `e2e-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@techepitome.test`;
 }
 
 async function signUp(page: Page, tag: string): Promise<string> {
@@ -51,7 +51,7 @@ async function showPane(page: Page, pane: "Problem" | "Code" | "Results") {
  * Sets the editor's contents through Monaco's own API.
  *
  * Typing multi-line Python through the keyboard fights the editor's
- * auto-indent, which tests Monaco rather than CodeForge. A separate test
+ * auto-indent, which tests Monaco rather than Tech Epitome. A separate test
  * below covers real keystrokes; this one is for getting a known program in
  * so the execution pipeline can be exercised.
  */

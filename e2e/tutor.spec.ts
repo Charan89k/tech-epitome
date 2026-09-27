@@ -25,7 +25,7 @@ import { finishSignup } from "./helpers";
 const PASSWORD = "forge-e2e-password";
 
 function uniqueEmail(tag: string): string {
-  return `e2e-tutor-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@codeforge.test`;
+  return `e2e-tutor-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@techepitome.test`;
 }
 
 /** Registers a fresh learner and lands them signed in. */
@@ -127,7 +127,7 @@ test.afterAll(async () => {
 test("an ordinary account reaches the tutor, with nothing to buy", async ({
   page,
 }) => {
-  // CodeForge is free. A plain account - no plan, no upgrade, nothing
+  // Tech Epitome is free. A plain account - no plan, no upgrade, nothing
   // purchased - must land in the working tutor, not in an offer. This test
   // exists because the previous one asserted the opposite.
   await signUpAsLearner(page, "plain");

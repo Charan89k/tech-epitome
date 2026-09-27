@@ -62,9 +62,31 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
 
+  // The capture spec drives the real app and saves screenshots and a
+  // recording for the README. It is not a test, so the two test projects
+  // ignore it and it gets a project of its own with a fixed, generous
+  // viewport so the media is consistent.
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile", use: { ...devices["Pixel 7"] } },
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+      testIgnore: /capture-media\.spec\.ts/,
+    },
+    {
+      name: "mobile",
+      use: { ...devices["Pixel 7"] },
+      testIgnore: /capture-media\.spec\.ts/,
+    },
+    {
+      name: "capture",
+      testMatch: /capture-media\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1440, height: 900 },
+        deviceScaleFactor: 2,
+        video: { mode: "on", size: { width: 1440, height: 900 } },
+      },
+    },
   ],
 
   webServer: {

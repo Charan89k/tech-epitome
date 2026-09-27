@@ -27,7 +27,7 @@ const CHAPTER_URL =
   "/learn/dsa/dsa-foundations/complexity-analysis/why-complexity-matters";
 
 function uniqueEmail(tag: string): string {
-  return `e2e-mail-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@codeforge.test`;
+  return `e2e-mail-${tag}-${Date.now()}-${Math.floor(Math.random() * 10_000)}@techepitome.test`;
 }
 
 async function signUp(page: Page, tag: string): Promise<string> {

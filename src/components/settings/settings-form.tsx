@@ -183,7 +183,7 @@ export function SettingsForm({
         </CardHeader>
         <CardContent className="space-y-5">
           <p className="text-muted-foreground text-xs leading-relaxed">
-            One email, and only if you ask for it. CodeForge sends no
+            One email, and only if you ask for it. Tech Epitome sends no
             marketing of any kind — it is free, and there is nothing to sell
             you.
             {!emailConfigured && (
@@ -200,7 +200,7 @@ export function SettingsForm({
           <ToggleRow
             name="emailReviewReminders"
             label="Review reminders by email"
-            description="A note when you have items due, sent at most once a day. Off by default — this is the only email CodeForge sends."
+            description="A note when you have items due, sent at most once a day. Off by default — this is the only email Tech Epitome sends."
             defaultChecked={values.emailReviewReminders}
           />
         </CardContent>

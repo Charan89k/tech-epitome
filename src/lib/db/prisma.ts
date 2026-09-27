@@ -40,12 +40,12 @@ function createPrismaClient(): PrismaClient {
 }
 
 const globalForPrisma = globalThis as unknown as {
-  codeforgePrisma: PrismaClient | undefined;
+  techEpitomePrisma: PrismaClient | undefined;
 };
 
 export const prisma: PrismaClient =
-  globalForPrisma.codeforgePrisma ?? createPrismaClient();
+  globalForPrisma.techEpitomePrisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.codeforgePrisma = prisma;
+  globalForPrisma.techEpitomePrisma = prisma;
 }

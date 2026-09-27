@@ -1,5 +1,5 @@
 {
-  "name": "codeforge",
+  "name": "tech-epitome",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -29,7 +29,8 @@
     "postinstall": "prisma generate",
     "verify": "npm run typecheck && npm run lint && npm run test",
     "test:e2e:prod": "next build && (npx next start --port 3200 & sleep 6; PROD_URL=http://127.0.0.1:3200 playwright test e2e/production-csp.spec.ts --project=chromium; kill %1)",
-    "test:redis": "REDIS_TEST_SERVER=${REDIS_TEST_SERVER:-$(command -v redis-server)} REDIS_TEST_REQUIRED=true vitest run src/lib/rate-limit.redis.integration.test.ts"
+    "test:redis": "REDIS_TEST_SERVER=${REDIS_TEST_SERVER:-$(command -v redis-server)} REDIS_TEST_REQUIRED=true vitest run src/lib/rate-limit.redis.integration.test.ts",
+    "capture:media": "playwright test --project=capture"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
@@ -84,7 +85,7 @@
     "prisma@7.10.0": true,
     "unrs-resolver@1.12.2": true
   },
-  "description": "CodeForge - an interactive platform for learning DSA, system design, coding patterns and software engineering interviews.",
+  "description": "Tech Epitome - an interactive platform for learning DSA, system design, coding patterns and software engineering interviews.",
   "engines": {
     "node": ">=20.9.0"
   },

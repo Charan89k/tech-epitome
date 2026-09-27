@@ -24,13 +24,13 @@ const SUFFIX = `${Date.now()}-${Math.floor(Math.random() * 100_000)}`;
 let rootAdmin = "";
 let secondAdmin = "";
 let learner = "";
-const actor = () => ({ id: rootAdmin, email: `admin-a-${SUFFIX}@codeforge.test` });
+const actor = () => ({ id: rootAdmin, email: `admin-a-${SUFFIX}@techepitome.test` });
 
 beforeAll(async () => {
   const [a, b, c] = await Promise.all([
     prisma.user.create({
       data: {
-        email: `admin-a-${SUFFIX}@codeforge.test`,
+        email: `admin-a-${SUFFIX}@techepitome.test`,
         name: "Admin A",
         role: "ADMIN",
       },
@@ -38,14 +38,14 @@ beforeAll(async () => {
     }),
     prisma.user.create({
       data: {
-        email: `admin-b-${SUFFIX}@codeforge.test`,
+        email: `admin-b-${SUFFIX}@techepitome.test`,
         name: "Admin B",
         role: "ADMIN",
       },
       select: { id: true },
     }),
     prisma.user.create({
-      data: { email: `learner-${SUFFIX}@codeforge.test`, name: "Learner" },
+      data: { email: `learner-${SUFFIX}@techepitome.test`, name: "Learner" },
       select: { id: true },
     }),
   ]);
