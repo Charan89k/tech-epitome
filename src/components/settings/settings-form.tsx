@@ -40,11 +40,19 @@ export type SettingsFormValues = {
   notifyReviewDue: boolean;
   notifyInterviewGraded: boolean;
   notifyMilestones: boolean;
+  emailReviewReminders: boolean;
 };
 
 const INITIAL: SettingsFormState = { status: "idle" };
 
-export function SettingsForm({ values }: { values: SettingsFormValues }) {
+export function SettingsForm({
+  values,
+  emailConfigured,
+}: {
+  values: SettingsFormValues;
+  /** False when no provider is set up, so the copy can say so. */
+  emailConfigured: boolean;
+}) {
   const [state, formAction] = useActionState(updateSettingsAction, INITIAL);
   const fieldErrors = state.fieldErrors ?? {};
 
@@ -142,10 +150,8 @@ export function SettingsForm({ values }: { values: SettingsFormValues }) {
         </CardHeader>
         <CardContent className="space-y-5">
           <p className="text-muted-foreground text-xs leading-relaxed">
-            These appear in the bell in the top bar. CodeForge sends no email
-            of any kind — there is no mailer configured and none planned — so
-            nothing here will reach your inbox. Account and security notices
-            cannot be turned off.
+            These appear in the bell in the top bar. Account and security
+            notices cannot be turned off.
           </p>
 
           <ToggleRow
@@ -167,6 +173,35 @@ export function SettingsForm({ values }: { values: SettingsFormValues }) {
             label="Milestones"
             description="The occasional note when you pass a round number of solved problems. Deliberately rare."
             defaultChecked={values.notifyMilestones}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-sm">Email</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <p className="text-muted-foreground text-xs leading-relaxed">
+            One email, and only if you ask for it. CodeForge sends no
+            marketing of any kind — it is free, and there is nothing to sell
+            you.
+            {!emailConfigured && (
+              <>
+                {" "}
+                <strong className="text-warning">
+                  This deployment has no email provider configured, so nothing
+                  will be sent whatever you choose here.
+                </strong>
+              </>
+            )}
+          </p>
+
+          <ToggleRow
+            name="emailReviewReminders"
+            label="Review reminders by email"
+            description="A note when you have items due, sent at most once a day. Off by default — this is the only email CodeForge sends."
+            defaultChecked={values.emailReviewReminders}
           />
         </CardContent>
       </Card>

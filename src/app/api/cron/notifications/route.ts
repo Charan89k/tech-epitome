@@ -3,10 +3,15 @@ import { timingSafeEqual } from "node:crypto";
 
 import { prisma } from "@/lib/db";
 import { getEnv } from "@/lib/env";
+import { runReviewReminders } from "@/services/email-notifications";
 import { notifyReviewsDue } from "@/services/notifications";
 
 /**
- * The scheduled job that sends review reminders.
+ * The scheduled job behind review reminders.
+ *
+ * Two channels, independent of each other and of their preferences:
+ * the in-app bell (`notifyReviewsDue`) and email
+ * (`runReviewReminders`). A learner can have either, both or neither.
  *
  * CodeForge has no background worker, so this is an HTTP endpoint meant
  * to be called by whatever scheduler the deployment already has — a
@@ -64,7 +69,7 @@ export async function POST(request: NextRequest) {
     _count: true,
   });
 
-  let sent = 0;
+  let notified = 0;
   for (const row of due) {
     // Sequential on purpose. This runs on a schedule with no user
     // waiting on it, and a burst of parallel writes is the wrong thing
@@ -74,8 +79,20 @@ export async function POST(request: NextRequest) {
       dueCount: row._count,
       since,
     });
-    if (ok) sent += 1;
+    if (ok) notified += 1;
   }
 
-  return NextResponse.json({ learnersWithWork: due.length, sent });
+  // Email is opt-in and separately gated, and its idempotency is a
+  // unique constraint rather than a time window — so a second invocation
+  // in the same period sends nothing even if this route is called twice
+  // concurrently.
+  const email = await runReviewReminders({ now });
+
+  return NextResponse.json({
+    learnersWithWork: due.length,
+    // In-app notifications written this run.
+    notified,
+    // What the email pipeline actually did, including the declines.
+    email,
+  });
 }

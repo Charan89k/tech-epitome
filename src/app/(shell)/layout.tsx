@@ -45,9 +45,14 @@ export default async function ShellLayout({ children }: LayoutProps<"/">) {
             streak={streak}
             unreadNotifications={unread}
           />
-          <div id="main" className="min-w-0 flex-1">
+          {/* The one `main` landmark in the shell, and the skip link's
+              target. Pages render sections inside it rather than a
+              `main` of their own — nested `main` is invalid HTML and
+              leaves a screen-reader user with two landmarks to choose
+              between. */}
+          <main id="main" className="min-w-0 flex-1">
             {children}
-          </div>
+          </main>
         </SidebarInset>
       </CommandPaletteProvider>
     </SidebarProvider>

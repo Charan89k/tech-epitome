@@ -301,9 +301,19 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
   )
 }
 
-function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
+/**
+ * The pane beside the sidebar.
+ *
+ * A `div`, not a `main`. shadcn ships this as `<main>`, and several
+ * pages render a `<main>` of their own inside it — which is invalid
+ * HTML (main may not be nested) and gives the page two `main`
+ * landmarks, so a screen-reader user jumping to the main landmark lands
+ * on a wrapper containing the sidebar's own chrome. The page's `main`
+ * is the real one.
+ */
+function SidebarInset({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <main
+    <div
       data-slot="sidebar-inset"
       className={cn(
         "relative flex w-full flex-1 flex-col bg-background md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2",

@@ -1,6 +1,17 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = Number(process.env.E2E_PORT ?? 3100);
+
+/**
+ * The cron secret the test server runs with.
+ *
+ * Long enough to satisfy the env schema's minimum, and shared with the
+ * specs through `process.env` below so they can call the endpoint. It
+ * authenticates a local test server to a local test suite and is not a
+ * credential for anything.
+ */
+const E2E_CRON_SECRET = "e2e-cron-secret-not-a-real-credential";
+process.env.CRON_SECRET ??= E2E_CRON_SECRET;
 const baseURL = `http://127.0.0.1:${PORT}`;
 
 /**
@@ -71,6 +82,13 @@ export default defineConfig({
       // to load in production, and `src/lib/env.ts` rejects this value
       // there, so it cannot escape the test environment.
       AI_PROVIDER: process.env.AI_PROVIDER ?? "mock",
+      // The console provider logs and delivers nothing; it refuses to
+      // construct in production, so this cannot escape the test run.
+      EMAIL_PROVIDER: process.env.EMAIL_PROVIDER ?? "console",
+      // A throwaway secret so the cron route's happy path is exercised
+      // over real HTTP. Not a credential: it authenticates a local test
+      // server against the local test suite.
+      CRON_SECRET: process.env.CRON_SECRET ?? E2E_CRON_SECRET,
     },
     url: baseURL,
     reuseExistingServer: !process.env.CI,

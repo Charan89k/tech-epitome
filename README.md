@@ -31,7 +31,7 @@ See → Understand → Recognise → Attempt → Struggle → Hint
 | 7 | System Design: curriculum, diagram engine, design workspace, AI review | **Complete, verified** |
 | 8 | Low-Level Design: curriculum, class-diagram engine, design workspace, AI review | **Complete, verified** |
 | 9 | Mock interviews: four interviewers, server-owned state machines, banded feedback, preparation tracks | **Complete, verified** |
-| 10 | Admin, notifications, onboarding, library, production hardening | **Complete, verified** — with the gaps named below |
+| 10 | Admin, notifications, onboarding, library, highlights, email, production hardening | **Complete, verified** — with the limits named below |
 
 **Phase 9 covers four interviews, not one.** DSA, behavioural, system
 design and low-level design each own a state machine in
@@ -43,11 +43,13 @@ Preparation tracks (`/prepare`) describe the *shapes* interview loops
 come in rather than naming employers. That is a deliberate limit, not an
 omission — see [Known limitations](#known-limitations).
 
-**Phase 10 is complete as scoped, and two things in it are deliberately
-not built.** There is no text-highlighting feature (the `Highlight` table
-is a design with nothing behind it) and CodeForge sends no email of any
-kind. Both are listed under [Known limitations](#known-limitations)
-rather than hinted at in the UI.
+**Phase 10 is complete.** Highlighting, the email abstraction and the
+review-reminder delivery pipeline all landed; every table in the schema
+has a functional path behind it. What remains is not unbuilt product but
+verification that needs infrastructure this machine does not have — a
+Resend key, a Docker daemon, OAuth credentials, a real PostgreSQL. Each
+is named precisely under [Known limitations](#known-limitations), and
+the application fails safely when any of them is absent.
 
 Navigation only ever lists routes that exist. A section absent from the
 sidebar has not shipped yet — there are no "coming soon" buttons, and
@@ -108,6 +110,10 @@ patterns, 50 problems** (377 test cases, 200 hints, 56 solutions), **15
 quizzes**, **6 interactive visualizations**, **3 system-design
 exercises**, **3 LLD exercises**, **16 behavioural questions** across 8
 categories, and **3 preparation tracks**.
+
+While reading, any text in a chapter or a problem statement can be
+highlighted in one of four colours; the marks come back on the next
+visit and collect in a searchable library beside notes and bookmarks.
 
 Every one of those is free. There is no paid tier — see
 [Authorization](#authorization).
@@ -205,10 +211,13 @@ src/
 │   ├── learning/        content block renderers
 │   ├── tutor/           AI tutor panel, launcher, markdown
 │   ├── interview/       the room, the stepper, the start form
+│   ├── learning/        content blocks, the reader, highlighting
 │   ├── admin/ library/ notifications/ onboarding/
 │   ├── problems/ dashboard/ settings/ auth/ marketing/
 ├── lib/
 │   ├── ai/              provider adapters: ollama, anthropic, mock
+│   ├── email/           provider contract, resend, console, templates
+│   ├── highlights/      anchor validation and the DOM range layer
 │   ├── tutor/           request types, Socratic policy, context builder
 │   ├── interview/       the four state machines, interviewer policy
 │   └── …                env, db, auth, rate-limit, validation
@@ -461,6 +470,80 @@ rather than a placeholder when it is null. None of them gate anything.
 Signing up with a `?next=` skips onboarding and goes where the visitor was
 headed — "sign up to save this note" must not lose the note.
 
+### Highlights
+
+Selecting text in a chapter or a problem statement offers a four-colour
+palette; the mark is painted in place and saved to the account.
+
+The anchor is `(blockIndex, startOffset, endOffset)` into one block's
+rendered text, plus the `quote` itself. `ContentRenderer` puts a
+`data-block-index` on every block, which is what the offsets index into.
+**The quote is the repair mechanism**: content is editable through the
+admin surface, an edit moves every offset after it, and painting anyway
+would mark a sentence the learner never chose — so the browser compares
+the stored quote against the text at those offsets and reports a stale
+highlight as stale instead.
+
+The limits (`src/lib/highlights/types.ts`) are imported by both the
+browser and the server action, so a client cannot be lenient where the
+server is strict. A quote whose length disagrees with its range is
+refused: the server cannot re-render the block to compare the text, but
+it can insist the arithmetic is consistent, and a five-character range
+carrying a two-thousand-character payload is the shape of an abuse
+vector rather than a mistake.
+
+Partial overlaps are refused (stacked marks produce a colour nobody
+chose); an *identical* span is not an error but the same highlight
+returned again, so a double click is idempotent.
+
+Chapters and problems only. A pattern page is prose in a bespoke layout
+with no block indices, so there would be nothing to anchor to.
+
+### Email
+
+One email exists: the review reminder. There is no marketing of any
+kind, no tracking pixel and no click wrapper, because CodeForge is free
+and there is nothing to measure.
+
+`EmailProvider` mirrors the AI abstraction — nothing above the adapter
+names a vendor. `resend` is the production adapter, written over `fetch`
+with no SDK; `console` logs and delivers nothing, is registered only
+outside production, and *also* refuses to construct there. Two guards,
+because a deployment quietly logging its mail instead of sending it
+looks entirely healthy from the inside.
+
+The contract's central promise is that **a message the provider did not
+accept is never reported as accepted**. A 2xx with no id is a rejection,
+not a delivery. The result type is `accepted` rather than `delivered`,
+because whether mail later bounced is a webhook this product does not
+have.
+
+`emailReviewReminders` defaults to **false**, unlike the in-app
+preferences beside it: mail leaves the building and cannot be un-sent,
+so switching on a provider must not immediately mail everyone who ever
+signed up.
+
+### Review reminder delivery
+
+```
+due reviews → opted in? → already sent this period? → render → provider
+            → persist the result, whatever it was
+```
+
+Idempotency is a unique index on `(userId, kind, periodKey)`, not a
+time-window query. **The insert is the lock**: two schedulers racing
+both pass a `findFirst` and only one can win a constraint. A rejected
+attempt occupies the slot too, so a provider outage does not become a
+burst of eleven mails when it recovers — the next period is soon enough.
+
+Every attempt is written to `email_deliveries` with the provider's own
+reason, so "did we mail them?" has an answer rather than a guess.
+
+`POST /api/cron/notifications` drives both channels. It is authenticated
+with `CRON_SECRET`, compared in constant time, and **refuses everything
+when the secret is unset** — an unauthenticated endpoint that enumerates
+users and sends mail is worse than a switched-off feature.
+
 ### Interview preparation
 
 `/prepare` holds preparation plans for the shapes interview loops come in.
@@ -511,6 +594,9 @@ list.
 | `AI_PROVIDER` | no | `ollama` (default), `anthropic`, or `mock` (tests only; rejected in production) |
 | `AI_API_KEY` | conditional | Required when `AI_PROVIDER=anthropic` |
 | `CODE_EXECUTION_DRIVER` | no | `local` \| `docker` \| `remote` |
+| `EMAIL_PROVIDER` | no | `console` (default, logs only, refused in production) or `resend` |
+| `RESEND_API_KEY` | conditional | Required when `EMAIL_PROVIDER=resend` |
+| `EMAIL_FROM` | no | The verified sender, e.g. `CodeForge <noreply@example.com>` |
 | `CRON_SECRET` | no | Shared secret for `POST /api/cron/notifications`. Unset means the route refuses everything and no review reminders are sent |
 | `DATABASE_POOL_MAX` | no | Defaults to 10 |
 
@@ -554,6 +640,17 @@ list.
   `innerHTML` appear nowhere in the codebase; tutor markdown is rendered
   through a parser that escapes, and a test feeds it
   `<img onerror=...>` and asserts it comes back as text.
+- **Email** — the API key lives in a header and appears in no log, no
+  error and no result; a test asserts it is absent from both the request
+  body and the returned object. Addresses are checked against a narrow
+  positive pattern that rejects CR, LF and tabs, so a header-injection
+  attempt (`a@b.test\nBcc: everyone`) never reaches an adapter. Subjects
+  are stripped of newlines. The learner's name is HTML-escaped into the
+  rich part.
+- **Highlights** — the quote is never re-inserted as markup: marks are
+  created with `document.createElement` and `Range.surroundContents`, and
+  the library renders the quote as a React child. Ranges are bounded on
+  both sides of the wire by the same module.
 - **Notification links** — rejected unless they are a path on this site.
   A notification is rendered as an anchor, so an absolute URL there would
   be an open redirect wearing the product's own chrome.
@@ -576,7 +673,16 @@ Never trust client-side authorization. Every gated read re-checks server-side.
 npm test              # unit + component
 npm run test:e2e      # browser, desktop + mobile viewports
 npm run test:e2e:prod # CSP, against a real production build
+npm run test:redis    # the rate limiter against a real Redis server
 ```
+
+`test:redis` needs a `redis-server` binary — it picks one up from `PATH`
+or from `REDIS_TEST_SERVER`, starts it on a port of its own with
+persistence off, and shuts it down afterwards. It sets
+`REDIS_TEST_REQUIRED=true`, so a missing binary **fails** rather than
+skipping quietly; a Redis test that silently becomes a no-op is worse
+than no test, because the documentation goes on claiming it runs. In a
+plain `npm test` run those 16 tests are skipped and reported as skipped.
 
 `e2e/free-access.spec.ts` is the one that keeps the product honest about
 its own model: an ordinary account — nothing bought, no role, no flag —
@@ -585,9 +691,10 @@ fails on any commercial phrasing or any link pointing at a paywall. It
 also asserts `/api/checkout`, `/api/billing`, `/api/stripe`,
 `/api/webhooks/stripe` and `/api/subscription` all 404.
 
-610 unit and integration tests; 212 end-to-end tests across desktop and
-mobile viewports, plus one that runs against a production build to check
-the CSP.
+698 unit and integration tests (plus 16 Redis tests that run against a
+real server via `npm run test:redis`); 228 end-to-end tests across
+desktop and mobile viewports, plus one that runs against a production
+build to check the CSP.
 
 Test files run one at a time (`fileParallelism: false`) and pin
 `DATABASE_POOL_MAX=1`. Both are constraints of the local `prisma dev`
@@ -652,6 +759,22 @@ The integration suites execute real code against the real database:
 - `services/achievements.integration.test.ts` pins idempotence — the
   award pass recomputes rather than increments, so running it twice
   awards nothing twice.
+- `services/highlights.integration.test.ts` covers the anchor contract
+  and ownership: an incoherent anchor never reaches the database, an
+  identical span deduplicates rather than erroring, a partial overlap is
+  refused, and no learner can read, recolour or delete another's.
+- `services/email-notifications.integration.test.ts` walks the reminder
+  pipeline a learner at a time — opted in, opted out, nothing due, a
+  provider that rejects — and proves idempotency holds when three runs
+  overlap, by racing them.
+- `lib/rate-limit.redis.integration.test.ts` runs against a **real
+  Redis server** rather than a fake. It is the only way to confirm the
+  assumptions the store is built on: that `PTTL` returns -2 for a
+  missing key and -1 for one with no expiry, and that `INCR` on a key
+  with a TTL does not extend it.
+- `app/api/cron/notifications/route.test.ts` asserts every refusal path
+  on the one endpoint that enumerates users and sends mail, including
+  that an unset secret refuses rather than admits.
 - `services/database.integration.test.ts` pins the schema-level
   behaviour everything else assumes: deleting an account removes its rows
   and no content, retiring a brief nulls an interview's reference instead
@@ -694,16 +817,15 @@ no local Ollama.**
 These are real and currently true. None of them are hidden behind a
 "coming soon" label in the product.
 
-1. **The Redis rate-limit store has never run against Redis.**
-   `createRedisRateLimitStore` is written and unit-tested against a fake
-   that implements the three commands it uses, including the
-   crash-between-INCR-and-PEXPIRE case — but no Redis server was
-   available here, so it is untested against a real one. The default
-   store remains in-memory and per-process: a real control on a single
-   instance, a speed bump across several. Set
-   `REQUIRE_DISTRIBUTED_RATE_LIMIT=true` on a multi-instance deployment
-   and rate-limited requests are refused until a shared store is
-   installed, rather than silently admitted.
+1. **The default rate-limit store is per-process.** A real control on a
+   single instance, a speed bump across several. The Redis store *is*
+   verified — `npm run test:redis` runs 16 tests against a real Redis
+   server, covering `INCR`, `PEXPIRE`, `PTTL`'s -1/-2 semantics, TTL
+   preservation across increments, real expiry, 20 concurrent hits
+   counted exactly once, two instances sharing one counter, and both
+   failure modes. Set `REQUIRE_DISTRIBUTED_RATE_LIMIT=true` on a
+   multi-instance deployment and rate-limited requests are refused until
+   a shared store is installed, rather than silently admitted.
 2. **`experimental.authInterrupts` is enabled** so `unauthorized()` and
    `forbidden()` return real 401/403 responses. Still flagged experimental in
    Next 16.x.
@@ -739,26 +861,28 @@ These are real and currently true. None of them are hidden behind a
 9. **No mistake-specific review prompts.** A problem card states how many
    hints were opened, but does not quote the failing submission. Doing that
    properly means parsing test results per card, which is a query per item.
-10. **Highlights are a model with no feature behind them.** The
-    `Highlight` table is designed — block index, offsets, quote, colour,
-    with anchor repair in mind — and nothing reads or writes it. Notes
-    and bookmarks are complete (write, edit, delete, per-user scoping);
-    text highlighting is not built. The table is left in place because
-    the design is the hard part and dropping it would lose it, but
-    nothing in the product implies the feature exists.
+10. **Highlights anchor by offset, so an edit can strand one.** The
+    anchor is a range into a block's rendered text; editing that block
+    moves every offset after it. The stored quote is compared before
+    painting and a mismatch is reported rather than painted over the
+    wrong words, but a stranded highlight is not automatically
+    re-found — the fuzzy re-anchoring that would do it is not built.
+    Stale ones stay listed in the library, where the quote is still
+    readable.
 11. **Review reminders need a scheduler.** CodeForge has no background
     worker, so `POST /api/cron/notifications` is an endpoint for whatever
-    scheduler the deployment already has, authenticated with `CRON_SECRET`
-    and comparing it in constant time. With the variable unset the route
-    refuses every request — an unauthenticated endpoint that enumerates
-    users is worse than a switched-off feature — so **no review reminders
-    are sent until a scheduler is pointed at it**. The settings toggle
-    says so in those words. Interview and milestone notifications need no
-    scheduler and work today.
-12. **CodeForge sends no email, at all.** There is no mailer, no provider
-    and no template. Notifications are in-app only. An earlier "weekly
-    progress email" toggle saved a boolean that nothing could ever act
-    on; it has been removed rather than left as a promise.
+    scheduler the deployment already has. With `CRON_SECRET` unset the
+    route refuses every request, so **no review reminders are sent until
+    a scheduler is pointed at it**. The settings toggle says so. Interview
+    and milestone notifications need no scheduler and work today.
+12. **The Resend adapter has never talked to Resend.** No API key was
+    available, so what is verified is the request it builds, the
+    responses it parses and how it classifies failures — against a
+    stubbed `fetch`, not against the service. A wrong field name would
+    pass every test and fail on the first real send. The pipeline around
+    it *is* verified end to end against the console provider: eligibility,
+    preference, idempotency under concurrency, rejection handling and
+    result persistence.
 13. **Admin content management edits publication state and nothing else.**
     An admin can publish, unpublish and archive any of the six content
     types, and every change writes an audit row in the same transaction.

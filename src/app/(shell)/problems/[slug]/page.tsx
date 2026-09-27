@@ -5,6 +5,7 @@ import { CheckCircle2, Target } from "lucide-react";
 
 import { DifficultyBadge } from "@/components/common/difficulty-badge";
 import { BookmarkButton } from "@/components/library/bookmark-button";
+import { Highlightable } from "@/components/learning/highlightable";
 import { NoteEditor } from "@/components/library/note-editor";
 import { ContentRenderer, type ContentResources } from "@/components/learning/content-renderer";
 import { HintLadder } from "@/components/problems/hint-ladder";
@@ -26,6 +27,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { parseContent } from "@/lib/validation/content";
 import { route } from "@/lib/utils";
+import { listHighlightsFor } from "@/services/highlights";
 import { getNoteFor, isBookmarked } from "@/services/library";
 import { getProblem } from "@/services/problems";
 import type { ContentBlock } from "@/types/content";
@@ -104,20 +106,27 @@ export default async function ProblemPage({
     signedIn: Boolean(user),
   };
 
-  const [bookmarked, note] = user
-    ? await Promise.all([
-        isBookmarked({
-          userId: user.id,
-          entityType: "PROBLEM",
-          entityId: problem.id,
-        }),
-        getNoteFor({
-          userId: user.id,
-          entityType: "PROBLEM",
-          entityId: problem.id,
-        }),
-      ])
-    : [false, null];
+  const bookmarked = user
+    ? await isBookmarked({
+        userId: user.id,
+        entityType: "PROBLEM",
+        entityId: problem.id,
+      })
+    : false;
+  const note = user
+    ? await getNoteFor({
+        userId: user.id,
+        entityType: "PROBLEM",
+        entityId: problem.id,
+      })
+    : null;
+  const highlights = user
+    ? await listHighlightsFor({
+        userId: user.id,
+        entityType: "PROBLEM",
+        entityId: problem.id,
+      })
+    : [];
 
   const description = (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -162,8 +171,18 @@ export default async function ProblemPage({
         )}
       </header>
 
+      <Highlightable
+        entityType="PROBLEM"
+        entityId={problem.id}
+        initialHighlights={highlights}
+        signedIn={Boolean(user)}
+      >
+        <div className="space-y-4">
+          <ContentRenderer blocks={statement} resources={emptyResources} />
+        </div>
+      </Highlightable>
+
       <div className="space-y-4">
-        <ContentRenderer blocks={statement} resources={emptyResources} />
 
         <NoteEditor
           entityType="PROBLEM"

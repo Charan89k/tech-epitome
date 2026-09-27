@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/sheet";
 import { TutorLauncher } from "@/components/tutor/tutor-launcher";
 import { BookmarkButton } from "@/components/library/bookmark-button";
+import { Highlightable } from "@/components/learning/highlightable";
 import { NoteEditor } from "@/components/library/note-editor";
 import { canAccess, FEATURES } from "@/lib/auth/access";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -38,6 +39,7 @@ import {
   getPatternNames,
   resolveContentResources,
 } from "@/services/curriculum";
+import { listHighlightsFor } from "@/services/highlights";
 import { getNoteFor, isBookmarked } from "@/services/library";
 import { getQuiz, type QuizView } from "@/services/quiz";
 import type { ContentBlock } from "@/types/content";
@@ -136,20 +138,29 @@ export default async function ChapterPage({ params }: Params) {
 
   // Two small per-user reads, only when there is a user. Both are keyed on
   // the chapter id, so nothing here can surface another learner's rows.
-  const [bookmarked, note] = user
-    ? await Promise.all([
-        isBookmarked({
-          userId: user.id,
-          entityType: "CHAPTER",
-          entityId: chapter.id,
-        }),
-        getNoteFor({
-          userId: user.id,
-          entityType: "CHAPTER",
-          entityId: chapter.id,
-        }),
-      ])
-    : [false, null];
+  // Sequential: three small per-user reads, and the local development
+  // database serves one connection.
+  const bookmarked = user
+    ? await isBookmarked({
+        userId: user.id,
+        entityType: "CHAPTER",
+        entityId: chapter.id,
+      })
+    : false;
+  const note = user
+    ? await getNoteFor({
+        userId: user.id,
+        entityType: "CHAPTER",
+        entityId: chapter.id,
+      })
+    : null;
+  const highlights = user
+    ? await listHighlightsFor({
+        userId: user.id,
+        entityType: "CHAPTER",
+        entityId: chapter.id,
+      })
+    : [];
   const tutorBundle =
     user && tutorAllowed
       ? await loadContextBundle(
@@ -245,7 +256,9 @@ export default async function ChapterPage({ params }: Params) {
 
         <div className="flex">
           {/* Centre: the lesson */}
-          <main className="min-w-0 flex-1 px-4 py-8 sm:px-8">
+          {/* Not a `main`: the shell already provides the landmark, and
+              nesting them is invalid. */}
+          <div className="min-w-0 flex-1 px-4 py-8 sm:px-8">
             <article className="mx-auto max-w-[44rem]">
               <ChapterHeader
                 sectionTitle={chapter.section.title}
@@ -270,9 +283,19 @@ export default async function ChapterPage({ params }: Params) {
                 {tutor}
               </div>
 
-                <div className="mt-8 space-y-4">
-                  <ContentRenderer blocks={blocks} resources={resources} />
-                </div>
+                {/* The reader is still server-rendered; Highlightable
+                    only adds a selection listener and some marks on top
+                    of the DOM that is already there. */}
+                <Highlightable
+                  entityType="CHAPTER"
+                  entityId={chapter.id}
+                  initialHighlights={highlights}
+                  signedIn={Boolean(user)}
+                >
+                  <div className="mt-8 space-y-4">
+                    <ContentRenderer blocks={blocks} resources={resources} />
+                  </div>
+                </Highlightable>
 
                 {footerProblems.length > 0 && (
                   <ProblemListBlock
@@ -344,7 +367,7 @@ export default async function ChapterPage({ params }: Params) {
                 )}
               </nav>
             </article>
-          </main>
+          </div>
 
           {/* Right: table of contents */}
           {toc.length > 0 && (

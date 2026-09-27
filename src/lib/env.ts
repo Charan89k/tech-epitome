@@ -57,6 +57,14 @@ const serverSchema = z.object({
    * users is worse than a switched-off feature — so review reminders are
    * simply not sent until a scheduler and this secret are configured.
    */
+  // --- Email ---------------------------------------------------------------
+  // `console` writes to the log and is rejected in production, exactly like
+  // the mock AI provider. `resend` needs both of the values below.
+  EMAIL_PROVIDER: z.enum(["resend", "console"]).default("console"),
+  RESEND_API_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
+  /** The verified sender. `CodeForge <noreply@example.com>` is fine. */
+  EMAIL_FROM: z.string().default("CodeForge <noreply@codeforge.local>"),
+
   /**
    * Set on any deployment running more than one instance. When true and
    * no distributed store has been installed, `rateLimit` refuses every
@@ -107,6 +115,17 @@ let cached: ServerEnv | null = null;
  * Skipped during `next build` when the build is only collecting page data and
  * no real secrets are present, which is what SKIP_ENV_VALIDATION is for.
  */
+/**
+ * Clears the memoised environment.
+ *
+ * Only for tests that change a variable and need the next `getEnv` to
+ * see it. Nothing in the application calls this: a configuration that
+ * can change mid-process is one that can be wrong mid-process.
+ */
+export function resetEnvForTests(): void {
+  cached = null;
+}
+
 export function getEnv(): ServerEnv {
   if (cached) return cached;
 

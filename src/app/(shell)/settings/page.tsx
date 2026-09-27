@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { Button } from "@/components/ui/button";
 import { SettingsForm } from "@/components/settings/settings-form";
 import { requireUser } from "@/lib/auth/session";
+import { emailIsConfigured } from "@/lib/email";
 import { prisma } from "@/lib/db";
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default async function SettingsPage() {
       notifyReviewDue: true,
       notifyInterviewGraded: true,
       notifyMilestones: true,
+      emailReviewReminders: true,
     },
   });
 
@@ -37,6 +39,10 @@ export default async function SettingsPage() {
 
       <div className="mt-6">
         <SettingsForm
+          // Whether this deployment can send mail at all. The form says
+          // so rather than offering a toggle for a channel that does not
+          // exist here.
+          emailConfigured={emailIsConfigured()}
           values={{
             name: user.name ?? "",
             targetRole: profile?.targetRole ?? "",
@@ -45,6 +51,7 @@ export default async function SettingsPage() {
             notifyReviewDue: profile?.notifyReviewDue ?? true,
             notifyInterviewGraded: profile?.notifyInterviewGraded ?? true,
             notifyMilestones: profile?.notifyMilestones ?? true,
+            emailReviewReminders: profile?.emailReviewReminders ?? false,
           }}
         />
       </div>

@@ -14,6 +14,7 @@ import { VisualizationBlock } from "@/components/learning/visualization-block";
 import { WorkedExample } from "@/components/learning/worked-example";
 import { Separator } from "@/components/ui/separator";
 import { parseDiagram } from "@/lib/diagram/schema";
+import { cn } from "@/lib/utils";
 import type { QuizView } from "@/services/quiz";
 import type { ContentBlock } from "@/types/content";
 
@@ -47,7 +48,13 @@ export function ContentRenderer({
   return (
     <>
       {blocks.map((block, index) => (
-        <Block key={index} block={block} resources={resources} index={index} />
+        // The wrapper carries the block index, which is the anchor a
+        // highlight is stored against — see src/lib/highlights. It is a
+        // plain div so the parent's `space-y` still separates blocks
+        // exactly as it did when they were the direct children.
+        <div key={index} data-block-index={index}>
+          <Block block={block} resources={resources} index={index} />
+        </div>
       ))}
     </>
   );
@@ -69,7 +76,13 @@ function Block({
         return (
           <h2
             id={id}
-            className="text-foreground scroll-mt-20 pt-6 text-lg font-semibold tracking-tight first:pt-0"
+            // `first:pt-0` would now always match — every block sits in
+            // its own wrapper — so the leading heading is identified by
+            // its index instead.
+            className={cn(
+              "text-foreground scroll-mt-20 text-lg font-semibold tracking-tight",
+              index === 0 ? "pt-0" : "pt-6"
+            )}
           >
             {block.text}
           </h2>

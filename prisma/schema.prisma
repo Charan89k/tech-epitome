@@ -273,6 +273,7 @@ model User {
   systemDesigns     SystemDesignSubmission[]
   lldSubmissions    LLDSubmission[]
   notifications     Notification[]
+  emailDeliveries   EmailDelivery[]
 
   @@index([role])
   @@index([createdAt])
@@ -362,6 +363,13 @@ model Profile {
   notifyReviewDue       Boolean @default(true)
   notifyInterviewGraded Boolean @default(true)
   notifyMilestones      Boolean @default(true)
+
+  /// Review reminders by email. **Opt-in**, unlike the in-app
+  /// preferences above: mail leaves the building and cannot be un-sent,
+  /// and a deployment switching on a provider must not immediately mail
+  /// everyone who ever signed up. Off also means off when the in-app
+  /// preference is on — they are two channels, not one.
+  emailReviewReminders  Boolean @default(false)
 
   lastActiveOn DateTime?
   createdAt    DateTime  @default(now())
@@ -1471,6 +1479,47 @@ model Notification {
   @@index([userId, readAt, createdAt])
   @@index([userId, createdAt])
   @@map("notifications")
+}
+
+/// What an email send actually did.
+///
+/// Two jobs. It is the audit trail — every attempt, including the ones
+/// the provider rejected, so "did we mail them?" has an answer that is
+/// not a guess. And the unique constraint on
+/// `(userId, kind, periodKey)` is the idempotency guarantee itself:
+/// a scheduler that fires twice in a period cannot produce two sends,
+/// because the second insert loses the race at the database rather than
+/// at a time-window query that two workers could both pass.
+///
+/// A rejected attempt occupies the slot too. A provider outage should
+/// not turn into a retry loop that mails somebody eleven times when it
+/// recovers; the next period is soon enough.
+model EmailDelivery {
+  id     String @id @default(cuid())
+  userId String
+
+  /// Which mail this was. One value today; a closed set by convention.
+  kind String
+  /// The period this send belongs to — a UTC date for a daily reminder.
+  /// Together with `kind` and `userId` this is what makes a send unique.
+  periodKey String
+
+  /// `accepted`, `rejected` or `skipped`, mirroring SendResult.
+  status   String
+  provider String
+  /// The provider's id when it accepted. Null otherwise.
+  providerId String?
+  /// Why it was rejected or skipped. Never contains the payload or a key.
+  reason     String?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, periodKey])
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@map("email_deliveries")
 }
 
 /// An administrative action, recorded after the fact.

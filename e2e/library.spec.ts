@@ -296,10 +296,20 @@ test("notification preferences suppress a kind at write time", async ({ page }) 
 
   await page.goto("/settings");
   await expect(page.getByRole("heading", { name: "Notifications" })).toBeVisible();
-  // No email of any kind is promised, because none can be sent.
+
   const body = await page.getByRole("main").innerText();
-  expect(body).toMatch(/sends no email of any kind/i);
-  expect(body).not.toMatch(/weekly progress email/i);
+  // One email exists now, and the page is precise about which: a review
+  // reminder, opt-in, and nothing else. The old copy claimed CodeForge
+  // sent no email at all, which stopped being true when the provider
+  // landed — a test asserting it would have kept passing while the page
+  // lied.
+  await expect(page.getByRole("heading", { name: "Email" })).toBeVisible();
+  expect(body).toMatch(/only email codeforge sends/i);
+  expect(body).toMatch(/no marketing of any kind/i);
+  // Off unless asked for: mail cannot be un-sent.
+  await expect(page.getByLabel("Review reminders by email")).not.toBeChecked();
+  // And never a price, in either section.
+  expect(body).not.toMatch(/upgrade|premium|subscribe/i);
 
   await page.getByLabel("Milestones").uncheck();
   await page.getByRole("button", { name: /Save/ }).click();

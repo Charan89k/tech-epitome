@@ -28,6 +28,7 @@ export async function updateSettingsAction(
     notifyReviewDue: formData.get("notifyReviewDue") === "on",
     notifyInterviewGraded: formData.get("notifyInterviewGraded") === "on",
     notifyMilestones: formData.get("notifyMilestones") === "on",
+    emailReviewReminders: formData.get("emailReviewReminders") === "on",
   });
 
   if (!parsed.success) {
@@ -47,6 +48,7 @@ export async function updateSettingsAction(
     notifyReviewDue,
     notifyInterviewGraded,
     notifyMilestones,
+    emailReviewReminders,
   } = parsed.data;
 
   const preferences = {
@@ -56,6 +58,7 @@ export async function updateSettingsAction(
     notifyReviewDue,
     notifyInterviewGraded,
     notifyMilestones,
+    emailReviewReminders,
   };
 
   try {

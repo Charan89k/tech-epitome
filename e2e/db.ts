@@ -269,3 +269,55 @@ export async function tutorUsageFor(
   );
   return result.rows;
 }
+
+/** How many highlights an account holds. */
+export async function highlightCountFor(email: string): Promise<number> {
+  const userId = await userIdFor(email);
+  const result = await withRetry(() =>
+    pool().query<{ count: string }>(
+      `SELECT count(*)::text AS count FROM highlights WHERE "userId" = $1`,
+      [userId]
+    )
+  );
+  return Number(result.rows[0]?.count ?? 0);
+}
+
+/** One learner's highlight quotes, newest first. */
+export async function highlightQuotesFor(email: string): Promise<string[]> {
+  const userId = await userIdFor(email);
+  const result = await withRetry(() =>
+    pool().query<{ quote: string }>(
+      `SELECT quote FROM highlights WHERE "userId" = $1 ORDER BY "createdAt" DESC`,
+      [userId]
+    )
+  );
+  return result.rows.map((row) => row.quote);
+}
+
+/** Makes an account opt in to review reminder emails. */
+export async function enableEmailReminders(email: string): Promise<void> {
+  const userId = await userIdFor(email);
+  await withRetry(() =>
+    pool().query(
+      `UPDATE profiles SET "emailReviewReminders" = true WHERE "userId" = $1`,
+      [userId]
+    )
+  );
+}
+
+/** Delivery rows for an account: what was attempted, and how it went. */
+export async function emailDeliveriesFor(
+  email: string
+): Promise<{ kind: string; status: string; provider: string }[]> {
+  const userId = await userIdFor(email);
+  const result = await withRetry(() =>
+    pool().query<{ kind: string; status: string; provider: string }>(
+      `SELECT kind, status, provider
+         FROM email_deliveries
+        WHERE "userId" = $1
+        ORDER BY "createdAt" DESC`,
+      [userId]
+    )
+  );
+  return result.rows;
+}

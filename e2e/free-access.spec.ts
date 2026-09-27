@@ -80,6 +80,7 @@ const ROUTES = [
   "/ai-tutor",
   "/dashboard/notes",
   "/dashboard/bookmarks",
+  "/dashboard/highlights",
   "/profile",
   "/settings",
   "/onboarding",
