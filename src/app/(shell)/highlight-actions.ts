@@ -14,6 +14,7 @@ import {
   createHighlight,
   deleteHighlight,
   recolourHighlight,
+  repairHighlightAnchors,
   type HighlightRow,
 } from "@/services/highlights";
 
@@ -127,4 +128,59 @@ export async function recolourHighlightAction(
 
   revalidatePath("/dashboard/highlights");
   return { ok: true, data: undefined };
+}
+
+
+/**
+ * Persists anchors the reader repaired after content moved.
+ *
+ * The repair itself is decided in the browser, against the text actually
+ * rendered — but it is only ever *stored* here, owner-scoped, with the same
+ * bounds the create path enforces. The client cannot send a new quote, so
+ * the worst a forged payload achieves is moving the caller's own highlight
+ * within their own page, which they can already do by re-highlighting.
+ *
+ * Rate limited on the same bucket as creation: a page load repairs at most
+ * a handful of rows, and anything beyond that is a loop.
+ */
+const repairSchema = z.object({
+  repairs: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(64),
+        blockIndex: z.number().int().min(0).max(HIGHLIGHT_LIMITS.maxBlockIndex),
+        startOffset: z.number().int().min(0),
+        endOffset: z.number().int().min(0),
+      })
+    )
+    .min(1)
+    .max(50),
+});
+
+export async function repairHighlightAnchorsAction(
+  raw: unknown
+): Promise<ActionResult<{ repaired: number }>> {
+  const user = await requireUserOrThrow();
+
+  const parsed = repairSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: "That request was not in the expected shape." };
+  }
+
+  // An anchor that ends before it starts is not a selection.
+  if (parsed.data.repairs.some((r) => r.endOffset <= r.startOffset)) {
+    return { ok: false, error: "That request was not in the expected shape." };
+  }
+
+  const limited = await rateLimit(`highlight-repair:${user.id}`, RATE_LIMITS.CODE_SUBMIT);
+  if (!limited.success) {
+    return { ok: false, error: "Too many updates. Try again shortly." };
+  }
+
+  const repaired = await repairHighlightAnchors({
+    userId: user.id,
+    repairs: parsed.data.repairs,
+  });
+
+  return { ok: true, data: { repaired } };
 }

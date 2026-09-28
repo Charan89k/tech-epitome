@@ -31,6 +31,28 @@ export function findBlock(root: ParentNode, index: number): HTMLElement | null {
 }
 
 /**
+ * The plain text of every rendered block, indexed by its block index.
+ *
+ * The array is dense and ordered, because anchor offsets were recorded
+ * against exactly this projection: a gap or a reorder here would make a
+ * repaired offset point at the wrong words. Missing indexes become empty
+ * strings rather than being skipped, which keeps position === index.
+ */
+export function blockTexts(root: ParentNode): string[] {
+  const blocks = root.querySelectorAll<HTMLElement>(`[${BLOCK_ATTRIBUTE}]`);
+  const texts: string[] = [];
+
+  for (const block of blocks) {
+    const index = Number(block.getAttribute(BLOCK_ATTRIBUTE));
+    if (!Number.isInteger(index) || index < 0) continue;
+    while (texts.length <= index) texts.push("");
+    texts[index] = block.textContent ?? "";
+  }
+
+  return texts;
+}
+
+/**
  * Every text node under `root`, in document order.
  *
  * Skips nothing: a `<mark>` from an existing highlight contains text that

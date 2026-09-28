@@ -216,6 +216,42 @@ export async function recolourHighlight(params: {
 }
 
 /**
+ * Writes back anchors that were repaired after the content moved.
+ *
+ * Owner-scoped like every other write here: ids belonging to somebody else
+ * match no row, so a forged payload is a no-op rather than a way to move
+ * another learner's highlights around. The quote is deliberately *not*
+ * updatable — it is the identity the repair was proved against, and letting
+ * a client rewrite it would turn this into "point this highlight anywhere".
+ */
+export async function repairHighlightAnchors(params: {
+  userId: string;
+  repairs: {
+    id: string;
+    blockIndex: number;
+    startOffset: number;
+    endOffset: number;
+  }[];
+}): Promise<number> {
+  if (params.repairs.length === 0) return 0;
+
+  const results = await prisma.$transaction(
+    params.repairs.map((repair) =>
+      prisma.highlight.updateMany({
+        where: { id: repair.id, userId: params.userId },
+        data: {
+          blockIndex: repair.blockIndex,
+          startOffset: repair.startOffset,
+          endOffset: repair.endOffset,
+        },
+      })
+    )
+  );
+
+  return results.reduce((total, result) => total + result.count, 0);
+}
+
+/**
  * Every highlight this learner holds, with a title and a link back.
  *
  * Resolved in two batched queries rather than one per row. Anything whose

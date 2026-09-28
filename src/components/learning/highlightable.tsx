@@ -9,10 +9,11 @@ import {
   deleteHighlightAction,
 } from "@/app/(shell)/highlight-actions";
 import {
+  HIGHLIGHT_ATTRIBUTE,
   anchorFromSelection,
   anchorStillMatches,
+  blockTexts,
   findBlock,
-  HIGHLIGHT_ATTRIBUTE,
   paintHighlight,
   unpaintHighlight,
 } from "@/lib/highlights/dom";
@@ -23,6 +24,8 @@ import {
   type HighlightColor,
   type Highlightable as HighlightableType,
 } from "@/lib/highlights/types";
+import { repairHighlightAnchorsAction } from "@/app/(shell)/highlight-actions";
+import { resolveAnchors } from "@/lib/highlights/anchor";
 import { cn } from "@/lib/utils";
 
 /**
@@ -107,20 +110,36 @@ export function Highlightable({
       unpaintHighlight(container, highlight.id);
     }
 
-    let stale = 0;
-    for (const highlight of highlights) {
-      const block = findBlock(container, highlight.blockIndex);
-      if (!block) {
-        stale += 1;
-        continue;
-      }
-      // The quote check is the whole reason `quote` is stored. An edit to
-      // the block moves every offset after it; painting anyway would mark
-      // a sentence the learner never chose.
-      if (!anchorStillMatches(block, highlight)) {
-        stale += 1;
-        continue;
-      }
+    /*
+      Resolve every anchor against the text actually on the page before
+      painting anything.
+
+      A highlight whose block merely moved - which is what happens every
+      time a chapter gains a visual block - still has its quote somewhere in
+      the document, and `resolveAnchors` finds it. One that is genuinely gone,
+      or whose quote is now ambiguous, comes back stale and is reported
+      rather than guessed at. The quote check that used to live here is now
+      inside that function, applied to every candidate block rather than only
+      to the recorded one.
+    */
+    const texts = blockTexts(container);
+    const { resolved, stale: staleRows, repairs } = resolveAnchors(texts, highlights);
+
+    for (const row of resolved) {
+      const block = findBlock(container, row.anchor.blockIndex);
+      if (!block) continue;
+
+      const highlight = {
+        ...row,
+        blockIndex: row.anchor.blockIndex,
+        startOffset: row.anchor.startOffset,
+        endOffset: row.anchor.endOffset,
+      };
+
+      // Belt and braces: the resolver worked on textContent, so this can
+      // only fail if the DOM changed under us between the two reads.
+      if (!anchorStillMatches(block, highlight)) continue;
+
       paintHighlight(block, highlight, {
         id: highlight.id,
         color: highlight.color,
@@ -130,7 +149,17 @@ export function Highlightable({
         ),
       });
     }
-    setStaleCount(stale);
+
+    setStaleCount(staleRows.length);
+
+    // Write the repairs back once, so the next visit resolves exactly
+    // instead of searching again. Fire and forget: the highlight is already
+    // painted correctly, and a failed write only costs another search later.
+    if (repairs.length > 0) {
+      void repairHighlightAnchorsAction({ repairs: repairs.slice(0, 50) }).catch(
+        () => {}
+      );
+    }
   }, [highlights]);
 
   useEffect(() => {
