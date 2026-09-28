@@ -4,6 +4,7 @@ import { depthFirstViz } from "./algorithms/depth-first";
 import { linkedListReversalViz } from "./algorithms/linked-list-reversal";
 import { slidingWindowViz } from "./algorithms/sliding-window";
 import { twoPointersViz } from "./algorithms/two-pointers";
+import { writePointerViz } from "./algorithms/write-pointer";
 import { erase, type ErasedVisualization } from "./types";
 
 /**
@@ -15,6 +16,7 @@ import { erase, type ErasedVisualization } from "./types";
  */
 export const VISUALIZATIONS: Record<string, ErasedVisualization> = {
   [twoPointersViz.key]: erase(twoPointersViz),
+  [writePointerViz.key]: erase(writePointerViz),
   [slidingWindowViz.key]: erase(slidingWindowViz),
   [binarySearchViz.key]: erase(binarySearchViz),
   [linkedListReversalViz.key]: erase(linkedListReversalViz),

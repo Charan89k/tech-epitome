@@ -27,6 +27,7 @@ const ROUTES = [
   "/visualize",
   "/visualize/binary-search",
   "/visualize/breadth-first-search",
+  "/visualize/write-pointer",
   "/prepare",
   "/prepare/generalist-loop",
 ];

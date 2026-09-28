@@ -166,7 +166,7 @@ def prefix_maxima(nums):
           "Why this is safe",
           "The write index advances only when something is kept, and the read index advances every iteration. So write ≤ read at all times, which means every position written to has already been read. You can never clobber a value you still need."
         ),
-        visual("two-pointers", "Watch a write pointer lag behind a read pointer"),
+        visual("write-pointer", "Watch a write pointer lag behind a read pointer"),
 
         h2("Recognising it"),
         recognise(

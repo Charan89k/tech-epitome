@@ -255,6 +255,51 @@ test("the visualization player steps through real algorithm frames", async ({
   await expect(page.getByText("lo = 0, hi = n - 1")).toBeVisible();
 });
 
+test("stepping the write-pointer visualization compacts the array on screen", async ({
+  page,
+}) => {
+  await page.goto("/visualize/write-pointer");
+
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Write Pointer" })
+  ).toBeVisible();
+
+  const stepCounter = page.locator("footer").getByText(/^\d+\/\d+$/);
+  await expect(stepCounter).toBeVisible({ timeout: 40_000 });
+
+  // The narration is the step's own description, and it is the accessible
+  // representation of the frame — so asserting on it checks the same text a
+  // screen reader would hear.
+  const narration = page.locator('[aria-live="polite"]').first();
+
+  await expect(narration).toContainText("write pointer starts at slot 0");
+  await expect(stepCounter).toHaveText("1/13");
+
+  // Both pointers share slot 0 on the first frame, and the row says so
+  // rather than dropping one marker.
+  await expect(page.getByText("W R", { exact: true })).toBeVisible();
+
+  const next = page.getByRole("button", { name: "Next step" });
+
+  // Walk to the end. Stepping is an array index, so this is deterministic.
+  for (let i = 1; i < 13; i += 1) await next.click();
+  await expect(stepCounter).toHaveText("13/13");
+
+  // The final frame is the compacted array: zeros pushed to the back, the
+  // kept values still in their original relative order.
+  await expect(narration).toContainText("everything from slot 3 on is zero");
+  await expect(narration).toContainText("[1, 3, 12, 0, 0]");
+
+  // Stepping back changes the state again, so the controls are not one-way.
+  await page.getByRole("button", { name: "Previous step" }).click();
+  await expect(stepCounter).toHaveText("12/13");
+
+  // Reset returns to the first frame.
+  await page.getByRole("button", { name: "Reset" }).click();
+  await expect(stepCounter).toHaveText("1/13");
+  await expect(narration).toContainText("write pointer starts at slot 0");
+});
+
 test("the command palette searches real content", async ({ page }) => {
   await page.goto("/patterns");
 
