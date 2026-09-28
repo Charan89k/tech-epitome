@@ -8,6 +8,7 @@ import { hashPassword } from "@/lib/auth/password";
 import { prisma } from "@/lib/db";
 import { getClientIp } from "@/lib/request-context";
 import { RATE_LIMITS, rateLimit } from "@/lib/rate-limit";
+import { safeInternalPath } from "@/lib/safe-redirect";
 import { credentialsSchema, signUpSchema } from "@/lib/validation/auth";
 
 /**
@@ -23,13 +24,6 @@ export type AuthFormState = {
   /** Field-level messages, keyed by input name. */
   fieldErrors?: Record<string, string>;
 };
-
-/** Only allow same-origin, absolute-path redirects. Blocks open redirects. */
-function safeNext(next: FormDataEntryValue | null): string {
-  const value = typeof next === "string" ? next : "";
-  if (!value.startsWith("/") || value.startsWith("//")) return "/dashboard";
-  return value;
-}
 
 export async function signInAction(
   _prev: AuthFormState,
@@ -55,7 +49,7 @@ export async function signInAction(
     return { fieldErrors: fieldErrorsFrom(parsed.error) };
   }
 
-  const next = safeNext(formData.get("next"));
+  const next = safeInternalPath(formData.get("next"), "/dashboard");
 
   try {
     await signIn("credentials", {
@@ -135,11 +129,7 @@ export async function signUpAction(
   // A brand-new account goes to onboarding unless they arrived here on
   // their way somewhere specific — being bounced to a questionnaire after
   // clicking "sign up to save this note" would lose the thing they wanted.
-  const requested = formData.get("next");
-  const next =
-    typeof requested === "string" && requested.length > 0
-      ? safeNext(requested)
-      : "/onboarding";
+  const next = safeInternalPath(formData.get("next"), "/onboarding");
 
   try {
     await signIn("credentials", {
@@ -161,7 +151,7 @@ export async function signOutAction(): Promise<void> {
 }
 
 export async function signInWithGoogleAction(formData: FormData): Promise<void> {
-  const next = safeNext(formData.get("next"));
+  const next = safeInternalPath(formData.get("next"), "/dashboard");
   await signIn("google", { redirectTo: next });
 }
 
