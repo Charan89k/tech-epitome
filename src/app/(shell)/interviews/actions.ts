@@ -23,6 +23,7 @@ import {
 } from "@/lib/interview/types";
 import { RATE_LIMITS, rateLimit } from "@/lib/rate-limit";
 import {
+  availableDifficulties,
   createInterview,
   loadFeedbackContext,
   saveFeedback,
@@ -50,9 +51,35 @@ const createSchema = z.object({
   language: z.nativeEnum(Language),
 });
 
+/**
+ * Which difficulties the catalogue can actually serve for a type.
+ *
+ * Read by the form so it stops offering a level that cannot start an
+ * interview. Not sensitive — it is a count of published content — but it
+ * still goes through the same authentication as everything else here, and
+ * it takes no user id from the client.
+ */
+export async function availableDifficultiesAction(
+  rawType: unknown
+): Promise<ActionResult<{ difficulties: Difficulty[] }>> {
+  await requireUserOrThrow();
+
+  const parsed = z.nativeEnum(InterviewType).safeParse(rawType);
+  if (!parsed.success) {
+    return { ok: false, error: "That request was not in the expected shape." };
+  }
+
+  return {
+    ok: true,
+    data: {
+      difficulties: await availableDifficulties(parsed.data as InterviewKind),
+    },
+  };
+}
+
 export async function createInterviewAction(
   raw: unknown
-): Promise<ActionResult<{ id: string }>> {
+): Promise<ActionResult<{ id: string; difficulty: Difficulty; substituted: boolean }>> {
   const user = await requireUserOrThrow();
   if (!canAccess(user, FEATURES.AI_MOCK_INTERVIEW)) {
     return { ok: false, error: "Sign in to use mock interviews." };
@@ -80,11 +107,20 @@ export async function createInterviewAction(
 
   await recordEvent(user.id, "interview_started", {
     type: parsed.data.type,
-    difficulty: parsed.data.difficulty,
+    // The difficulty that was actually used. Recording the request instead
+    // would quietly overstate how much hard practice has been done.
+    difficulty: result.difficulty,
   });
 
   revalidatePath("/interviews");
-  return { ok: true, data: { id: result.id } };
+  return {
+    ok: true,
+    data: {
+      id: result.id,
+      difficulty: result.difficulty,
+      substituted: result.substituted,
+    },
+  };
 }
 
 const codeSchema = z.object({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Play } from "lucide-react";
 
@@ -13,7 +13,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createInterviewAction } from "@/app/(shell)/interviews/actions";
+import {
+  availableDifficultiesAction,
+  createInterviewAction,
+} from "@/app/(shell)/interviews/actions";
 import type { Difficulty, Language } from "@/generated/prisma/enums";
 import { LANGUAGE_LABEL, SUPPORTED_LANGUAGES } from "@/lib/code-execution/signature";
 import {
@@ -35,7 +38,21 @@ import {
  * type disappear rather than sitting there disabled: a behavioural
  * interview has no difficulty and no editor, and showing greyed-out
  * controls for them implies they exist somewhere.
+ *
+ * Difficulty is offered from what the catalogue actually holds. The
+ * published set is uneven — there is currently no hard system design or
+ * hard low-level design brief — and offering a level that cannot be served
+ * turned "Start interview" into a button that produced an error and no
+ * interview. Now the unavailable level is not offered, and the form says
+ * why rather than leaving a gap the learner has to infer.
  */
+const DIFFICULTIES: Difficulty[] = ["EASY", "MEDIUM", "HARD"];
+
+const DIFFICULTY_LABEL: Record<Difficulty, string> = {
+  EASY: "Easy",
+  MEDIUM: "Medium",
+  HARD: "Hard",
+};
 export function NewInterviewForm() {
   const router = useRouter();
   const [type, setType] = useState<InterviewKind>("DSA");
@@ -44,10 +61,62 @@ export function NewInterviewForm() {
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
+  /**
+   * The difficulties this type can actually start at, tagged with the type
+   * they were fetched for.
+   *
+   * Tagged rather than cleared on every type change: clearing would mean a
+   * setState in the effect body, which cascades a render. Comparing the tag
+   * during render answers the same question — "is this list about the type
+   * currently selected?" — for free.
+   */
+  const [availability, setAvailability] = useState<{
+    type: InterviewKind;
+    levels: Difficulty[];
+  } | null>(null);
+
+  useEffect(() => {
+    let current = true;
+    void availableDifficultiesAction(type).then((result) => {
+      if (current && result.ok) {
+        setAvailability({ type, levels: result.data.difficulties });
+      }
+    });
+    return () => {
+      current = false;
+    };
+  }, [type]);
+
+  // Stale or not-yet-loaded falls back to the full set, so a slow round trip
+  // never renders an empty dropdown. The server re-derives availability when
+  // the interview is created, so an optimistic list here cannot start an
+  // interview the catalogue is unable to serve.
+  const levels = availability?.type === type ? availability.levels : null;
+  const offered = levels ?? DIFFICULTIES;
+
+  /**
+   * The difficulty actually in force.
+   *
+   * Derived during render rather than corrected in an effect. Switching to a
+   * type whose catalogue lacks the selected level would otherwise leave a
+   * stale value selected for one render — and the fix for that, a
+   * setState-in-effect, is a cascading render for a value that was always a
+   * function of what is offered.
+   */
+  const effectiveDifficulty: Difficulty = offered.includes(difficulty)
+    ? difficulty
+    : offered.includes("MEDIUM")
+      ? "MEDIUM"
+      : offered[0]!;
+
   function begin() {
     setError(null);
     start(async () => {
-      const result = await createInterviewAction({ type, difficulty, language });
+      const result = await createInterviewAction({
+        type,
+        difficulty: effectiveDifficulty,
+        language,
+      });
       if (result.ok) router.push(`/interviews/${result.data.id}`);
       else setError(result.error);
     });
@@ -56,6 +125,7 @@ export function NewInterviewForm() {
   // Behavioural questions are not graded by difficulty: "tell me about a
   // conflict" is not harder at senior level, the follow-ups are.
   const usesDifficulty = type !== "BEHAVIORAL";
+  const missing = DIFFICULTIES.filter((level) => !offered.includes(level));
   const usesEditor = MACHINES[type].codeStages.length > 0;
 
   return (
@@ -81,16 +151,18 @@ export function NewInterviewForm() {
           <label className="text-xs">
             <span className="text-muted-foreground">Difficulty</span>
             <Select
-              value={difficulty}
+              value={effectiveDifficulty}
               onValueChange={(v) => setDifficulty(v as Difficulty)}
             >
               <SelectTrigger className="mt-1 w-full" aria-label="Difficulty">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="EASY">Easy</SelectItem>
-                <SelectItem value="MEDIUM">Medium</SelectItem>
-                <SelectItem value="HARD">Hard</SelectItem>
+                {offered.map((level) => (
+                  <SelectItem key={level} value={level}>
+                    {DIFFICULTY_LABEL[level]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </label>
@@ -121,6 +193,15 @@ export function NewInterviewForm() {
       <p className="text-muted-foreground/70 mt-1.5 text-xs">
         The brief is chosen for you, as it would be in a real interview.
       </p>
+
+      {usesDifficulty && missing.length > 0 && (
+        <p className="text-muted-foreground/70 mt-1.5 text-xs">
+          No{" "}
+          {missing.map((level) => DIFFICULTY_LABEL[level].toLowerCase()).join(" or ")}{" "}
+          {MACHINES[type].label.toLowerCase()} brief has been published yet, so
+          that level is not offered.
+        </p>
+      )}
 
       {error && (
         <Alert variant="destructive" className="mt-3">

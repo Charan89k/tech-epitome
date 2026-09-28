@@ -90,6 +90,48 @@ export type ContentBlock =
       /** Initial input, shape depends on the visualization. */
       input?: unknown;
     }
+  /**
+   * Visual intuition: the same data before and after, side by side.
+   *
+   * The cheapest way to make a transformation legible. A learner who sees
+   * `[0,1,0,3,12]` become `[1,3,12,0,0]` knows what the algorithm is *for*
+   * before reading a line of it, which is the thing a paragraph describing
+   * the transformation does slowly and worse.
+   *
+   * Deliberately static. It carries no animation and no play controls: the
+   * point is the endpoints, and a `visualization` block is what to reach
+   * for when the steps between them are the lesson.
+   */
+  | {
+      type: "beforeAfter";
+      title?: string;
+      before: { label: string; values: string[] };
+      after: { label: string; values: string[] };
+      /** One sentence on what changed. Read by screen readers as the summary. */
+      note?: string;
+    }
+  /**
+   * Two or more approaches to the same problem, compared on the axes that
+   * decide between them.
+   *
+   * Replaces the "brute force paragraph, then optimal paragraph" shape,
+   * which forces the reader to hold one in their head while reading the
+   * other. Every option carries its own complexity, so the trade-off is
+   * visible rather than asserted.
+   */
+  | {
+      type: "comparison";
+      title?: string;
+      options: {
+        label: string;
+        time: string;
+        space: string;
+        /** When this approach is the right answer, not why it is wrong. */
+        when: string;
+        /** Marks the approach the chapter is teaching. */
+        preferred?: boolean;
+      }[];
+    }
   /** Embeds a quiz by slug. Rendered inline, scored server-side. */
   | { type: "quiz"; quizSlug: string }
   /** Links out to problems by slug, rendered as cards. */
@@ -166,6 +208,28 @@ export function blockToPlainText(block: ContentBlock): string {
         .join("\n");
     case "concept":
       return `${block.title}: ${inlineToPlainText(block.body)}`;
+    case "beforeAfter":
+      // The values are indexed too: "which lesson turns [0,1,0,3,12] into
+      // [1,3,12,0,0]" is a findable question, and the row labels alone
+      // would not answer it.
+      return [
+        block.title,
+        `${block.before.label}: ${block.before.values.join(" ")}`,
+        `${block.after.label}: ${block.after.values.join(" ")}`,
+        block.note,
+      ]
+        .filter(Boolean)
+        .join("\n");
+    case "comparison":
+      return [
+        block.title,
+        ...block.options.map(
+          (option) =>
+            `${option.label} ${option.time} ${option.space} ${option.when}`
+        ),
+      ]
+        .filter(Boolean)
+        .join("\n");
     case "example":
       return [
         block.title,

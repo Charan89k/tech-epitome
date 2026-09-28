@@ -102,6 +102,38 @@ export const contentBlockSchema: z.ZodType<ContentBlock> =
       input: z.unknown().optional(),
     }),
     z.object({
+      type: z.literal("beforeAfter"),
+      title: z.string().optional(),
+      // Bounded so a malformed block cannot render a row wide enough to
+      // break the page. Both sides are free to differ in length: a filter
+      // legitimately produces fewer values than it consumed.
+      before: z.object({
+        label: z.string().min(1).max(60),
+        values: z.array(z.string().max(24)).min(1).max(24),
+      }),
+      after: z.object({
+        label: z.string().min(1).max(60),
+        values: z.array(z.string().max(24)).min(1).max(24),
+      }),
+      note: z.string().max(400).optional(),
+    }),
+    z.object({
+      type: z.literal("comparison"),
+      title: z.string().optional(),
+      options: z
+        .array(
+          z.object({
+            label: z.string().min(1).max(80),
+            time: z.string().min(1).max(40),
+            space: z.string().min(1).max(40),
+            when: z.string().min(1).max(400),
+            preferred: z.boolean().optional(),
+          })
+        )
+        .min(2)
+        .max(4),
+    }),
+    z.object({
       type: z.literal("quiz"),
       quizSlug: z.string().min(1),
     }),

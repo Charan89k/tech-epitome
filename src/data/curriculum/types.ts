@@ -226,6 +226,41 @@ export function practice(slugs: string[], title?: string): ContentBlock {
   return { type: "problems", slugs, title };
 }
 
+/**
+ * Visual intuition: the same data before and after.
+ *
+ * Values are authored as strings so a row can hold `"…"` or `"-"` where a
+ * literal value would be noise. Reach for this when the endpoints are the
+ * lesson, and for `visual()` when the steps between them are.
+ */
+export function beforeAfter(
+  before: { label: string; values: (string | number)[] },
+  after: { label: string; values: (string | number)[] },
+  options: { title?: string; note?: string } = {}
+): ContentBlock {
+  return {
+    type: "beforeAfter",
+    title: options.title,
+    note: options.note,
+    before: { label: before.label, values: before.values.map(String) },
+    after: { label: after.label, values: after.values.map(String) },
+  };
+}
+
+/** Competing approaches, compared on cost and on when each one is right. */
+export function compare(
+  options: {
+    label: string;
+    time: string;
+    space: string;
+    when: string;
+    preferred?: boolean;
+  }[],
+  title?: string
+): ContentBlock {
+  return { type: "comparison", title, options };
+}
+
 export function recognise(
   prompt: string,
   clues: string[],

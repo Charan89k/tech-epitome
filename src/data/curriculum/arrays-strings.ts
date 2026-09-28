@@ -1,5 +1,7 @@
 import {
+  beforeAfter,
   code,
+  compare,
   complexity,
   concept,
   h2,
@@ -147,9 +149,32 @@ def prefix_maxima(nums):
         ),
 
         h2("The write pointer"),
-        p(
-          "Filtering in place uses two indices over the same array: one reads every element, the other marks where the next kept element belongs."
+
+        // Concept -> visual intuition -> interactive -> explanation -> code
+        // -> practice -> interview insight. The prose that used to open this
+        // section is still here; it now follows the picture instead of
+        // standing in for one.
+        concept(
+          "One array, two speeds",
+          "Filtering in place uses two indices over the same array: one reads every element, the other marks where the next kept element belongs. The reader always moves; the writer only moves when something is worth keeping."
         ),
+
+        beforeAfter(
+          { label: "Input", values: [0, 1, 0, 3, 12] },
+          { label: "After compacting", values: [1, 3, 12, 0, 0] },
+          {
+            title: "Moving every zero to the end",
+            note: "The kept values stay in their original relative order, and nothing was allocated to do it.",
+          }
+        ),
+
+        visual("write-pointer", "Step through it: watch the write pointer lag behind the read pointer"),
+
+        concept(
+          "Why this is safe",
+          "The write index advances only when something is kept, and the read index advances every iteration. So write ≤ read at all times, which means every position written to has already been read. You can never clobber a value you still need."
+        ),
+
         code(
           "python",
           `def keep_positive(nums):
@@ -162,11 +187,25 @@ def prefix_maxima(nums):
           "Compacting in place",
           [4, 5]
         ),
-        concept(
-          "Why this is safe",
-          "The write index advances only when something is kept, and the read index advances every iteration. So write ≤ read at all times, which means every position written to has already been read. You can never clobber a value you still need."
+
+        compare(
+          [
+            {
+              label: "Build a new array",
+              time: "O(n)",
+              space: "O(n)",
+              when: "The input must not be mutated, or the caller still needs the original. Genuinely the right answer then — it is not a mistake, it is a different constraint.",
+            },
+            {
+              label: "Write pointer, in place",
+              time: "O(n)",
+              space: "O(1)",
+              when: "The array may be mutated and the problem asks for O(1) extra space or a returned count.",
+              preferred: true,
+            },
+          ],
+          "Two ways to filter"
         ),
-        visual("write-pointer", "Watch a write pointer lag behind a read pointer"),
 
         h2("Recognising it"),
         recognise(
@@ -182,11 +221,26 @@ def prefix_maxima(nums):
         ),
 
         h2("Common mistakes"),
-        ul(
-          "Advancing the write pointer on every iteration instead of only on a keep.",
-          "Returning the array rather than the count, when the problem asked for the count.",
-          "Clearing the tail of the array, which costs another pass and is usually not required.",
-          "Using a second array, which works but abandons the constraint."
+
+        // Each of these was a bullet. They are the same four mistakes, moved
+        // out of a list nobody re-reads and into cards that can be scanned
+        // when a solution is misbehaving.
+        warn(
+          "Advancing the write pointer on every iteration instead of only on a keep. The pointer stops meaning \"end of the kept run\" and the filter silently does nothing.",
+          "Moving the writer unconditionally"
+        ),
+        warn(
+          "Returning the array rather than the count, when the problem asked for the count. The tail past the write pointer is leftover data, not part of the answer.",
+          "Returning the wrong thing"
+        ),
+        warn(
+          "Clearing the tail of the array, which costs another pass and is usually not required. Check what the problem asks for before paying for it.",
+          "Tidying the tail you were not asked about"
+        ),
+
+        insight(
+          "Say the invariant out loud before you write the loop: \"write never passes read, so every slot I overwrite has already been consumed.\" That one sentence is what an interviewer is listening for — it shows you know the in-place write is safe rather than hoping it is.",
+          "In an interview"
         ),
 
         practice(["compact-the-queue", "dedupe-sorted-log"], "Practise"),

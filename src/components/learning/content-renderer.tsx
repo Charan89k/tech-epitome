@@ -2,6 +2,8 @@ import { ArchitectureDiagram } from "@/components/diagram/architecture-diagram";
 import { Callout } from "@/components/learning/callout";
 import { CodeBlock } from "@/components/learning/code-block";
 import { ComplexityCard } from "@/components/learning/complexity-card";
+import { BeforeAfterCard } from "@/components/learning/before-after-card";
+import { ComparisonCard } from "@/components/learning/comparison-card";
 import { ConceptCard } from "@/components/learning/concept-card";
 import { InlineContent } from "@/components/learning/inline-content";
 import {
@@ -209,6 +211,19 @@ function Block({
           input={block.input}
         />
       );
+
+    case "beforeAfter":
+      return (
+        <BeforeAfterCard
+          title={block.title}
+          before={block.before}
+          after={block.after}
+          note={block.note}
+        />
+      );
+
+    case "comparison":
+      return <ComparisonCard title={block.title} options={block.options} />;
 
     case "quiz": {
       const quiz = resources.quizzes.get(block.quizSlug);

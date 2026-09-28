@@ -61,72 +61,179 @@ function pick<T>(rows: T[]): T | null {
  * questions are not graded by difficulty: "tell me about a conflict" is
  * not harder at senior level, the follow-ups are.
  */
+type BriefLinkField =
+  | "problemId"
+  | "systemDesignProblemId"
+  | "lldProblemId"
+  | "behavioralQuestionId";
+
+type ChosenBrief = {
+  ok: true;
+  link: Partial<Record<BriefLinkField, string>>;
+  /** The difficulty actually chosen, which may not be the one requested. */
+  difficulty: Difficulty;
+  /** True when the catalogue had nothing at the requested difficulty. */
+  substituted: boolean;
+};
+
+/** Easiest to hardest. The distance between two entries is what "nearest" means. */
+const DIFFICULTY_ORDER: Difficulty[] = ["EASY", "MEDIUM", "HARD"];
+
+/**
+ * How each difficulty-filtered type finds its candidate rows.
+ *
+ * One table per interview type, but the shape of the question is identical
+ * — "which published rows exist, grouped by difficulty" — so it is asked
+ * once here rather than three times below. BEHAVIORAL is deliberately
+ * absent: behavioural questions carry no difficulty.
+ */
+const GRADED_POOLS = {
+  DSA: {
+    link: "problemId" as const,
+    rows: () =>
+      prisma.problem.findMany({
+        where: { status: "PUBLISHED" },
+        select: { id: true, difficulty: true },
+      }),
+  },
+  SYSTEM_DESIGN: {
+    link: "systemDesignProblemId" as const,
+    rows: () =>
+      prisma.systemDesignProblem.findMany({
+        where: { status: "PUBLISHED" },
+        select: { id: true, difficulty: true },
+      }),
+  },
+  LLD: {
+    link: "lldProblemId" as const,
+    rows: () =>
+      prisma.lLDProblem.findMany({
+        where: { status: "PUBLISHED" },
+        select: { id: true, difficulty: true },
+      }),
+  },
+} satisfies Partial<
+  Record<
+    InterviewKind,
+    {
+      link: BriefLinkField;
+      rows: () => Promise<{ id: string; difficulty: Difficulty }[]>;
+    }
+  >
+>;
+
+type GradedKind = keyof typeof GRADED_POOLS;
+
+const isGraded = (type: InterviewKind): type is GradedKind => type in GRADED_POOLS;
+
+/**
+ * Which difficulties this type can actually start an interview at.
+ *
+ * The form asks for this so it can stop offering a difficulty the
+ * catalogue cannot serve. Behavioural is ungraded and answers with the
+ * full set, which the form ignores because it hides the control entirely.
+ */
+export async function availableDifficulties(
+  type: InterviewKind
+): Promise<Difficulty[]> {
+  if (!isGraded(type)) return [...DIFFICULTY_ORDER];
+
+  const rows = await GRADED_POOLS[type].rows();
+  const present = new Set(rows.map((row) => row.difficulty));
+  return DIFFICULTY_ORDER.filter((level) => present.has(level));
+}
+
+/** The available difficulty closest to the one asked for. */
+function nearestAvailable(
+  requested: Difficulty,
+  available: Difficulty[]
+): Difficulty | null {
+  if (available.length === 0) return null;
+  if (available.includes(requested)) return requested;
+
+  const target = DIFFICULTY_ORDER.indexOf(requested);
+  return (
+    [...available].sort(
+      (a, b) =>
+        Math.abs(DIFFICULTY_ORDER.indexOf(a) - target) -
+        Math.abs(DIFFICULTY_ORDER.indexOf(b) - target)
+    )[0] ?? null
+  );
+}
+
+/**
+ * Chooses the brief for a new session, server-side.
+ *
+ * Deliberately never takes an id from the client. Letting a candidate
+ * name the problem lets them shop for one they have already solved,
+ * which makes the practice worthless — and for the design types it
+ * would let them pick the exercise whose reference they have already
+ * unlocked.
+ *
+ * Difficulty is a *preference*, not a filter that can dead-end the
+ * feature. The catalogue is uneven — it currently holds no hard system
+ * design or hard low-level design brief at all — and an exact-match
+ * filter turned that gap into "Start interview" doing nothing, which is
+ * indistinguishable from a broken button. So a requested difficulty with
+ * an empty pool falls back to the nearest one that exists, and says so:
+ * the caller is told which difficulty it actually got, the session row
+ * records that rather than the request, and the UI can tell the learner.
+ * Only a type with no published briefs at any difficulty fails, which is
+ * a genuinely empty catalogue rather than an uneven one.
+ *
+ * Behavioural questions are not graded by difficulty: "tell me about a
+ * conflict" is not harder at senior level, the follow-ups are.
+ */
 async function chooseBrief(
   type: InterviewKind,
   difficulty: Difficulty
-): Promise<
-  | { ok: true; link: Partial<Record<"problemId" | "systemDesignProblemId" | "lldProblemId" | "behavioralQuestionId", string>> }
-  | { ok: false; reason: string }
-> {
-  switch (type) {
-    case "DSA": {
-      const chosen = pick(
-        await prisma.problem.findMany({
-          where: { status: "PUBLISHED", difficulty },
-          select: { id: true },
-        })
-      );
-      return chosen
-        ? { ok: true, link: { problemId: chosen.id } }
-        : { ok: false, reason: "No problems are published at that difficulty yet." };
-    }
-
-    case "SYSTEM_DESIGN": {
-      const chosen = pick(
-        await prisma.systemDesignProblem.findMany({
-          where: { status: "PUBLISHED", difficulty },
-          select: { id: true },
-        })
-      );
-      return chosen
-        ? { ok: true, link: { systemDesignProblemId: chosen.id } }
-        : {
-            ok: false,
-            reason: "No system design briefs are published at that difficulty yet.",
-          };
-    }
-
-    case "LLD": {
-      const chosen = pick(
-        await prisma.lLDProblem.findMany({
-          where: { status: "PUBLISHED", difficulty },
-          select: { id: true },
-        })
-      );
-      return chosen
-        ? { ok: true, link: { lldProblemId: chosen.id } }
-        : {
-            ok: false,
-            reason: "No low-level design briefs are published at that difficulty yet.",
-          };
-    }
-
-    case "BEHAVIORAL": {
-      const chosen = pick(
-        await prisma.behavioralQuestion.findMany({
-          where: { status: "PUBLISHED" },
-          select: { id: true },
-        })
-      );
-      return chosen
-        ? { ok: true, link: { behavioralQuestionId: chosen.id } }
-        : {
-            ok: false,
-            reason: "No behavioural questions are published yet.",
-          };
-    }
+): Promise<ChosenBrief | { ok: false; reason: string }> {
+  if (!isGraded(type)) {
+    const chosen = pick(
+      await prisma.behavioralQuestion.findMany({
+        where: { status: "PUBLISHED" },
+        select: { id: true },
+      })
+    );
+    return chosen
+      ? {
+          ok: true,
+          link: { behavioralQuestionId: chosen.id },
+          difficulty,
+          substituted: false,
+        }
+      : { ok: false, reason: "No behavioural questions are published yet." };
   }
+
+  const pool = GRADED_POOLS[type];
+  const rows = await pool.rows();
+
+  const available = DIFFICULTY_ORDER.filter((level) =>
+    rows.some((row) => row.difficulty === level)
+  );
+  const level = nearestAvailable(difficulty, available);
+
+  if (!level) {
+    return { ok: false, reason: EMPTY_CATALOGUE[type] };
+  }
+
+  const chosen = pick(rows.filter((row) => row.difficulty === level));
+  if (!chosen) return { ok: false, reason: EMPTY_CATALOGUE[type] };
+
+  return {
+    ok: true,
+    link: { [pool.link]: chosen.id },
+    difficulty: level,
+    substituted: level !== difficulty,
+  };
 }
+
+/** Shown only when a type has nothing published at any difficulty. */
+const EMPTY_CATALOGUE: Record<GradedKind, string> = {
+  DSA: "No problems are published yet.",
+  SYSTEM_DESIGN: "No system design briefs are published yet.",
+  LLD: "No low-level design briefs are published yet.",
+};
 
 /**
  * Starts a session against a randomly chosen published brief.
@@ -140,7 +247,10 @@ export async function createInterview(params: {
   type: InterviewType;
   difficulty: Difficulty;
   language: Language;
-}): Promise<{ ok: true; id: string } | { ok: false; reason: string }> {
+}): Promise<
+  | { ok: true; id: string; difficulty: Difficulty; substituted: boolean }
+  | { ok: false; reason: string }
+> {
   const brief = await chooseBrief(params.type as InterviewKind, params.difficulty);
   if (!brief.ok) return brief;
 
@@ -148,7 +258,11 @@ export async function createInterview(params: {
     data: {
       userId: params.userId,
       type: params.type,
-      difficulty: params.difficulty,
+      // The brief's own difficulty, not the requested one. They differ when
+      // the catalogue had nothing at the requested level, and a session row
+      // claiming HARD while holding a medium brief would misreport every
+      // history entry and every piece of feedback written against it.
+      difficulty: brief.difficulty,
       language: params.language,
       stage: "INTRO",
       status: "IN_PROGRESS",
@@ -157,7 +271,12 @@ export async function createInterview(params: {
     select: { id: true },
   });
 
-  return { ok: true, id: session.id };
+  return {
+    ok: true,
+    id: session.id,
+    difficulty: brief.difficulty,
+    substituted: brief.substituted,
+  };
 }
 
 // ---------------------------------------------------------------------------
