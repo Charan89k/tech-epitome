@@ -1,7 +1,7 @@
-import "dotenv/config";
-
 import { hash } from "@node-rs/argon2";
 import { PrismaPg } from "@prisma/adapter-pg";
+
+import { loadEnv } from "./load-env";
 
 import { PrismaClient } from "../src/generated/prisma/client";
 import { ACHIEVEMENTS } from "../src/data/achievements";
@@ -21,6 +21,12 @@ import { PREP_SOURCE, PREP_TRACKS } from "../src/data/prep/tracks";
 import { PROBLEMS } from "../src/data/problems";
 import { QUIZZES } from "../src/data/quizzes";
 import { buildAllStarters } from "../src/lib/code-execution/signature";
+import { databaseConnection } from "../src/lib/db/ssl";
+
+// Before anything reads DATABASE_URL. Mirrors Next.js' own file order, so
+// `NODE_ENV=production npm run db:seed` seeds the hosted database and a bare
+// `npm run db:seed` seeds docker-compose.
+loadEnv();
 
 /**
  * Database seed.
@@ -45,7 +51,9 @@ if (!connectionString) {
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({
-    connectionString,
+    // Same TLS handling as the application's own client: a Supabase host
+    // needs the pinned root CA. See src/lib/db/ssl.ts.
+    ...databaseConnection(connectionString),
     // The local `prisma dev` stand-in is PGlite-backed and cannot service
     // concurrent connections; the seed is sequential anyway.
     max: Number.parseInt(process.env.DATABASE_POOL_MAX ?? "5", 10) || 5,

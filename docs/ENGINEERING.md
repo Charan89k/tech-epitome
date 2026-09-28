@@ -590,7 +590,8 @@ list.
 
 | Variable | Required | Notes |
 |---|---|---|
-| `DATABASE_URL` | yes | PostgreSQL connection string |
+| `DATABASE_URL` | yes | PostgreSQL connection string the app runs on; the pooled endpoint on a hosted provider |
+| `DIRECT_URL` | no | Unpooled endpoint for the Prisma CLI only; falls back to `DATABASE_URL` |
 | `AUTH_SECRET` | yes | 32+ chars; `npx auth secret` |
 | `NEXT_PUBLIC_APP_URL` | yes | Public origin |
 | `AUTH_GOOGLE_ID` / `_SECRET` | no | Both blank hides the Google button |

@@ -3,6 +3,7 @@ import "server-only";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 import { PrismaClient } from "@/generated/prisma/client";
+import { databaseConnection } from "@/lib/db/ssl";
 import { getEnv } from "@/lib/env";
 
 /**
@@ -25,8 +26,11 @@ function createPrismaClient(): PrismaClient {
   // concurrent connections, be pinned to 1.
   const poolMax = Number.parseInt(process.env.DATABASE_POOL_MAX ?? "", 10);
 
+  // Supabase's transaction pooler sits behind a certificate chain the
+  // system trust store does not know; `databaseConnection` supplies the
+  // pinned root so verification stays on. See src/lib/db/ssl.ts.
   const adapter = new PrismaPg({
-    connectionString: env.DATABASE_URL,
+    ...databaseConnection(env.DATABASE_URL),
     max: Number.isFinite(poolMax) && poolMax > 0 ? poolMax : 10,
   });
 

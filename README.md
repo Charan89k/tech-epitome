@@ -406,7 +406,8 @@ explicitly.
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `DATABASE_URL` | **Yes** | PostgreSQL connection string |
+| `DATABASE_URL` | **Yes** | PostgreSQL connection string the app runs on. On a hosted provider use the **pooled** endpoint |
+| `DIRECT_URL` | No | **Unpooled** endpoint, used only by the Prisma CLI (`migrate`, `studio`). Falls back to `DATABASE_URL` |
 | `AUTH_SECRET` | **Yes** | Session signing key — `npx auth secret` |
 | `NEXT_PUBLIC_APP_URL` | **Yes** | Public origin; OAuth callbacks and metadata derive from it |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | No | Google sign-in. Both blank hides the button |
@@ -440,15 +441,32 @@ Vercel Postgres all work.
 3. Vercel detects Next.js automatically; no build overrides are needed.
 4. Add the environment variables — at minimum `DATABASE_URL`, `AUTH_SECRET` and
    `NEXT_PUBLIC_APP_URL` (your production origin).
-5. Deploy, then run the migrations and seed against the production database:
+5. Deploy, then run the migrations and seed against the production database.
+   Put the production `DATABASE_URL` and `DIRECT_URL` in `.env.production.local`
+   — git-ignored, and loaded by these scripts and by `next build`, never by
+   `next dev`:
    ```bash
-   DATABASE_URL="<production-url>" npx prisma migrate deploy
-   DATABASE_URL="<production-url>" npm run db:seed
+   npm run db:deploy:prod    # applies the migration history
+   npm run db:seed:prod      # idempotent; safe to re-run
+   npm run db:status:prod    # should say "Database schema is up to date!"
    ```
 6. Open the generated production URL.
 
 ### Production notes
 
+- **Pooled vs direct.** Serverless functions open a connection per invocation,
+  so `DATABASE_URL` must be the provider's pooled endpoint (Supabase: the
+  transaction pooler on port 6543). The migration engine needs an advisory lock
+  and session state a transaction pooler cannot give it, so the Prisma CLI uses
+  `DIRECT_URL` (Supabase: port 5432). Supabase's direct endpoint is IPv6-only —
+  fine from a laptop, not from Vercel — which is another reason migrations are
+  run from a workstation rather than during the build.
+- **The build reads the database.** `generateStaticParams` for `/prepare/[track]`
+  queries Postgres, so `DATABASE_URL` has to be set on the Build step, not just
+  at runtime, and the migrations must already be applied.
+- **TLS.** Supabase serves Postgres under its own CA, which Node rejects against
+  the system trust store. `src/lib/db/ssl.ts` pins that root so verification
+  stays on instead of reaching for `sslmode=no-verify`.
 - **Code execution.** Set `CODE_EXECUTION_DRIVER=docker` and give the deployment
   a reachable Docker daemon. On a serverless platform there is none, so the
   editor's run/submit will refuse rather than execute learner code on the host.

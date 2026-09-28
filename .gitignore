@@ -33,9 +33,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files -- never commit real secrets
+# env files -- never commit real secrets.
+# Everything matching .env* is ignored, including .env.production.local
+# (the hosted database credentials) and any ad-hoc .env.<whatever> file.
+# .env.example is the one exception: it carries names and no values.
 .env
-.env*.local
+.env.*
 !.env.example
 
 # vercel
