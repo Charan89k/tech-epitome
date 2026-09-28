@@ -150,9 +150,28 @@ export async function signOutAction(): Promise<void> {
   await signOut({ redirectTo: "/" });
 }
 
+/**
+ * OAuth kick-off.
+ *
+ * `next` goes through `safeInternalPath` here exactly as it does on the
+ * credentials path. It is the same attacker-controlled value — it arrives in
+ * a hidden field that anyone can rewrite before submitting — and Auth.js
+ * hands whatever it is given to `redirectTo` after the callback. Narrowing it
+ * to a same-origin path is what keeps the provider round-trip from becoming
+ * the open redirect that `safeInternalPath` exists to close.
+ *
+ * Neither action takes a client-supplied provider id: the provider is a
+ * literal in each function, so a rewritten form cannot aim sign-in at a
+ * provider that was never configured.
+ */
 export async function signInWithGoogleAction(formData: FormData): Promise<void> {
   const next = safeInternalPath(formData.get("next"), "/dashboard");
   await signIn("google", { redirectTo: next });
+}
+
+export async function signInWithGitHubAction(formData: FormData): Promise<void> {
+  const next = safeInternalPath(formData.get("next"), "/dashboard");
+  await signIn("github", { redirectTo: next });
 }
 
 function fieldErrorsFrom(error: {

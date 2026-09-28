@@ -15,6 +15,19 @@ process.env.CRON_SECRET ??= E2E_CRON_SECRET;
 const baseURL = `http://127.0.0.1:${PORT}`;
 
 /**
+ * OAuth client credentials are deliberately NOT set here.
+ *
+ * The test server inherits whatever the developer's environment already
+ * provides, and nothing else: no placeholder, no stand-in, no invented
+ * value. `e2e/oauth.spec.ts` asks the running server which providers it
+ * actually registered and skips the provider-dependent cases when the answer
+ * is "none", rather than manufacturing credentials so they appear to pass.
+ *
+ * The callback-boundary and redirect checks in that spec need no provider at
+ * all and always run.
+ */
+
+/**
  * End-to-end tests.
  *
  * Runs against a real dev server on its own port so it never collides with

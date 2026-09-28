@@ -1,4 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
+import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 
 /**
@@ -33,9 +34,48 @@ export const authConfig = {
           }),
         ]
       : []),
+
+    // `allowDangerousEmailAccountLinking` stays false here for the same
+    // reason it is false for Google, and the reason matters more on GitHub:
+    // a GitHub account's email is not necessarily one the person proved they
+    // own to us. Linking on a matching address alone would let anyone who can
+    // set that address on a GitHub profile walk into the existing Tech
+    // Epitome account. Auth.js instead raises OAuthAccountNotLinked, which
+    // the login page renders as a real message.
+    ...(process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET
+      ? [
+          GitHub({
+            clientId: process.env.AUTH_GITHUB_ID,
+            clientSecret: process.env.AUTH_GITHUB_SECRET,
+            allowDangerousEmailAccountLinking: false,
+          }),
+        ]
+      : []),
   ],
 
   callbacks: {
+    /**
+     * Refuses an OAuth identity that arrives without an email address.
+     *
+     * `User.email` is non-null and unique, so a profile with no address
+     * cannot become a Tech Epitome account. Auth.js already works hard to
+     * avoid this — the GitHub provider asks for `user:email` and falls back
+     * to the `/user/emails` API when the profile address is private — but a
+     * GitHub account with no verified address at all still reaches us with
+     * `email: null`. Without this guard that surfaces as a Prisma
+     * null-constraint violation, which the user sees as a 500 on a page
+     * that was working a second ago.
+     *
+     * Returning false sends them back to /login with an `AccessDenied`
+     * error instead, which is a wrong-but-honest answer rather than a crash.
+     * Credentials sign-in is untouched: it has already proved the address.
+     */
+    signIn({ user, account }) {
+      const isOAuth = account?.type === "oauth" || account?.type === "oidc";
+      if (isOAuth && !user?.email) return false;
+      return true;
+    },
+
     /**
      * Copies the stable identity claims onto the token. Anything that can
      * change mid-session (role, progress) is deliberately NOT cached here -

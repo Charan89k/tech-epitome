@@ -36,6 +36,9 @@ const serverSchema = z.object({
   AUTH_GOOGLE_ID: z.preprocess(emptyToUndefined, z.string().optional()),
   AUTH_GOOGLE_SECRET: z.preprocess(emptyToUndefined, z.string().optional()),
 
+  AUTH_GITHUB_ID: z.preprocess(emptyToUndefined, z.string().optional()),
+  AUTH_GITHUB_SECRET: z.preprocess(emptyToUndefined, z.string().optional()),
+
   // "mock" is the deterministic test double the end-to-end suite runs
   // against, so CI needs neither an API key nor a local model. It is
   // rejected outright in production by the cross-field rules in `getEnv`,
@@ -176,3 +179,8 @@ export function isGoogleAuthEnabled(): boolean {
   return Boolean(e.AUTH_GOOGLE_ID && e.AUTH_GOOGLE_SECRET);
 }
 
+/** True when GitHub OAuth is fully configured; the login UI hides the button otherwise. */
+export function isGitHubAuthEnabled(): boolean {
+  const e = getEnv();
+  return Boolean(e.AUTH_GITHUB_ID && e.AUTH_GITHUB_SECRET);
+}

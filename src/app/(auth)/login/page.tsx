@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { AuthForm } from "@/components/auth/auth-form";
 import { getCurrentUser } from "@/lib/auth/session";
-import { isGoogleAuthEnabled } from "@/lib/env";
+import { isGitHubAuthEnabled, isGoogleAuthEnabled } from "@/lib/env";
 import { safeInternalPath } from "@/lib/safe-redirect";
 import { route } from "@/lib/utils";
 
@@ -20,5 +20,12 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   // Already signed in - skip the form entirely.
   if (await getCurrentUser()) redirect(route(next));
 
-  return <AuthForm mode="signin" next={next} googleEnabled={isGoogleAuthEnabled()} />;
+  return (
+    <AuthForm
+      mode="signin"
+      next={next}
+      googleEnabled={isGoogleAuthEnabled()}
+      githubEnabled={isGitHubAuthEnabled()}
+    />
+  );
 }

@@ -84,5 +84,42 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         update: {},
       });
     },
+
+    /**
+     * Drops the provider tokens the adapter just wrote.
+     *
+     * The adapter persists whatever the provider returned — access token,
+     * refresh token, id token — because that is what an app calling the
+     * provider's API on the user's behalf would need. Tech Epitome uses
+     * Google and GitHub for identity only: it never reads a repository,
+     * never touches a calendar, never calls either API after the callback
+     * completes. Sessions are JWTs, so nothing downstream reads these
+     * columns either.
+     *
+     * Keeping them would mean holding live third-party credentials for
+     * every learner in exchange for no capability at all, which only ever
+     * reads as a liability in a breach. The row itself stays: the
+     * `(provider, providerAccountId)` pair is what identifies a returning
+     * OAuth user, and that is the part we actually need.
+     *
+     * The columns stay in the schema because they are part of the adapter's
+     * contract — this empties them rather than migrating them away.
+     */
+    async linkAccount({ account }) {
+      await prisma.account.updateMany({
+        where: {
+          provider: account.provider,
+          providerAccountId: account.providerAccountId,
+        },
+        data: {
+          access_token: null,
+          refresh_token: null,
+          id_token: null,
+          expires_at: null,
+          session_state: null,
+          scope: null,
+        },
+      });
+    },
   },
 });

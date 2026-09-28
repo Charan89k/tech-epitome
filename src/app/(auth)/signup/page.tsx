@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { AuthForm } from "@/components/auth/auth-form";
 import { getCurrentUser } from "@/lib/auth/session";
-import { isGoogleAuthEnabled } from "@/lib/env";
+import { isGitHubAuthEnabled, isGoogleAuthEnabled } from "@/lib/env";
 import { safeInternalPath } from "@/lib/safe-redirect";
 import { route } from "@/lib/utils";
 
@@ -24,5 +24,12 @@ export default async function SignUpPage({ searchParams }: PageProps<"/signup">)
 
   if (await getCurrentUser()) redirect(route(next || "/dashboard"));
 
-  return <AuthForm mode="signup" next={next} googleEnabled={isGoogleAuthEnabled()} />;
+  return (
+    <AuthForm
+      mode="signup"
+      next={next}
+      googleEnabled={isGoogleAuthEnabled()}
+      githubEnabled={isGitHubAuthEnabled()}
+    />
+  );
 }
