@@ -59,7 +59,7 @@ export function StatusToggle({
         onValueChange={(next) => change(next as ContentStatus)}
         disabled={pending}
       >
-        <SelectTrigger className="h-8 w-full" aria-label="Publication status">
+        <SelectTrigger size="sm" className="h-8 w-full text-xs" aria-label="Publication status">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

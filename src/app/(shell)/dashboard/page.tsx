@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
+  ArrowUpRight,
   BookOpenCheck,
   BrainCircuit,
   CircleDot,
@@ -13,13 +14,12 @@ import {
   Target,
 } from "lucide-react";
 
+import { Bar, Panel } from "@/components/dashboard/panel";
 import { DifficultyBadge } from "@/components/common/difficulty-badge";
 import { EmptyState } from "@/components/common/empty-state";
-import { ProgressRing } from "@/components/common/progress-ring";
 import { StatTile } from "@/components/common/stat-tile";
-import { Badge } from "@/components/ui/badge";
+import { MiniDiagram } from "@/components/marketing/mini-diagrams";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth/session";
 import { cn, route } from "@/lib/utils";
 import { getDashboardData } from "@/services/dashboard";
@@ -29,6 +29,8 @@ export const metadata: Metadata = {
   title: "Dashboard",
   robots: { index: false, follow: false },
 };
+
+type Data = Awaited<ReturnType<typeof getDashboardData>>;
 
 function greeting(date = new Date()): string {
   const hour = date.getHours();
@@ -44,6 +46,15 @@ function formatStudyTime(seconds: number): string {
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }
 
+const LANGUAGE_LABEL: Record<string, string> = {
+  PYTHON: "Python",
+  JAVASCRIPT: "JavaScript",
+  TYPESCRIPT: "TypeScript",
+  JAVA: "Java",
+  CPP: "C++",
+  GO: "Go",
+};
+
 export default async function DashboardPage() {
   const user = await requireUser("/dashboard");
   const [data, summary] = await Promise.all([
@@ -55,208 +66,118 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-      <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-        {greeting()}
-        {firstName ? `, ${firstName}` : ""}
-      </h1>
-      <p className="text-muted-foreground mt-1 text-sm">
-        {data.dueReviewCount > 0
-          ? `${data.dueReviewCount} item${data.dueReviewCount === 1 ? "" : "s"} ready for review.`
-          : "Here is where you left off."}
-      </p>
+      <div>
+        <div className="min-w-0">
+          <h1 className="tracking-headline text-2xl font-bold sm:text-3xl">
+            {greeting()}
+            {firstName ? `, ${firstName}` : ""}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {data.dueReviewCount > 0
+              ? `${data.dueReviewCount} item${data.dueReviewCount === 1 ? "" : "s"} ready for review.`
+              : "Here is where you left off."}
+          </p>
+        </div>
+      </div>
 
-      <div className="mt-6 grid gap-5 lg:grid-cols-3">
-        {/* ---- Primary column -------------------------------------------- */}
-        <div className="space-y-5 lg:col-span-2">
+      {/* ---- Feature row: what to do next --------------------------------- */}
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <ContinueLearningCard data={data.continueLearning} />
+        {data.dueReviewCount > 0 ? (
           <DueForReviewCard count={data.dueReviewCount} />
+        ) : (
+          <FeatureLink
+            href="/patterns"
+            title="Pattern library"
+            description="Learn a pattern on its own page, then practise the problems built on it."
+            diagram="window"
+          />
+        )}
+      </div>
+
+      {/* ---- Stats ------------------------------------------------------- */}
+      <section aria-labelledby="progress-heading" className="mt-6">
+        <h2 id="progress-heading" className="sr-only">
+          Your progress
+        </h2>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatTile
+            label="Solved"
+            value={summary.problemsSolved}
+            icon={ListChecks}
+            hint={`${summary.easySolved}E · ${summary.mediumSolved}M · ${summary.hardSolved}H`}
+          />
+          <StatTile
+            label="Patterns"
+            value={summary.patternsMastered}
+            icon={Shapes}
+            hint="mastered"
+          />
+          <StatTile
+            label="Streak"
+            value={`${summary.currentStreak}d`}
+            icon={Flame}
+            hint={`best ${summary.longestStreak}d`}
+            className={
+              summary.currentStreak > 0
+                ? "border-ember-500/30 bg-ember-500/6"
+                : undefined
+            }
+          />
+          <StatTile
+            label="Study time"
+            value={formatStudyTime(summary.studySeconds)}
+            icon={Clock}
+            hint={`${summary.chaptersCompleted} chapters`}
+          />
+        </div>
+      </section>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        {/* ---- Primary column -------------------------------------------- */}
+        <div className="min-w-0 space-y-6">
           <WeeklyTargetCard target={data.weeklyTarget} />
-          <ContinueLearningCard data={data.continueLearning} />
           <TodaysPracticeCard problems={data.recommendedProblems} />
-          <TracksCard tracks={data.tracks} />
+          <RecentActivityCard submissions={data.recentSubmissions} />
         </div>
 
-        {/* ---- Secondary column ------------------------------------------ */}
-        <div className="space-y-5">
-          <section aria-labelledby="progress-heading">
-            <h2
-              id="progress-heading"
-              className="text-muted-foreground mb-3 text-xs font-medium tracking-wider uppercase"
-            >
-              Your progress
-            </h2>
-            <div className="grid grid-cols-2 gap-3">
-              <StatTile
-                label="Solved"
-                value={summary.problemsSolved}
-                icon={ListChecks}
-                hint={`${summary.easySolved}E · ${summary.mediumSolved}M · ${summary.hardSolved}H`}
-              />
-              <StatTile
-                label="Patterns"
-                value={summary.patternsMastered}
-                icon={Shapes}
-                hint="mastered"
-              />
-              <StatTile
-                label="Streak"
-                value={`${summary.currentStreak}d`}
-                icon={Flame}
-                hint={`best ${summary.longestStreak}d`}
-              />
-              <StatTile
-                label="Study time"
-                value={formatStudyTime(summary.studySeconds)}
-                icon={Clock}
-                hint={`${summary.chaptersCompleted} chapters`}
-              />
-            </div>
-          </section>
-
-          <QuizPerformanceCard performance={data.quizPerformance} />
+        {/* ---- Right rail -------------------------------------------------- */}
+        <div className="min-w-0 space-y-6">
           <WeakPatternsCard patterns={data.weakPatterns} />
-          <RecentActivityCard submissions={data.recentSubmissions} />
+          <QuizPerformanceCard performance={data.quizPerformance} />
+          <TracksCard tracks={data.tracks} />
         </div>
       </div>
     </div>
   );
 }
 
-/**
- * Progress against a weekly target the learner set themselves.
- *
- * Absent entirely when they never set one — a bar reading "0 of 0" would
- * imply a goal they never chose. Over-achieving is shown as over-achieving
- * rather than clamped to 100%, because clamping hides the interesting part.
- */
-function WeeklyTargetCard({
-  target,
+/** Link card in the feature-card shape: diagram thumbnail, title, one line. */
+function FeatureLink({
+  href,
+  title,
+  description,
+  diagram,
 }: {
-  target: Awaited<ReturnType<typeof getDashboardData>>["weeklyTarget"];
+  href: "/patterns";
+  title: string;
+  description: string;
+  diagram: "window";
 }) {
-  if (!target) return null;
-
-  const percent = Math.min(100, Math.round((target.done / target.target) * 100));
-  const met = target.done >= target.target;
-
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm">This week</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="text-sm">
-            <span
-              className={cn(
-                "text-lg font-semibold tabular-nums",
-                met && "text-success"
-              )}
-            >
-              {target.done}
-            </span>
-            <span className="text-muted-foreground">
-              {" "}
-              of {target.target} chapters and problems
-            </span>
-          </p>
-          {met && (
-            <span className="text-success text-xs font-medium">Target met</span>
-          )}
-        </div>
-
-        <div
-          role="progressbar"
-          aria-valuenow={target.done}
-          aria-valuemin={0}
-          aria-valuemax={target.target}
-          aria-label="Progress against your weekly target"
-          className="bg-muted mt-3 h-1.5 overflow-hidden rounded-full"
-        >
-          <div
-            className={cn(
-              "h-full rounded-full transition-all",
-              met ? "bg-success" : "bg-ember-500"
-            )}
-            style={{ width: `${percent}%` }}
-          />
-        </div>
-
-        <p className="text-muted-foreground/70 mt-2 text-xs">
-          Since{" "}
-          {target.since.toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-          })}
-          . Nothing happens if you miss it — change it in settings.
-        </p>
-      </CardContent>
-    </Card>
-  );
-}
-
-/**
- * The three tracks beyond DSA.
- *
- * Counts of the learner's own submissions against what is published.
- * Rendered even at zero: "0 of 3 design exercises submitted" is a true
- * statement and a useful prompt, unlike a fabricated score.
- */
-function TracksCard({
-  tracks,
-}: {
-  tracks: Awaited<ReturnType<typeof getDashboardData>>["tracks"];
-}) {
-  const rows = [
-    {
-      label: "System design",
-      href: "/system-design" as const,
-      done: tracks.systemDesign.submitted,
-      total: tracks.systemDesign.total,
-      unit: "submitted",
-    },
-    {
-      label: "Low-level design",
-      href: "/lld" as const,
-      done: tracks.lld.submitted,
-      total: tracks.lld.total,
-      unit: "submitted",
-    },
-  ];
-
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm">Design and interviews</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {rows.map((row) => (
-          <div key={row.label} className="flex items-center justify-between gap-3">
-            <Link
-              href={route(row.href)}
-              className="hover:text-ember-300 text-sm transition-colors"
-            >
-              {row.label}
-            </Link>
-            <span className="text-muted-foreground text-xs tabular-nums">
-              {row.done} of {row.total} {row.unit}
-            </span>
-          </div>
-        ))}
-
-        <div className="flex items-center justify-between gap-3">
-          <Link
-            href={route("/interviews")}
-            className="hover:text-ember-300 text-sm transition-colors"
-          >
-            Mock interviews
-          </Link>
-          <span className="text-muted-foreground text-xs tabular-nums">
-            {tracks.interviews.completed} completed ·{" "}
-            {tracks.interviews.withFeedback} with feedback
-          </span>
-        </div>
-      </CardContent>
-    </Card>
+    <Link
+      href={href}
+      className="group flex overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-ember-500/40"
+    >
+      <MiniDiagram kind={diagram} className="w-32 shrink-0 border-r sm:w-40" />
+      <div className="min-w-0 flex-1 p-4">
+        <h2 className="flex items-center gap-1.5 font-semibold transition-colors group-hover:text-ember-200">
+          {title}
+          <ArrowUpRight className="size-3.5 text-muted-foreground" aria-hidden="true" />
+        </h2>
+        <p className="mt-1 text-sm leading-snug text-muted-foreground">{description}</p>
+      </div>
+    </Link>
   );
 }
 
@@ -271,285 +192,478 @@ function TracksCard({
  * it cannot disagree with what the session then serves.
  */
 function DueForReviewCard({ count }: { count: number }) {
-  if (count === 0) return null;
-
   return (
     <Link
       href="/review"
-      className="border-ember-500/30 bg-ember-500/6 hover:border-ember-500/50 flex items-center gap-4 rounded-lg border p-4 transition-colors"
+      className="group flex overflow-hidden rounded-xl border border-ember-500/35 bg-ember-500/6 transition-colors hover:border-ember-500/60"
     >
-      <div className="bg-ember-500/12 text-ember-400 rounded-lg p-2.5">
-        <Repeat2 className="size-5" aria-hidden="true" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">Due for review</p>
-        <p className="text-muted-foreground mt-0.5 text-xs">
-          <span className="tabular">{count}</span> item{count === 1 ? "" : "s"}{" "}
-          ready to recall. A few minutes now is worth an hour of re-reading
-          later.
+      <MiniDiagram
+        kind="stack"
+        className="w-32 shrink-0 border-r border-ember-500/20 sm:w-40"
+      />
+      <div className="relative min-w-0 flex-1 p-4">
+        <div className="flex items-center gap-2">
+          <Repeat2 className="size-4 shrink-0 text-ember-400" aria-hidden="true" />
+          <h2 className="font-semibold">Due for review</h2>
+          <ArrowRight
+            className="ml-auto size-4 shrink-0 text-ember-400 transition-transform group-hover:translate-x-0.5"
+            aria-hidden="true"
+          />
+        </div>
+        <p className="mt-1 text-sm leading-snug text-muted-foreground">
+          <span className="font-medium text-ember-200">
+            <span className="tabular">{count}</span> item{count === 1 ? "" : "s"}
+          </span>{" "}
+          ready to recall. A few minutes now is worth an hour of re-reading later.
         </p>
       </div>
-      <ArrowRight
-        className="text-ember-500 size-4 shrink-0"
-        aria-hidden="true"
-      />
     </Link>
   );
 }
 
-function ContinueLearningCard({
-  data,
-}: {
-  data: Awaited<ReturnType<typeof getDashboardData>>["continueLearning"];
-}) {
+function ContinueLearningCard({ data }: { data: Data["continueLearning"] }) {
   if (!data) {
     return (
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Continue learning</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <EmptyState
-            icon={BookOpenCheck}
-            title="No published curriculum yet"
-            description="Once a course is published it will appear here with your position in it."
-            size="sm"
-          />
-        </CardContent>
-      </Card>
+      <div className="flex overflow-hidden rounded-xl border border-border bg-card">
+        <MiniDiagram kind="pointers" className="w-32 shrink-0 border-r sm:w-40" />
+        <div className="min-w-0 flex-1 p-4">
+          <h2 className="flex items-center gap-1.5 font-semibold">
+            <BookOpenCheck
+              className="size-4 text-muted-foreground"
+              aria-hidden="true"
+            />
+            Continue learning
+          </h2>
+          <p className="mt-1 text-sm leading-snug text-muted-foreground">
+            No published curriculum yet. Once a course is published it will appear here
+            with your position in it.
+          </p>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm">Continue learning</CardTitle>
-      </CardHeader>
-      <CardContent className="flex items-center gap-5">
-        <ProgressRing
-          value={data.percent}
-          size={72}
-          label={`${data.percent}% through ${data.chapterTitle}`}
-        />
-
-        <div className="min-w-0 flex-1">
-          <p className="text-muted-foreground truncate text-xs">
-            {data.courseTitle} · {data.sectionTitle}
-          </p>
-          <p className="mt-0.5 truncate text-base font-medium">
-            {data.chapterTitle}
-          </p>
-          <Button asChild size="sm" className="mt-3">
+    <div className="flex overflow-hidden rounded-xl border border-border bg-card">
+      <MiniDiagram kind="pointers" className="w-32 shrink-0 border-r sm:w-40" />
+      <div className="min-w-0 flex-1 p-4">
+        <p className="text-[0.68rem] font-medium tracking-wider text-muted-foreground uppercase">
+          Continue learning
+        </p>
+        <h2 className="mt-1 truncate font-semibold">{data.chapterTitle}</h2>
+        <p className="truncate text-xs text-muted-foreground">
+          {data.courseTitle} · {data.sectionTitle}
+        </p>
+        <div className="mt-3 flex items-center gap-3">
+          <Bar
+            percent={data.percent}
+            label={`${data.percent}% through ${data.chapterTitle}`}
+            className="flex-1"
+          />
+          <span className="font-mono text-xs text-muted-foreground tabular-nums">
+            {data.percent}%
+          </span>
+          <Button asChild size="sm" className="shrink-0">
             <Link href={route(data.href)}>
               {data.percent > 0 ? "Continue" : "Start"}
               <ArrowRight className="size-4" />
             </Link>
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
-function TodaysPracticeCard({
-  problems,
+/**
+ * Progress against a weekly target the learner set themselves.
+ *
+ * Absent entirely when they never set one — a bar reading "0 of 0" would
+ * imply a goal they never chose. Over-achieving is shown as over-achieving
+ * rather than clamped to 100%, because clamping hides the interesting part.
+ */
+function WeeklyTargetCard({ target }: { target: Data["weeklyTarget"] }) {
+  if (!target) return null;
+
+  const percent = Math.min(100, Math.round((target.done / target.target) * 100));
+  const met = target.done >= target.target;
+
+  return (
+    <Panel
+      title="This week"
+      action={
+        met ? (
+          <span className="rounded-full bg-ember-500/15 px-2 py-0.5 text-[0.68rem] font-semibold text-ember-300">
+            Target met
+          </span>
+        ) : undefined
+      }
+      bodyClassName="p-4 sm:px-5"
+    >
+      <p className="text-sm">
+        <span
+          className={cn("text-lg font-semibold tabular-nums", met && "text-ember-300")}
+        >
+          {target.done}
+        </span>
+        <span className="text-muted-foreground">
+          {" "}
+          of {target.target} chapters and problems
+        </span>
+      </p>
+
+      <div
+        role="progressbar"
+        aria-valuenow={target.done}
+        aria-valuemin={0}
+        aria-valuemax={target.target}
+        aria-label="Progress against your weekly target"
+        className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted"
+      >
+        <div
+          className="h-full rounded-full bg-ember-500 transition-all"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+
+      <p className="mt-2 text-xs text-muted-foreground/70">
+        Since{" "}
+        {target.since.toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+        })}
+        . Nothing happens if you miss it — change it in settings.
+      </p>
+    </Panel>
+  );
+}
+
+function ViewAll({
+  href,
+  children,
 }: {
-  problems: Awaited<ReturnType<typeof getDashboardData>>["recommendedProblems"];
+  href: "/problems" | "/patterns";
+  children: React.ReactNode;
 }) {
   return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between pb-3">
-        <CardTitle className="text-sm">Today&rsquo;s practice</CardTitle>
-        <Button asChild variant="ghost" size="sm" className="-mr-2 h-7 text-xs">
-          <Link href="/problems">
-            All problems
-            <ArrowRight className="size-3.5" />
-          </Link>
-        </Button>
-      </CardHeader>
-      <CardContent className="p-0">
-        {problems.length === 0 ? (
-          <EmptyState
-            icon={Target}
-            title="Nothing to recommend yet"
-            description="Recommendations come from what you have attempted. Solve a problem and this fills in."
-            size="sm"
-          />
-        ) : (
-          <ul className="divide-border divide-y">
+    <Link
+      href={href}
+      className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-ember-300"
+    >
+      {children}
+      <ArrowRight className="size-3.5" aria-hidden="true" />
+    </Link>
+  );
+}
+
+function TodaysPracticeCard({ problems }: { problems: Data["recommendedProblems"] }) {
+  return (
+    <Panel
+      title="Today’s practice"
+      description="Picked from what you have attempted so far."
+      action={<ViewAll href="/problems">All problems</ViewAll>}
+    >
+      {problems.length === 0 ? (
+        <EmptyState
+          icon={Target}
+          title="Nothing to recommend yet"
+          description="Recommendations come from what you have attempted. Solve a problem and this fills in."
+          size="sm"
+          action={
+            <Button asChild size="sm" variant="outline">
+              <Link href="/problems">Browse problems</Link>
+            </Button>
+          }
+        />
+      ) : (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-xs text-muted-foreground">
+              <th scope="col" className="w-12 px-4 py-2.5 font-medium sm:px-5">
+                #
+              </th>
+              <th scope="col" className="px-2 py-2.5 font-medium">
+                Problem
+              </th>
+              <th
+                scope="col"
+                className="w-20 px-4 py-2.5 text-right font-medium sm:w-24 sm:px-5"
+              >
+                Difficulty
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
             {problems.map((problem) => (
-              <li key={problem.id}>
-                <Link
-                  href={route(`/problems/${problem.slug}`)}
-                  className="hover:bg-accent/40 flex items-center gap-3 px-6 py-3 transition-colors"
-                >
-                  <span className="text-muted-foreground w-8 shrink-0 font-mono text-xs tabular-nums">
-                    {problem.number}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">
-                      {problem.title}
-                    </span>
-                    <span className="text-muted-foreground block truncate text-xs">
-                      {problem.reason}
-                    </span>
-                  </span>
-                  <DifficultyBadge difficulty={problem.difficulty} />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function QuizPerformanceCard({
-  performance,
-}: {
-  performance: Awaited<ReturnType<typeof getDashboardData>>["quizPerformance"];
-}) {
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm">Quiz performance</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {!performance ? (
-          <EmptyState
-            icon={BrainCircuit}
-            title="No quiz attempts yet"
-            description="Chapters end with a short quiz. Your average shows up here once you take one."
-            size="sm"
-          />
-        ) : (
-          <div className="space-y-3">
-            <div className="flex items-baseline justify-between">
-              <span className="text-muted-foreground text-xs">Average score</span>
-              <span className="tabular text-lg font-semibold">
-                {performance.averagePercent}%
-              </span>
-            </div>
-            <div
-              className="bg-muted h-1.5 w-full overflow-hidden rounded-full"
-              role="img"
-              aria-label={`Average quiz score ${performance.averagePercent} percent`}
-            >
-              <div
-                className="bg-ember-500 h-full rounded-full"
-                style={{ width: `${Math.max(2, performance.averagePercent)}%` }}
-              />
-            </div>
-            <p className="text-muted-foreground text-xs tabular-nums">
-              {performance.passed} passed of {performance.attempts} attempt
-              {performance.attempts === 1 ? "" : "s"}
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function WeakPatternsCard({
-  patterns,
-}: {
-  patterns: Awaited<ReturnType<typeof getDashboardData>>["weakPatterns"];
-}) {
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm">Needs work</CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
-        {patterns.length === 0 ? (
-          <EmptyState
-            icon={Shapes}
-            title="No weak patterns"
-            description="This is measured from your attempts, so it stays empty until you have practised."
-            size="sm"
-          />
-        ) : (
-          <ul className="divide-border divide-y">
-            {patterns.map((pattern) => (
-              <li key={pattern.id}>
-                <Link
-                  href={route(`/patterns/${pattern.slug}`)}
-                  className="hover:bg-accent/40 block px-6 py-3 transition-colors"
-                >
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="truncate text-sm font-medium">
-                      {pattern.name}
-                    </span>
-                    <span className="text-muted-foreground tabular shrink-0 text-xs">
-                      {pattern.solved}/{pattern.attempts}
-                    </span>
-                  </div>
-                  <div
-                    className="bg-muted mt-2 h-1 w-full overflow-hidden rounded-full"
-                    role="img"
-                    aria-label={`Mastery ${pattern.score} out of 100`}
+              <tr key={problem.id} className="transition-colors hover:bg-accent/25">
+                <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground tabular-nums sm:px-5">
+                  {problem.number}
+                </td>
+                <td className="min-w-0 px-2 py-3">
+                  <Link
+                    href={route(`/problems/${problem.slug}`)}
+                    className="font-medium text-info transition-colors hover:text-ember-300"
                   >
-                    <div
-                      className="bg-difficulty-hard h-full rounded-full"
-                      style={{ width: `${Math.max(3, pattern.score)}%` }}
-                    />
-                  </div>
-                </Link>
-              </li>
+                    {problem.title}
+                  </Link>
+                  {/* Rendered once, under the title, at every width: a second
+                      copy in its own column would be read twice by a screen
+                      reader and matched twice by anything looking for it. */}
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    {problem.reason}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-right align-top sm:px-5">
+                  <DifficultyBadge difficulty={problem.difficulty} />
+                </td>
+              </tr>
             ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
+          </tbody>
+        </table>
+      )}
+    </Panel>
   );
 }
 
 function RecentActivityCard({
   submissions,
 }: {
-  submissions: Awaited<ReturnType<typeof getDashboardData>>["recentSubmissions"];
+  submissions: Data["recentSubmissions"];
 }) {
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm">Recent submissions</CardTitle>
-      </CardHeader>
-      <CardContent className="p-0">
-        {submissions.length === 0 ? (
-          <EmptyState
-            icon={CircleDot}
-            title="No submissions yet"
-            size="sm"
-          />
-        ) : (
-          <ul className="divide-border divide-y">
-            {submissions.map((submission) => (
-              <li key={submission.id}>
-                <Link
-                  href={route(`/problems/${submission.problemSlug}`)}
-                  className="hover:bg-accent/40 flex items-center gap-2 px-6 py-2.5 transition-colors"
+    <Panel title="Recent submissions">
+      {submissions.length === 0 ? (
+        <EmptyState
+          icon={CircleDot}
+          title="No submissions yet"
+          description="Submit a solution to any problem and it is listed here."
+          size="sm"
+        />
+      ) : (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-xs text-muted-foreground">
+              <th scope="col" className="px-4 py-2.5 font-medium sm:px-5">
+                Problem
+              </th>
+              <th
+                scope="col"
+                className="hidden w-28 px-2 py-2.5 font-medium sm:table-cell"
+              >
+                Language
+              </th>
+              <th
+                scope="col"
+                className="hidden w-24 px-2 py-2.5 font-medium sm:table-cell"
+              >
+                When
+              </th>
+              <th
+                scope="col"
+                className="w-20 px-4 py-2.5 text-right font-medium sm:px-5"
+              >
+                Result
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {submissions.map((submission) => {
+              const passed = submission.status === "ACCEPTED";
+              return (
+                <tr
+                  key={submission.id}
+                  className="transition-colors hover:bg-accent/25"
                 >
-                  <span className="min-w-0 flex-1 truncate text-xs">
-                    {submission.problemTitle}
-                  </span>
-                  <Badge
-                    variant="outline"
-                    className={
-                      submission.status === "ACCEPTED"
-                        ? "text-success border-success/30 bg-success/10 h-5 px-1.5 text-[0.65rem]"
-                        : "text-muted-foreground h-5 px-1.5 text-[0.65rem]"
-                    }
+                  <td className="px-4 py-2.5 sm:px-5">
+                    <Link
+                      href={route(`/problems/${submission.problemSlug}`)}
+                      className="text-info transition-colors hover:text-ember-300"
+                    >
+                      {submission.problemTitle}
+                    </Link>
+                  </td>
+                  <td className="hidden px-2 py-2.5 text-xs text-muted-foreground sm:table-cell">
+                    {LANGUAGE_LABEL[submission.language] ?? submission.language}
+                  </td>
+                  <td className="hidden px-2 py-2.5 text-xs text-muted-foreground tabular-nums sm:table-cell">
+                    <time dateTime={submission.createdAt.toISOString()}>
+                      {submission.createdAt.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </time>
+                  </td>
+                  <td
+                    className={cn(
+                      "px-4 py-2.5 text-right text-xs font-medium sm:px-5",
+                      passed ? "text-success" : "text-muted-foreground"
+                    )}
                   >
-                    {submission.status === "ACCEPTED" ? "Passed" : "Failed"}
-                  </Badge>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
+                    {passed ? "Passed" : "Failed"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </Panel>
+  );
+}
+
+function WeakPatternsCard({ patterns }: { patterns: Data["weakPatterns"] }) {
+  return (
+    <Panel
+      title="Needs work"
+      action={
+        patterns.length > 0 ? <ViewAll href="/patterns">Patterns</ViewAll> : undefined
+      }
+    >
+      {patterns.length === 0 ? (
+        <EmptyState
+          icon={Shapes}
+          title="No weak patterns"
+          description="This is measured from your attempts, so it stays empty until you have practised."
+          size="sm"
+          action={
+            <Button asChild size="sm" variant="outline">
+              <Link href="/patterns">Browse patterns</Link>
+            </Button>
+          }
+        />
+      ) : (
+        <ul className="divide-y divide-border">
+          {patterns.map((pattern) => (
+            <li key={pattern.id}>
+              <Link
+                href={route(`/patterns/${pattern.slug}`)}
+                className="block px-4 py-3 transition-colors hover:bg-accent/30 sm:px-5"
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="truncate text-sm font-medium">{pattern.name}</span>
+                  <span className="shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
+                    {pattern.solved}/{pattern.attempts}
+                  </span>
+                </div>
+                <div
+                  className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted"
+                  role="img"
+                  aria-label={`Mastery ${pattern.score} out of 100`}
+                >
+                  <div
+                    className="h-full rounded-full bg-ember-600"
+                    style={{ width: `${Math.max(3, pattern.score)}%` }}
+                  />
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
+function QuizPerformanceCard({
+  performance,
+}: {
+  performance: Data["quizPerformance"];
+}) {
+  return (
+    <Panel title="Quiz performance">
+      {!performance ? (
+        <EmptyState
+          icon={BrainCircuit}
+          title="No quiz attempts yet"
+          description="Chapters end with a short quiz. Your average shows up here once you take one."
+          size="sm"
+        />
+      ) : (
+        <div className="space-y-3 p-4 sm:px-5">
+          <div className="flex items-baseline justify-between">
+            <span className="text-xs text-muted-foreground">Average score</span>
+            <span className="tabular text-lg font-semibold">
+              {performance.averagePercent}%
+            </span>
+          </div>
+          <div
+            className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+            role="img"
+            aria-label={`Average quiz score ${performance.averagePercent} percent`}
+          >
+            <div
+              className="h-full rounded-full bg-ember-500"
+              style={{ width: `${Math.max(2, performance.averagePercent)}%` }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground tabular-nums">
+            {performance.passed} passed of {performance.attempts} attempt
+            {performance.attempts === 1 ? "" : "s"}
+          </p>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+/**
+ * The tracks beyond DSA.
+ *
+ * Counts of the learner's own submissions against what is published.
+ * Rendered even at zero: "0 of 3 design exercises submitted" is a true
+ * statement and a useful prompt, unlike a fabricated score.
+ */
+function TracksCard({ tracks }: { tracks: Data["tracks"] }) {
+  const rows = [
+    {
+      label: "System design",
+      href: "/system-design" as const,
+      done: tracks.systemDesign.submitted,
+      total: tracks.systemDesign.total,
+    },
+    {
+      label: "Low-level design",
+      href: "/lld" as const,
+      done: tracks.lld.submitted,
+      total: tracks.lld.total,
+    },
+  ];
+
+  return (
+    <Panel title="Design and interviews" bodyClassName="space-y-4 p-4 sm:px-5">
+      {rows.map((row) => (
+        <div key={row.label}>
+          <div className="flex items-baseline justify-between gap-3">
+            <Link
+              href={route(row.href)}
+              className="text-sm transition-colors hover:text-ember-300"
+            >
+              {row.label}
+            </Link>
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {row.done} of {row.total} submitted
+            </span>
+          </div>
+          <Bar
+            percent={row.total ? (row.done / row.total) * 100 : 0}
+            label={`${row.label} progress`}
+            className="mt-2"
+          />
+        </div>
+      ))}
+
+      <div className="flex items-baseline justify-between gap-3 border-t border-border pt-3">
+        <Link
+          href={route("/interviews")}
+          className="shrink-0 text-sm whitespace-nowrap transition-colors hover:text-ember-300"
+        >
+          Mock interviews
+        </Link>
+        <span className="text-right text-xs text-muted-foreground tabular-nums">
+          {tracks.interviews.completed} completed · {tracks.interviews.withFeedback}{" "}
+          with feedback
+        </span>
+      </div>
+    </Panel>
   );
 }

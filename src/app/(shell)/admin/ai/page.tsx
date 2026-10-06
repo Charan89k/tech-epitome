@@ -38,7 +38,7 @@ export default async function AdminAIPage() {
       </p>
 
       {rows.length === 0 ? (
-        <div className="border-border mt-4 rounded-lg border border-dashed">
+        <div className="bg-card border-border mt-4 rounded-xl border">
           <EmptyState
             icon={Sparkles}
             title="No AI calls in the last 30 days"
@@ -46,42 +46,42 @@ export default async function AdminAIPage() {
           />
         </div>
       ) : (
-        <div className="border-border mt-4 overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm">
+        <div className="bg-card border-border mt-4 overflow-x-auto rounded-xl border">
+          <table className="w-full min-w-[28rem] text-sm">
             <caption className="sr-only">
               AI calls, cost and failures by feature over the last 30 days
             </caption>
             <thead>
-              <tr className="border-border text-muted-foreground border-b text-left text-xs">
-                <th scope="col" className="px-3 py-2 font-medium">
+              <tr className="border-border text-muted-foreground bg-muted/20 border-b text-left text-xs">
+                <th scope="col" className="px-4 py-2.5 font-medium">
                   Feature
                 </th>
-                <th scope="col" className="px-3 py-2 text-right font-medium">
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">
                   Calls
                 </th>
-                <th scope="col" className="px-3 py-2 text-right font-medium">
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">
                   Cost
                 </th>
-                <th scope="col" className="px-3 py-2 text-right font-medium">
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">
                   Failures
                 </th>
               </tr>
             </thead>
             <tbody className="divide-border divide-y">
               {rows.map((row) => (
-                <tr key={row.feature}>
-                  <td className="px-3 py-2 font-medium">{row.feature}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">
+                <tr key={row.feature} className="hover:bg-accent/25 transition-colors">
+                  <td className="px-4 py-2.5 font-medium">{row.feature}</td>
+                  <td className="px-4 py-2.5 text-right font-mono tabular-nums">
                     {row.calls}
                   </td>
-                  <td className="px-3 py-2 text-right tabular-nums">
+                  <td className="px-4 py-2.5 text-right font-mono tabular-nums">
                     {money(row.costMilliCents)}
                   </td>
                   <td
                     className={
                       row.failures > 0
-                        ? "text-warning px-3 py-2 text-right tabular-nums"
-                        : "px-3 py-2 text-right tabular-nums"
+                        ? "text-warning px-4 py-2.5 text-right font-mono tabular-nums"
+                        : "px-4 py-2.5 text-right font-mono tabular-nums"
                     }
                   >
                     {row.failures}
@@ -90,15 +90,15 @@ export default async function AdminAIPage() {
               ))}
             </tbody>
             <tfoot>
-              <tr className="border-border border-t font-medium">
-                <td className="px-3 py-2">Total</td>
-                <td className="px-3 py-2 text-right tabular-nums">
+              <tr className="border-border bg-muted/20 border-t font-medium">
+                <td className="px-4 py-2.5">Total</td>
+                <td className="px-4 py-2.5 text-right font-mono tabular-nums">
                   {totals.calls}
                 </td>
-                <td className="px-3 py-2 text-right tabular-nums">
+                <td className="px-4 py-2.5 text-right font-mono tabular-nums">
                   {money(totals.cost)}
                 </td>
-                <td className="px-3 py-2 text-right tabular-nums">
+                <td className="px-4 py-2.5 text-right font-mono tabular-nums">
                   {totals.failures}
                 </td>
               </tr>

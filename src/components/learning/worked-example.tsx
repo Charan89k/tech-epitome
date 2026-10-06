@@ -19,7 +19,7 @@ export function WorkedExample({
   output: string;
 }) {
   return (
-    <figure className="not-prose border-border bg-card my-5 overflow-hidden rounded-lg border">
+    <figure className="not-prose border-border bg-card my-5 overflow-hidden rounded-xl border">
       {title && (
         <figcaption className="border-border bg-muted/40 border-b px-4 py-2 text-xs font-medium">
           {title}

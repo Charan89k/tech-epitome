@@ -7,21 +7,21 @@ import { AuthAside } from "@/components/auth/auth-aside";
 // segment and its generated props key is "/".
 export default function AuthLayout({ children }: LayoutProps<"/">) {
   return (
-    <div className="grid min-h-dvh lg:grid-cols-[1fr_minmax(0,34rem)]">
-      {/* Left: brand panel. Hidden below lg so the form owns the viewport on
-          a phone rather than being pushed below a decorative hero. */}
-      <AuthAside />
+    <div className="bg-hero-haze flex min-h-dvh flex-col">
+      <header className="flex h-14 shrink-0 items-center px-3 sm:px-4">
+        <Link href="/" className="flex items-center rounded-md px-1 py-1">
+          <Logo idSuffix="auth-header" wordmarkClassName="text-[1.05rem]" />
+        </Link>
+      </header>
 
       <main
         id="main"
-        className="flex flex-col justify-center px-5 py-10 sm:px-10"
+        className="flex flex-1 flex-col items-center justify-center px-4 pt-6 pb-12 sm:px-6"
       >
-        <div className="mx-auto w-full max-w-sm">
-          <Link href="/" className="mb-8 inline-flex lg:hidden">
-            <Logo idSuffix="auth-mobile" />
-          </Link>
+        <div className="bg-card border-border w-full max-w-md rounded-2xl border p-6 shadow-sm sm:p-8">
           {children}
         </div>
+        <AuthAside />
       </main>
     </div>
   );

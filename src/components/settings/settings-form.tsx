@@ -10,7 +10,6 @@ import {
 } from "@/app/(shell)/settings/actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -57,10 +56,10 @@ export function SettingsForm({
   const fieldErrors = state.fieldErrors ?? {};
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form action={formAction} className="space-y-6">
       {state.status === "saved" && (
         <Alert className="border-success/30 bg-success/8">
-          <Check className="text-success size-4" />
+          <Check className="size-4 text-success" />
           <AlertDescription>{state.message}</AlertDescription>
         </Alert>
       )}
@@ -71,143 +70,164 @@ export function SettingsForm({
         </Alert>
       )}
 
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-sm">Account</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Display name</Label>
-            <Input
-              id="name"
-              name="name"
-              defaultValue={values.name}
-              maxLength={80}
-              required
-              aria-invalid={fieldErrors.name ? true : undefined}
-              aria-describedby={fieldErrors.name ? "name-error" : undefined}
-            />
-            {fieldErrors.name && (
-              <p id="name-error" role="alert" className="text-destructive text-xs">
-                {fieldErrors.name}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="targetRole">Target role</Label>
-            <Input
-              id="targetRole"
-              name="targetRole"
-              defaultValue={values.targetRole}
-              maxLength={80}
-              placeholder="Backend engineer, mid-level"
-            />
-            <p className="text-muted-foreground text-xs">
-              Shown on your profile. Optional.
+      <SettingsSection
+        title="Account"
+        description="Your name as it appears on your profile and in the header."
+      >
+        <div className="space-y-2">
+          <Label htmlFor="name">Display name</Label>
+          <Input
+            id="name"
+            name="name"
+            defaultValue={values.name}
+            maxLength={80}
+            required
+            aria-invalid={fieldErrors.name ? true : undefined}
+            aria-describedby={fieldErrors.name ? "name-error" : undefined}
+          />
+          {fieldErrors.name && (
+            <p id="name-error" role="alert" className="text-xs text-destructive">
+              {fieldErrors.name}
             </p>
-          </div>
-        </CardContent>
-      </Card>
+          )}
+        </div>
 
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-sm">Preferences</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="preferredLanguage">Default language</Label>
-            <Select name="preferredLanguage" defaultValue={values.preferredLanguage}>
-              <SelectTrigger id="preferredLanguage" className="w-full sm:w-64">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(LANGUAGE_LABELS) as Language[]).map((lang) => (
-                  <SelectItem key={lang} value={lang}>
-                    {LANGUAGE_LABELS[lang]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-muted-foreground text-xs">
-              Preselected in the code editor.
-            </p>
-          </div>
-
-          <ToggleRow
-            name="reducedMotion"
-            label="Reduce motion"
-            description="Visualizations step instantly instead of animating, and transitions are removed across the site. Your operating system setting is honoured on top of this and always wins."
-            defaultChecked={values.reducedMotion}
+        <div className="space-y-2">
+          <Label htmlFor="targetRole">Target role</Label>
+          <Input
+            id="targetRole"
+            name="targetRole"
+            defaultValue={values.targetRole}
+            maxLength={80}
+            placeholder="Backend engineer, mid-level"
           />
-
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-sm">Notifications</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <p className="text-muted-foreground text-xs leading-relaxed">
-            These appear in the bell in the top bar. Account and security
-            notices cannot be turned off.
+          <p className="text-xs text-muted-foreground">
+            Shown on your profile. Optional.
           </p>
+        </div>
+      </SettingsSection>
 
-          <ToggleRow
-            name="notifyReviewDue"
-            label="Reviews falling due"
-            description="Sent by a scheduled job. If this deployment has no scheduler pointed at the notifications job, no reminders are sent at all."
-            defaultChecked={values.notifyReviewDue}
-          />
-
-          <ToggleRow
-            name="notifyInterviewGraded"
-            label="Interview feedback ready"
-            description="When the written feedback for a mock interview has been generated."
-            defaultChecked={values.notifyInterviewGraded}
-          />
-
-          <ToggleRow
-            name="notifyMilestones"
-            label="Milestones"
-            description="The occasional note when you pass a round number of solved problems. Deliberately rare."
-            defaultChecked={values.notifyMilestones}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-sm">Email</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <p className="text-muted-foreground text-xs leading-relaxed">
-            One email, and only if you ask for it. Tech Epitome sends no
-            marketing of any kind — it is free, and there is nothing to sell
-            you.
-            {!emailConfigured && (
-              <>
-                {" "}
-                <strong className="text-warning">
-                  This deployment has no email provider configured, so nothing
-                  will be sent whatever you choose here.
-                </strong>
-              </>
-            )}
+      <SettingsSection
+        title="Preferences"
+        description="How the editor and the visualizations behave for you."
+      >
+        <div className="space-y-2">
+          <Label htmlFor="preferredLanguage">Default language</Label>
+          <Select name="preferredLanguage" defaultValue={values.preferredLanguage}>
+            <SelectTrigger id="preferredLanguage" className="w-full sm:w-64">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(LANGUAGE_LABELS) as Language[]).map((lang) => (
+                <SelectItem key={lang} value={lang}>
+                  {LANGUAGE_LABELS[lang]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Preselected in the code editor.
           </p>
+        </div>
 
-          <ToggleRow
-            name="emailReviewReminders"
-            label="Review reminders by email"
-            description="A note when you have items due, sent at most once a day. Off by default — this is the only email Tech Epitome sends."
-            defaultChecked={values.emailReviewReminders}
-          />
-        </CardContent>
-      </Card>
+        <ToggleRow
+          name="reducedMotion"
+          label="Reduce motion"
+          description="Visualizations step instantly instead of animating, and transitions are removed across the site. Your operating system setting is honoured on top of this and always wins."
+          defaultChecked={values.reducedMotion}
+        />
+      </SettingsSection>
 
-      <SaveButton />
+      <SettingsSection
+        title="Notifications"
+        description="What appears in the bell in the top bar."
+      >
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          These appear in the bell in the top bar. Account and security notices cannot
+          be turned off.
+        </p>
+
+        <ToggleRow
+          name="notifyReviewDue"
+          label="Reviews falling due"
+          description="Sent by a scheduled job. If this deployment has no scheduler pointed at the notifications job, no reminders are sent at all."
+          defaultChecked={values.notifyReviewDue}
+        />
+
+        <ToggleRow
+          name="notifyInterviewGraded"
+          label="Interview feedback ready"
+          description="When the written feedback for a mock interview has been generated."
+          defaultChecked={values.notifyInterviewGraded}
+        />
+
+        <ToggleRow
+          name="notifyMilestones"
+          label="Milestones"
+          description="The occasional note when you pass a round number of solved problems. Deliberately rare."
+          defaultChecked={values.notifyMilestones}
+        />
+      </SettingsSection>
+
+      <SettingsSection
+        title="Email"
+        description="Opt-in only. Off unless you turn it on."
+      >
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          One email, and only if you ask for it. Tech Epitome sends no marketing of any
+          kind — it is free, and there is nothing to sell you.
+          {!emailConfigured && (
+            <>
+              {" "}
+              <strong className="text-warning">
+                This deployment has no email provider configured, so nothing will be
+                sent whatever you choose here.
+              </strong>
+            </>
+          )}
+        </p>
+
+        <ToggleRow
+          name="emailReviewReminders"
+          label="Review reminders by email"
+          description="A note when you have items due, sent at most once a day. Off by default — this is the only email Tech Epitome sends."
+          defaultChecked={values.emailReviewReminders}
+        />
+      </SettingsSection>
+
+      <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 lg:ml-[17rem]">
+        <p className="text-xs text-muted-foreground">Changes apply once saved.</p>
+        <SaveButton />
+      </div>
     </form>
+  );
+}
+
+/**
+ * One settings section: heading and a line of context on the left at
+ * desktop widths, the controls in a bordered panel on the right.
+ */
+function SettingsSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="grid gap-3 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
+      <div className="lg:pt-4">
+        <h2 className="text-base font-semibold">{title}</h2>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          {description}
+        </p>
+      </div>
+      <div className="space-y-5 rounded-xl border border-border bg-card p-4 sm:p-5">
+        {children}
+      </div>
+    </section>
   );
 }
 
@@ -223,10 +243,10 @@ function ToggleRow({
   defaultChecked: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between gap-6">
+    <div className="flex items-start justify-between gap-6 border-t border-border pt-5 first:border-t-0 first:pt-0">
       <div className="space-y-1">
         <Label htmlFor={name}>{label}</Label>
-        <p className="text-muted-foreground max-w-md text-xs leading-relaxed">
+        <p className="max-w-md text-xs leading-relaxed text-muted-foreground">
           {description}
         </p>
       </div>

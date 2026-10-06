@@ -100,7 +100,9 @@ test("no internal link on a shell page is broken", async ({ page, request }) => 
       [
         ...new Set(
           links
-            .map((link) => link.getAttribute("href") ?? "")
+            // The fragment never reaches the server, so links to sections
+            // of one page are one request, not one per section.
+            .map((link) => (link.getAttribute("href") ?? "").split("#")[0]!)
             .filter((href) => href.length > 1 && !href.startsWith("//"))
         ),
       ].slice(0, 30)

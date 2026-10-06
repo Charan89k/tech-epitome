@@ -1,15 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Scale, Sparkles, Target } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronLeft,
+  FileText,
+  PenTool,
+  Scale,
+  Sparkles,
+  Target,
+} from "lucide-react";
 
 import { ClassDiagramView } from "@/components/class-diagram/class-diagram-view";
 import { CodeBlock } from "@/components/learning/code-block";
 import { DifficultyBadge } from "@/components/common/difficulty-badge";
 import { LLDWorkspace } from "@/components/lld/lld-workspace";
+import { Pane } from "@/components/system-design/pane";
 import { TutorLauncher } from "@/components/tutor/tutor-launcher";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { canAccess, FEATURES } from "@/lib/auth/access";
 import { getCurrentUser } from "@/lib/auth/session";
 import { LLD_QUICK_ACTIONS } from "@/lib/tutor/types";
@@ -44,19 +52,38 @@ export default async function LLDExercisePage({
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-      <header>
-        <div className="flex flex-wrap items-center gap-2">
-          <DifficultyBadge difficulty={problem.difficulty} />
-          {problem.submission?.submittedAt && (
-            <span className="text-success text-xs">Submitted</span>
-          )}
-        </div>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
-          {problem.title}
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm">{problem.tagline}</p>
+      <Link
+        href="/lld"
+        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-xs transition-colors"
+      >
+        <ChevronLeft className="size-3.5" aria-hidden="true" />
+        All low-level design exercises
+      </Link>
 
-        <div className="mt-3">
+      <header className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-muted-foreground text-[0.68rem] font-medium tracking-wider uppercase">
+              Low-level design
+            </span>
+            <span className="text-muted-foreground/40" aria-hidden="true">
+              ·
+            </span>
+            <DifficultyBadge difficulty={problem.difficulty} />
+            {problem.submission?.submittedAt && (
+              <span className="text-success inline-flex items-center gap-1">
+                <CheckCircle2 className="size-3" aria-hidden="true" />
+                Submitted
+              </span>
+            )}
+          </div>
+          <h1 className="tracking-headline mt-1.5 text-2xl font-bold sm:text-3xl">
+            {problem.title}
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm">{problem.tagline}</p>
+        </div>
+
+        <div className="shrink-0">
           <TutorLauncher
             anchor={{ kind: "LLD", problemSlug: problem.slug }}
             label={{
@@ -74,14 +101,19 @@ export default async function LLDExercisePage({
         </div>
       </header>
 
-      <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.4fr)]">
+      <div className="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.4fr)]">
         {/* Brief */}
-        <div className="min-w-0 space-y-6">
+        <Pane
+          label="Brief"
+          icon={FileText}
+          className="lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6.5rem)]"
+          bodyClassName="space-y-6 overflow-y-auto px-4 py-5 sm:px-5"
+        >
           <section aria-labelledby="requirements">
             <h2 id="requirements" className="text-sm font-semibold">
               Requirements
             </h2>
-            <ul className="marker:text-muted-foreground/40 mt-2 list-disc space-y-1 pl-5">
+            <ul className="marker:text-ember-500/60 mt-2 list-disc space-y-1 pl-5">
               {problem.requirements.map((item) => (
                 <li key={item} className="text-muted-foreground text-sm leading-relaxed">
                   {item}
@@ -95,7 +127,7 @@ export default async function LLDExercisePage({
               <h2 id="constraints" className="text-sm font-semibold">
                 Assumptions you may make
               </h2>
-              <ul className="marker:text-muted-foreground/40 mt-2 list-disc space-y-1 pl-5">
+              <ul className="marker:text-ember-500/60 mt-2 list-disc space-y-1 pl-5">
                 {problem.constraints.map((item) => (
                   <li key={item} className="text-muted-foreground text-sm leading-relaxed">
                     {item}
@@ -113,10 +145,10 @@ export default async function LLDExercisePage({
               <p className="text-muted-foreground/70 mt-1 text-xs">
                 Candidates, not a design. How they relate is yours to decide.
               </p>
-              <dl className="border-border mt-2 divide-y divide-[var(--border)] overflow-hidden rounded-lg border">
+              <dl className="border-border bg-muted/20 mt-2 divide-y divide-[var(--border)] overflow-hidden rounded-lg border">
                 {problem.entities.map((entity) => (
                   <div key={entity.name} className="px-3 py-2">
-                    <dt className="text-sm font-medium">{entity.name}</dt>
+                    <dt className="font-mono text-xs font-medium">{entity.name}</dt>
                     <dd className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
                       {entity.responsibility}
                     </dd>
@@ -132,10 +164,10 @@ export default async function LLDExercisePage({
                 id="objectives"
                 className="flex items-center gap-1.5 text-sm font-semibold"
               >
-                <Target className="size-3.5" aria-hidden="true" />
+                <Target className="text-ember-400 size-3.5" aria-hidden="true" />
                 What this exercise is teaching
               </h2>
-              <ul className="marker:text-muted-foreground/40 mt-2 list-disc space-y-1 pl-5">
+              <ul className="marker:text-ember-500/60 mt-2 list-disc space-y-1 pl-5">
                 {problem.objectives.map((item) => (
                   <li key={item} className="text-muted-foreground text-sm leading-relaxed">
                     {item}
@@ -150,7 +182,7 @@ export default async function LLDExercisePage({
               <h2 id="extensions" className="text-sm font-semibold">
                 Once it works, make it survive these
               </h2>
-              <ul className="marker:text-muted-foreground/40 mt-2 list-disc space-y-1 pl-5">
+              <ul className="marker:text-ember-500/60 mt-2 list-disc space-y-1 pl-5">
                 {problem.extensions.map((item) => (
                   <li key={item} className="text-muted-foreground text-sm leading-relaxed">
                     {item}
@@ -159,105 +191,117 @@ export default async function LLDExercisePage({
               </ul>
             </section>
           )}
-        </div>
+        </Pane>
 
         {/* Workspace */}
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold">Your design</h2>
-          <p className="text-muted-foreground mt-1 text-xs">
-            Add types, give them responsibilities, and connect them.
-          </p>
-
-          <div className="mt-3">
-            {user ? (
-              <LLDWorkspace
-                slug={problem.slug}
-                initialDiagram={
-                  problem.submission?.classDiagram ?? { types: [], relationships: [] }
-                }
-                initialCode={problem.submission?.code ?? ""}
-                initialLanguage={problem.submission?.language ?? "JAVA"}
-                initialRationale={problem.submission?.rationale ?? ""}
-                alreadySubmitted={Boolean(problem.submission?.submittedAt)}
-                totalHints={problem.totalHints}
-                initialHints={problem.revealedHints}
-              />
-            ) : (
-              <div className="border-border rounded-lg border border-dashed p-8 text-center">
-                <p className="text-muted-foreground text-sm">
-                  Sign in to design and save.
-                </p>
-                <Button asChild size="sm" className="mt-4">
-                  <Link href="/login">Sign in</Link>
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
+        <Pane
+          as="h2"
+          label="Your design"
+          icon={PenTool}
+          actions={
+            <span className="text-muted-foreground hidden truncate text-[0.68rem] sm:inline">
+              Add types, give them responsibilities, and connect them.
+            </span>
+          }
+          bodyClassName="p-4"
+        >
+          {user ? (
+            <LLDWorkspace
+              slug={problem.slug}
+              initialDiagram={
+                problem.submission?.classDiagram ?? { types: [], relationships: [] }
+              }
+              initialCode={problem.submission?.code ?? ""}
+              initialLanguage={problem.submission?.language ?? "JAVA"}
+              initialRationale={problem.submission?.rationale ?? ""}
+              alreadySubmitted={Boolean(problem.submission?.submittedAt)}
+              totalHints={problem.totalHints}
+              initialHints={problem.revealedHints}
+            />
+          ) : (
+            <div className="viz-canvas border-border flex flex-col items-center rounded-lg border px-6 py-12 text-center">
+              <PenTool className="text-ember-400 size-5" aria-hidden="true" />
+              <p className="text-muted-foreground mt-3 text-sm">
+                Sign in to design and save.
+              </p>
+              <Button asChild size="sm" className="mt-4">
+                <Link href="/login">Sign in</Link>
+              </Button>
+            </div>
+          )}
+        </Pane>
       </div>
 
       {/* Reference — withheld by the service until submission. */}
       {problem.reference && (
-        <>
-          <Separator className="my-8" />
-          <section aria-labelledby="reference" className="min-w-0">
-            <h2 id="reference" className="text-lg font-semibold tracking-tight">
-              One reference design
-            </h2>
-            <p className="text-muted-foreground mt-1 text-sm">
-              One defensible answer, not the answer. Where yours differs, the
-              interesting question is what each version optimises for.
-            </p>
+        <section
+          aria-labelledby="reference"
+          className="bg-card border-border mt-8 min-w-0 rounded-xl border p-4 sm:p-6"
+        >
+          <p className="text-ember-300 text-[0.68rem] font-medium tracking-wider uppercase">
+            Unlocked by your submission
+          </p>
+          <h2 id="reference" className="tracking-headline mt-1 text-lg font-semibold">
+            One reference design
+          </h2>
+          <p className="text-muted-foreground mt-1 text-sm">
+            One defensible answer, not the answer. Where yours differs, the
+            interesting question is what each version optimises for.
+          </p>
 
-            <ClassDiagramView
-              diagram={problem.reference.classDiagram}
-              caption="A reference class design for this brief"
-            />
+          <ClassDiagramView
+            diagram={problem.reference.classDiagram}
+            caption="A reference class design for this brief"
+          />
 
-            {problem.reference.tradeoffs.length > 0 && (
-              <>
-                <h3 className="mt-6 flex items-center gap-1.5 text-sm font-semibold">
-                  <Scale className="size-3.5" aria-hidden="true" />
-                  Trade-offs behind it
-                </h3>
-                <div className="mt-2 space-y-3">
-                  {problem.reference.tradeoffs.map((t) => (
-                    <div key={t.decision} className="border-border rounded-lg border p-3">
-                      <p className="text-sm font-medium">{t.decision}</p>
-                      <p className="text-muted-foreground mt-1 text-xs">
-                        Chose <span className="text-ember-300">{t.chose}</span> over{" "}
-                        {t.over}.
-                      </p>
-                      <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
-                        {t.because}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {referenceLanguages.length > 0 && (
-              <>
-                <h3 className="mt-6 text-sm font-semibold">Reference implementation</h3>
-                {referenceLanguages.map((lang) => (
-                  <CodeBlock
-                    key={lang}
-                    language={lang.toLowerCase()}
-                    code={referenceCode[lang]!}
-                  />
+          {problem.reference.tradeoffs.length > 0 && (
+            <>
+              <h3 className="mt-6 flex items-center gap-1.5 text-sm font-semibold">
+                <Scale className="text-ember-400 size-3.5" aria-hidden="true" />
+                Trade-offs behind it
+              </h3>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                {problem.reference.tradeoffs.map((t) => (
+                  <div key={t.decision} className="border-border bg-background/40 rounded-lg border p-3.5">
+                    <p className="text-sm font-medium">{t.decision}</p>
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      Chose <span className="text-ember-300">{t.chose}</span> over{" "}
+                      {t.over}.
+                    </p>
+                    <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+                      {t.because}
+                    </p>
+                  </div>
                 ))}
-              </>
-            )}
+              </div>
+            </>
+          )}
 
-            {problem.designPatterns.length > 0 && (
-              <p className="text-muted-foreground mt-4 flex items-center gap-1.5 text-xs">
-                <Sparkles className="size-3.5" aria-hidden="true" />
-                Patterns this reference uses: {problem.designPatterns.join(", ")}
-              </p>
-            )}
-          </section>
-        </>
+          {referenceLanguages.length > 0 && (
+            <>
+              <h3 className="mt-6 text-sm font-semibold">Reference implementation</h3>
+              {referenceLanguages.map((lang) => (
+                <CodeBlock
+                  key={lang}
+                  language={lang.toLowerCase()}
+                  code={referenceCode[lang]!}
+                />
+              ))}
+            </>
+          )}
+
+          {problem.designPatterns.length > 0 && (
+            <p className="text-muted-foreground mt-4 flex flex-wrap items-center gap-1.5 text-xs">
+              <Sparkles className="text-ember-400 size-3.5" aria-hidden="true" />
+              Patterns this reference uses:
+              {problem.designPatterns.map((pattern) => (
+                <span key={pattern} className="bg-muted/50 rounded-full px-2 py-0.5 text-[0.65rem]">
+                  {pattern}
+                </span>
+              ))}
+            </p>
+          )}
+        </section>
       )}
     </div>
   );

@@ -17,8 +17,8 @@ const TONES: Record<
   },
   tip: {
     icon: Lightbulb,
-    className: "border-success/25 bg-success/6",
-    iconClass: "text-success",
+    className: "border-ember-400/20 bg-ember-500/4",
+    iconClass: "text-ember-300",
     defaultTitle: "Tip",
   },
   warning: {
@@ -48,7 +48,7 @@ export function Callout({
   const Icon = config.icon;
 
   return (
-    <aside className={cn("not-prose my-5 rounded-lg border p-4", config.className)}>
+    <aside className={cn("not-prose my-5 rounded-xl border p-4", config.className)}>
       <div className="flex items-center gap-2">
         <Icon className={cn("size-4 shrink-0", config.iconClass)} aria-hidden="true" />
         <p className="text-foreground text-xs font-semibold tracking-wide uppercase">

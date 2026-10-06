@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Compass, Info, Target } from "lucide-react";
+import { ArrowUpRight, Compass, Info, Target } from "lucide-react";
 
 import { EmptyState } from "@/components/common/empty-state";
 import { PageHeader } from "@/components/common/page-header";
+import { DesignThumb, type DesignThumbKind } from "@/components/system-design/design-thumb";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/session";
 import { route } from "@/lib/utils";
@@ -16,23 +17,24 @@ export const metadata: Metadata = {
   alternates: { canonical: "/prepare" },
 };
 
+const THUMBS: DesignThumbKind[] = ["stages", "roadmap", "layers"];
+
 export default async function PrepareIndexPage() {
   const user = await getCurrentUser();
   const tracks = await listPrepTracks(user?.id);
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <PageHeader
         title="Interview Preparation"
         description="Interview loops come in recognisable shapes, and they are different preparation problems. Pick the one closest to what you are heading into."
       />
 
       {/* The honesty notice, above the content rather than in a footnote. */}
-      <div className="border-border bg-card mt-6 flex gap-3 rounded-lg border p-4">
-        <Info
-          className="text-muted-foreground mt-0.5 size-4 shrink-0"
-          aria-hidden="true"
-        />
+      <div className="border-border bg-card mt-6 flex gap-3 rounded-xl border p-4">
+        <span className="bg-muted/60 flex size-8 shrink-0 items-center justify-center rounded-lg">
+          <Info className="text-muted-foreground size-4" aria-hidden="true" />
+        </span>
         <div>
           <p className="text-sm font-medium">These are shapes, not employers.</p>
           <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
@@ -45,7 +47,7 @@ export default async function PrepareIndexPage() {
       </div>
 
       {tracks.length === 0 ? (
-        <div className="border-border mt-8 rounded-lg border border-dashed">
+        <div className="bg-card border-border mt-6 rounded-xl border">
           <EmptyState
             icon={Compass}
             title="No preparation tracks published yet"
@@ -53,55 +55,85 @@ export default async function PrepareIndexPage() {
           />
         </div>
       ) : (
-        <ul className="mt-8 space-y-3">
-          {tracks.map((track) => (
-            <li key={track.slug}>
-              <Link
-                href={route(`/prepare/${track.slug}`)}
-                className="border-border bg-card hover:border-ember-500/35 group flex items-start gap-4 rounded-lg border p-4 transition-colors sm:p-5"
-              >
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-base font-medium">{track.name}</h2>
-                  <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-                    {track.blurb}
-                  </p>
-
-                  {track.focusAreas.length > 0 && (
-                    <p className="text-muted-foreground/70 mt-2 flex items-start gap-1.5 text-xs leading-relaxed">
-                      <Target
-                        className="mt-0.5 size-3 shrink-0"
+        <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {tracks.map((track, index) => {
+            const percent =
+              track.solved !== null && track.problemCount > 0
+                ? Math.round((track.solved / track.problemCount) * 100)
+                : 0;
+            return (
+              <li key={track.slug}>
+                <Link
+                  href={route(`/prepare/${track.slug}`)}
+                  className="group bg-card border-border hover:border-ember-500/40 focus-visible:ring-ring/50 flex h-full flex-col overflow-hidden rounded-xl border transition-colors focus-visible:ring-3 focus-visible:outline-none"
+                >
+                  <DesignThumb
+                    kind={THUMBS[index % THUMBS.length]!}
+                    className="border-border h-32 w-full border-b"
+                  />
+                  <div className="flex flex-1 flex-col p-4">
+                    <div className="flex items-start gap-2">
+                      <h2 className="group-hover:text-ember-200 min-w-0 flex-1 text-base font-semibold transition-colors">
+                        {track.name}
+                      </h2>
+                      <ArrowUpRight
+                        className="text-muted-foreground group-hover:text-ember-400 mt-0.5 size-4 shrink-0 transition-colors"
                         aria-hidden="true"
                       />
-                      {track.focusAreas[0]}
+                    </div>
+                    <p className="text-muted-foreground mt-1 text-sm leading-snug">
+                      {track.blurb}
                     </p>
-                  )}
 
-                  <p className="text-muted-foreground/70 mt-2 text-xs">
-                    {track.problemCount} problems · {track.designCount} design
-                    exercises
-                    {track.solved !== null && (
-                      <>
-                        {" · "}
-                        <span className="text-success">
-                          {track.solved} solved
-                        </span>
-                      </>
+                    {track.focusAreas.length > 0 && (
+                      <p className="text-muted-foreground/80 mt-3 flex items-start gap-1.5 text-xs leading-relaxed">
+                        <Target
+                          className="text-ember-400 mt-0.5 size-3 shrink-0"
+                          aria-hidden="true"
+                        />
+                        {track.focusAreas[0]}
+                      </p>
                     )}
-                  </p>
-                </div>
 
-                <ArrowRight
-                  className="text-muted-foreground group-hover:text-ember-500 mt-1 size-4 shrink-0 transition-colors"
-                  aria-hidden="true"
-                />
-              </Link>
-            </li>
-          ))}
+                    <div className="mt-auto pt-4">
+                      <p className="text-muted-foreground flex flex-wrap items-center gap-x-2 text-xs">
+                        <span>{track.problemCount} problems</span>
+                        <span className="text-muted-foreground/40" aria-hidden="true">
+                          ·
+                        </span>
+                        <span>{track.designCount} design exercises</span>
+                        {track.solved !== null && (
+                          <span className="text-ember-300 ml-auto font-mono tabular-nums">
+                            {track.solved} solved
+                          </span>
+                        )}
+                      </p>
+                      {track.solved !== null && (
+                        <div
+                          className="bg-muted mt-2 h-1.5 overflow-hidden rounded-full"
+                          role="progressbar"
+                          aria-valuenow={percent}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-label={`${track.name} progress`}
+                        >
+                          <div
+                            className="bg-ember-500 h-full rounded-full"
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
 
       {!user && tracks.length > 0 && (
-        <div className="border-border bg-card mt-8 flex flex-col items-start gap-3 rounded-lg border p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="border-border bg-card mt-6 flex flex-col items-start gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-muted-foreground text-sm">
             Sign in to track which of these you have already solved.
           </p>

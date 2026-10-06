@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { FileText } from "lucide-react";
+import { FileText, Search } from "lucide-react";
 
 import { EmptyState } from "@/components/common/empty-state";
 import { NoteCard } from "@/components/library/note-card";
 import { PageHeader } from "@/components/common/page-header";
+import { LibraryTabs } from "@/components/dashboard/library-tabs";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth/session";
 
@@ -25,29 +26,45 @@ export default async function NotesPage({
   const notes = await listNotes(user.id, query);
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <PageHeader
         title="Notes"
         description="Your own notes, attached to the chapter or problem they came from."
+        className="mb-5"
       />
+      <LibraryTabs active="/dashboard/notes" />
 
       {/* A plain GET form: the search is shareable and works without JS. */}
-      <form className="mt-6" role="search">
+      <form
+        className="mt-6 flex items-center gap-2 rounded-xl border border-border bg-card p-2"
+        role="search"
+      >
         <label htmlFor="note-search" className="sr-only">
           Search your notes
         </label>
-        <input
-          id="note-search"
-          type="search"
-          name="q"
-          defaultValue={query ?? ""}
-          placeholder="Search your notes…"
-          className="border-border bg-muted/40 placeholder:text-muted-foreground focus-visible:ring-ring h-9 w-full rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
-        />
+        <div className="relative flex-1">
+          <Search
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <input
+            id="note-search"
+            type="search"
+            name="q"
+            defaultValue={query ?? ""}
+            placeholder="Search your notes…"
+            className="h-9 w-full rounded-md border border-border bg-muted/40 pr-3 pl-9 text-sm placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          />
+        </div>
+        {query && (
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/dashboard/notes">Clear</Link>
+          </Button>
+        )}
       </form>
 
       {notes.length === 0 ? (
-        <div className="border-border mt-6 rounded-lg border border-dashed">
+        <div className="mt-4 rounded-xl border border-border bg-card">
           <EmptyState
             icon={FileText}
             title={query ? "No notes match that search" : "No notes yet"}
@@ -61,12 +78,16 @@ export default async function NotesPage({
                 <Button asChild size="sm" variant="outline">
                   <Link href="/learn/dsa">Start a chapter</Link>
                 </Button>
-              ) : undefined
+              ) : (
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/dashboard/notes">Clear search</Link>
+                </Button>
+              )
             }
           />
         </div>
       ) : (
-        <ul className="mt-6 space-y-3">
+        <ul className="mt-4 divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
           {notes.map((note) => (
             <NoteCard
               key={note.id}

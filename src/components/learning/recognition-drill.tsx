@@ -31,7 +31,7 @@ export function RecognitionDrill({
   const [revealed, setRevealed] = useState(false);
 
   return (
-    <section className="not-prose border-ember-500/25 bg-ember-500/5 my-6 rounded-lg border p-5">
+    <section className="not-prose border-ember-500/25 bg-ember-500/5 my-6 rounded-xl border p-5">
       <p className="text-ember-400 font-mono text-[0.7rem] tracking-wider uppercase">
         Can you recognise the pattern?
       </p>

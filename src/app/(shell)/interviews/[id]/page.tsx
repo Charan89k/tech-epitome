@@ -4,13 +4,11 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, Info } from "lucide-react";
 
 import { InterviewRoom } from "@/components/interview/interview-room";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { requireUser } from "@/lib/auth/session";
 import {
   BAND_LABELS,
   DIMENSION_LABELS,
+  MACHINES,
   type EvaluationDimension,
   type RatingBand,
 } from "@/lib/interview/types";
@@ -29,9 +27,7 @@ const BAND_STYLE: Record<RatingBand, string> = {
   strong: "border-success/35 bg-success/10 text-success",
 };
 
-export default async function InterviewPage({
-  params,
-}: PageProps<"/interviews/[id]">) {
+export default async function InterviewPage({ params }: PageProps<"/interviews/[id]">) {
   const { id } = await params;
   const user = await requireUser(`/interviews/${id}`);
 
@@ -41,22 +37,26 @@ export default async function InterviewPage({
   if (!session) notFound();
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-      <Button asChild variant="ghost" size="sm" className="-ml-2 mb-3 h-8">
-        <Link href="/interviews">
-          <ChevronLeft className="size-4" />
-          All interviews
-        </Link>
-      </Button>
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+      <Link
+        href="/interviews"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ChevronLeft className="size-3.5" aria-hidden="true" />
+        All interviews
+      </Link>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-xl font-semibold tracking-tight">Mock interview</h1>
-        <Badge variant="secondary" className="text-[0.65rem]">
-          {session.type.replace(/_/g, " ")}
-        </Badge>
-        <Badge variant="outline" className="text-[0.65rem]">
-          {session.difficulty.toLowerCase()}
-        </Badge>
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h1 className="tracking-headline text-2xl font-bold sm:text-3xl">
+          Mock interview
+        </h1>
+        <span className="text-xs text-muted-foreground">
+          {MACHINES[session.type].label}
+          <span className="mx-1.5 text-muted-foreground/40" aria-hidden="true">
+            ·
+          </span>
+          <span className="capitalize">{session.difficulty.toLowerCase()}</span>
+        </span>
       </div>
 
       <div className="mt-5">
@@ -79,38 +79,42 @@ export default async function InterviewPage({
 
       {session.feedback && (
         <>
-          <Separator className="my-8" />
-          <section aria-labelledby="feedback">
-            <h2 id="feedback" className="text-lg font-semibold tracking-tight">
+          <section
+            aria-labelledby="feedback"
+            className="mt-8 rounded-xl border border-border bg-card p-4 sm:p-6"
+          >
+            <h2 id="feedback" className="tracking-headline text-lg font-semibold">
               Feedback
             </h2>
 
             {/* Labelled as AI-generated at the top, before anything is
                 read as a verdict. */}
-            <div className="border-border bg-muted/30 mt-2 flex items-start gap-2 rounded-lg border p-3">
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-border bg-muted/30 p-3">
               <Info
-                className="text-muted-foreground mt-0.5 size-3.5 shrink-0"
+                className="mt-0.5 size-3.5 shrink-0 text-muted-foreground"
                 aria-hidden="true"
               />
-              <p className="text-muted-foreground text-xs leading-relaxed">
-                <strong className="text-foreground font-medium">
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                <strong className="font-medium text-foreground">
                   AI-generated feedback.
                 </strong>{" "}
-                Written by a language model reading your transcript. Each
-                judgement cites what it is based on, so you can disagree with
-                it. There is no overall score, and this is not equivalent to a
-                real company interview.
+                Written by a language model reading your transcript. Each judgement
+                cites what it is based on, so you can disagree with it. There is no
+                overall score, and this is not equivalent to a real company interview.
               </p>
             </div>
 
-            <p className="text-muted-foreground mt-4 text-sm leading-relaxed">
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
               {session.feedback.summary}
             </p>
 
             <h3 className="mt-6 text-sm font-semibold">By dimension</h3>
-            <ul className="mt-2 space-y-2">
+            <ul className="mt-3 grid gap-3 md:grid-cols-2">
               {session.feedback.dimensions.map((d) => (
-                <li key={d.dimension} className="border-border rounded-lg border p-3">
+                <li
+                  key={d.dimension}
+                  className="rounded-lg border border-border bg-background/40 p-3.5"
+                >
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-medium">
                       {DIMENSION_LABELS[d.dimension as EvaluationDimension] ??
@@ -124,38 +128,46 @@ export default async function InterviewPage({
                       {BAND_LABELS[d.band as RatingBand] ?? d.band}
                     </span>
                   </div>
-                  <p className="text-muted-foreground mt-1.5 text-xs leading-relaxed">
+                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                     {d.evidence}
                   </p>
                 </li>
               ))}
             </ul>
 
-            {session.feedback.strengths.length > 0 && (
-              <>
-                <h3 className="mt-6 text-sm font-semibold">What went well</h3>
-                <ul className="marker:text-muted-foreground/40 mt-2 list-disc space-y-1 pl-5">
-                  {session.feedback.strengths.map((s) => (
-                    <li key={s} className="text-muted-foreground text-sm leading-relaxed">
-                      {s}
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
+            <div className="mt-2 grid gap-x-8 md:grid-cols-2">
+              {session.feedback.strengths.length > 0 && (
+                <div>
+                  <h3 className="mt-6 text-sm font-semibold">What went well</h3>
+                  <ul className="mt-2 list-disc space-y-1 pl-5 marker:text-ember-500/60">
+                    {session.feedback.strengths.map((s) => (
+                      <li
+                        key={s}
+                        className="text-sm leading-relaxed text-muted-foreground"
+                      >
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
-            {session.feedback.improvements.length > 0 && (
-              <>
-                <h3 className="mt-6 text-sm font-semibold">What to work on</h3>
-                <ul className="marker:text-muted-foreground/40 mt-2 list-disc space-y-1 pl-5">
-                  {session.feedback.improvements.map((s) => (
-                    <li key={s} className="text-muted-foreground text-sm leading-relaxed">
-                      {s}
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
+              {session.feedback.improvements.length > 0 && (
+                <div>
+                  <h3 className="mt-6 text-sm font-semibold">What to work on</h3>
+                  <ul className="mt-2 list-disc space-y-1 pl-5 marker:text-ember-500/60">
+                    {session.feedback.improvements.map((s) => (
+                      <li
+                        key={s}
+                        className="text-sm leading-relaxed text-muted-foreground"
+                      >
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           </section>
         </>
       )}

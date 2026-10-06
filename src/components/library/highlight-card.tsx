@@ -8,10 +8,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { deleteHighlightAction } from "@/app/(shell)/highlight-actions";
-import {
-  HIGHLIGHT_COLOR_LABELS,
-  type HighlightColor,
-} from "@/lib/highlights/types";
+import { HIGHLIGHT_COLOR_LABELS, type HighlightColor } from "@/lib/highlights/types";
 import { cn, route } from "@/lib/utils";
 
 /**
@@ -80,19 +77,19 @@ export function HighlightCard({
   }
 
   return (
-    <li className="border-border bg-card rounded-lg border p-4">
+    <li className="px-4 py-4 transition-colors hover:bg-accent/20 sm:px-5">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           {resolved ? (
             <Link
               href={route(href)}
-              className="text-muted-foreground hover:text-ember-300 text-xs transition-colors"
+              className="text-xs font-medium text-info transition-colors hover:text-ember-300"
             >
               {title}
               {subtitle ? ` · ${subtitle}` : ""}
             </Link>
           ) : (
-            <p className="text-muted-foreground/70 text-xs">
+            <p className="text-xs text-muted-foreground/70">
               {title}
               {subtitle ? ` · ${subtitle}` : ""}
             </p>
@@ -105,7 +102,7 @@ export function HighlightCard({
           size="sm"
           onClick={remove}
           disabled={pending}
-          className="text-muted-foreground hover:text-destructive h-7 shrink-0 gap-1.5 text-xs"
+          className={`h-7 shrink-0 gap-1.5 text-xs ${arming ? "text-destructive hover:text-destructive" : "text-muted-foreground hover:text-destructive"}`}
         >
           {pending ? (
             <Loader2 className="size-3 animate-spin" aria-hidden="true" />
@@ -118,7 +115,7 @@ export function HighlightCard({
 
       <blockquote
         className={cn(
-          "text-foreground mt-2 border-l-2 pl-3 text-sm leading-relaxed",
+          "mt-2 max-w-3xl border-l-2 pl-3 text-sm leading-relaxed text-foreground/90",
           BAR_CLASS[color]
         )}
       >
@@ -126,17 +123,14 @@ export function HighlightCard({
       </blockquote>
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-        <time
-          dateTime={createdAt}
-          className="text-muted-foreground/70 text-[0.68rem]"
-        >
+        <time dateTime={createdAt} className="text-[0.68rem] text-muted-foreground/70">
           {new Date(createdAt).toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
             year: "numeric",
           })}
         </time>
-        <span className="text-muted-foreground/60 text-[0.68rem]">
+        <span className="text-[0.68rem] text-muted-foreground/60">
           {HIGHLIGHT_COLOR_LABELS[color]}
         </span>
       </div>

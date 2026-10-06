@@ -186,10 +186,10 @@ test("a new learner can go from signup to a solved problem", async ({ page }) =>
   await expect(page.getByText("1E · 0M · 0H")).toBeVisible();
 
   await page.goto("/problems");
-  // Scoped to the results list: the filter panel also has a "Solved"
-  // control, and on mobile that one lives in a closed drawer.
+  // Scoped to the catalogue tables: the filter panel also has a "Solved"
+  // control, and it lives in a closed drawer.
   await expect(
-    page.getByRole("list").getByLabel("Solved").first()
+    page.getByRole("table").getByLabel("Solved").first()
   ).toBeVisible();
 });
 

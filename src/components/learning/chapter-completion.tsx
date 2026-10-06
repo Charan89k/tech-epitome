@@ -72,7 +72,7 @@ export function ChapterCompletion({
   return (
     <section
       aria-labelledby="chapter-recap"
-      className="not-prose border-border bg-card surface-edge mt-10 rounded-lg border"
+      className="not-prose border-border bg-card surface-edge mt-10 rounded-xl border"
     >
       <div className="border-border border-b px-5 py-4">
         <h2 id="chapter-recap" className="text-sm font-semibold">
@@ -129,9 +129,9 @@ export function ChapterCompletion({
         )}
 
         {next && (
-          <Button asChild variant={complete ? "default" : "ghost"}>
+          <Button asChild variant={complete ? "default" : "ghost"} className="max-w-full">
             <Link href={route(next.href)}>
-              Continue: {next.title}
+              <span className="min-w-0 truncate">Continue: {next.title}</span>
               <ArrowRight className="size-4" />
             </Link>
           </Button>

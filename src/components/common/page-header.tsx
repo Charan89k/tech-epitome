@@ -26,11 +26,11 @@ export function PageHeader({
     >
       <div className="min-w-0 space-y-1.5">
         {eyebrow}
-        <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">
+        <h1 className="tracking-headline truncate text-2xl font-bold sm:text-3xl">
           {title}
         </h1>
         {description && (
-          <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
+          <p className="max-w-2xl text-sm text-pretty text-muted-foreground">
             {description}
           </p>
         )}

@@ -61,7 +61,7 @@ export function Quiz({
 
   return (
     <section
-      className="not-prose border-border bg-card surface-edge my-6 rounded-lg border"
+      className="not-prose border-border bg-card surface-edge my-6 rounded-xl border"
       aria-labelledby={`quiz-${quiz.slug}`}
     >
       <header className="border-border flex items-center justify-between gap-3 border-b px-5 py-3">

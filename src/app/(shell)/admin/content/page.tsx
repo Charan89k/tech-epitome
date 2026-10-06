@@ -45,17 +45,18 @@ export default async function AdminContentPage({
         operation this screen exists for.
       </p>
 
-      <nav aria-label="Content type" className="mt-4 flex flex-wrap gap-1.5">
+      <div className="bg-card border-border mt-4 flex flex-col gap-2 rounded-xl border p-2 md:flex-row md:items-center">
+      <nav aria-label="Content type" className="flex flex-wrap gap-1">
         {KINDS.map((item) => (
           <Link
             key={item.key}
             href={route(`/admin/content?kind=${item.key}`)}
             aria-current={item.key === kind ? "page" : undefined}
             className={cn(
-              "rounded-md border px-2.5 py-1 text-xs transition-colors",
+              "rounded-lg px-2.5 py-1.5 text-xs transition-colors",
               item.key === kind
-                ? "border-ember-500/40 bg-ember-500/10 text-ember-300"
-                : "border-border text-muted-foreground hover:text-foreground"
+                ? "bg-ember-500/12 text-ember-300 font-medium"
+                : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
             )}
           >
             {item.label}
@@ -63,7 +64,7 @@ export default async function AdminContentPage({
         ))}
       </nav>
 
-      <form className="mt-4 max-w-sm">
+      <form className="min-w-0 md:ml-auto md:w-64">
         <input type="hidden" name="kind" value={kind} />
         <label htmlFor="q" className="sr-only">
           Search content
@@ -76,9 +77,10 @@ export default async function AdminContentPage({
           placeholder="Search by title…"
         />
       </form>
+      </div>
 
       {rows.length === 0 ? (
-        <div className="border-border mt-4 rounded-lg border border-dashed">
+        <div className="bg-card border-border mt-4 rounded-xl border">
           <EmptyState
             icon={FileQuestion}
             title="Nothing here"
@@ -90,24 +92,40 @@ export default async function AdminContentPage({
           />
         </div>
       ) : (
-        <ul className="border-border mt-4 divide-y divide-[var(--border)] overflow-hidden rounded-lg border">
-          {rows.map((row) => (
-            <li
-              key={row.id}
-              className="flex flex-wrap items-center gap-3 p-3"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{row.title}</p>
-                {row.subtitle && (
-                  <p className="text-muted-foreground truncate text-xs">
-                    {row.subtitle}
-                  </p>
-                )}
-              </div>
-              <StatusToggle kind={kind} id={row.id} status={row.status} />
-            </li>
-          ))}
-        </ul>
+        <div className="bg-card border-border mt-4 overflow-x-auto rounded-xl border">
+          <table className="w-full min-w-[32rem] text-sm">
+            <caption className="sr-only">
+              {KINDS.find((item) => item.key === kind)?.label} and their publication status
+            </caption>
+            <thead>
+              <tr className="border-border text-muted-foreground bg-muted/20 border-b text-left text-xs">
+                <th scope="col" className="px-4 py-2.5 font-medium">
+                  Title
+                </th>
+                <th scope="col" className="w-44 px-4 py-2.5 font-medium">
+                  Status
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-border divide-y">
+              {rows.map((row) => (
+                <tr key={row.id} className="hover:bg-accent/25 transition-colors">
+                  <td className="max-w-0 px-4 py-2.5">
+                    <p className="truncate text-sm font-medium">{row.title}</p>
+                    {row.subtitle && (
+                      <p className="text-muted-foreground truncate text-xs">
+                        {row.subtitle}
+                      </p>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 align-top">
+                    <StatusToggle kind={kind} id={row.id} status={row.status} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

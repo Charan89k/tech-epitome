@@ -39,26 +39,31 @@ export default async function OnboardingPage() {
   const returning = Boolean(profile?.onboardedAt);
 
   return (
-    <div className="mx-auto w-full max-w-lg px-4 py-10 sm:px-6 sm:py-16">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        {returning ? "Your learning preferences" : "Before you start"}
-      </h1>
-      <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-        {returning
-          ? "Change any of these, or clear them. They only steer what the dashboard suggests first."
-          : "Five questions, all optional, so the dashboard can suggest something sensible first. None of them lock anything — every part of Tech Epitome is open to every account, and all of it is free."}
-      </p>
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-12">
+      <div className="mx-auto w-full max-w-xl">
+        <p className="inline-flex rounded-full bg-ember-500/12 px-2.5 py-1 text-[0.68rem] font-medium tracking-wider text-ember-300 uppercase">
+          Getting started
+        </p>
+        <h1 className="tracking-headline mt-3 text-2xl font-bold sm:text-3xl">
+          {returning ? "Your learning preferences" : "Before you start"}
+        </h1>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          {returning
+            ? "Change any of these, or clear them. They only steer what the dashboard suggests first."
+            : "Five questions, all optional, so the dashboard can suggest something sensible first. None of them lock anything — every part of Tech Epitome is open to every account, and all of it is free."}
+        </p>
 
-      <div className="mt-8">
-        <OnboardingForm
-          defaults={{
-            experienceLevel: profile?.experienceLevel ?? null,
-            primaryGoal: profile?.primaryGoal ?? null,
-            targetInterview: profile?.targetInterview ?? null,
-            preferredLanguage: profile?.preferredLanguage ?? null,
-            weeklyTarget: profile?.weeklyTarget ?? null,
-          }}
-        />
+        <div className="mt-6">
+          <OnboardingForm
+            defaults={{
+              experienceLevel: profile?.experienceLevel ?? null,
+              primaryGoal: profile?.primaryGoal ?? null,
+              targetInterview: profile?.targetInterview ?? null,
+              preferredLanguage: profile?.preferredLanguage ?? null,
+              weeklyTarget: profile?.weeklyTarget ?? null,
+            }}
+          />
+        </div>
       </div>
     </div>
   );

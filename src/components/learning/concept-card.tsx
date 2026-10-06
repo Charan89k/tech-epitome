@@ -10,7 +10,7 @@ export function ConceptCard({
   body: InlineNode[];
 }) {
   return (
-    <div className="not-prose border-border bg-card surface-edge my-5 rounded-lg border p-4">
+    <div className="not-prose border-border bg-card surface-edge my-5 rounded-xl border p-4">
       <p className="text-ember-400 font-mono text-[0.7rem] tracking-wider uppercase">
         Concept
       </p>

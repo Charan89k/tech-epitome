@@ -152,7 +152,7 @@ export function VisualizationPlayer({
 
   if (total === 0 || !current) {
     return (
-      <div className="border-border text-muted-foreground rounded-lg border border-dashed p-6 text-center text-sm">
+      <div className="border-border text-muted-foreground rounded-xl border border-dashed p-6 text-center text-sm">
         This visualization could not be built from its input.
       </div>
     );
@@ -164,20 +164,26 @@ export function VisualizationPlayer({
       onKeyDown={onKeyDown}
       tabIndex={-1}
       className={cn(
-        "border-border bg-card surface-edge rounded-lg border",
+        "border-border bg-card overflow-hidden rounded-xl border",
         className
       )}
     >
-      <header className="border-border flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2.5">
+      <header className="border-border flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
         <div className="min-w-0">
-          <h3 className="truncate text-sm font-medium">{visualization.title}</h3>
-          <p className="text-muted-foreground font-mono text-[0.68rem]">
+          <h3 className="truncate text-sm font-semibold">{visualization.title}</h3>
+          <p className="text-muted-foreground mt-0.5 font-mono text-[0.68rem]">
             {visualization.complexity.time} time · {visualization.complexity.space} space
           </p>
         </div>
 
         {allowEditing && visualization.parseInput && (
-          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={openEditor}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={openEditor}
+            aria-expanded={editing}
+          >
             <SlidersHorizontal className="size-3.5" />
             Input
           </Button>
@@ -217,25 +223,30 @@ export function VisualizationPlayer({
         </div>
       )}
 
-      <div className="grid gap-4 p-4 lg:grid-cols-[1fr_15rem]">
-        <div className="min-w-0 space-y-4">
-          <div className="min-h-[7rem] overflow-x-auto">
+      <div className="grid gap-4 p-3 sm:p-4 lg:grid-cols-[1fr_15rem]">
+        <div className="flex min-w-0 flex-col gap-3">
+          <div className="viz-canvas border-border flex min-h-[11rem] flex-1 flex-col justify-center overflow-x-auto rounded-lg border px-3 py-5 sm:px-5">
             {visualization.render(current)}
           </div>
 
           {/* The narration. aria-live so a screen reader follows along. */}
-          <p
-            aria-live="polite"
-            className="text-muted-foreground border-border min-h-[2.5rem] border-t pt-3 text-xs leading-relaxed"
-          >
-            {current.operation}
-          </p>
+          <div className="bg-muted/40 border-border flex items-start gap-2.5 rounded-lg border px-3 py-2.5">
+            <span className="bg-ember-500/15 text-ember-300 mt-px shrink-0 rounded px-1.5 py-0.5 font-mono text-[0.62rem] tabular-nums">
+              Step {index + 1}
+            </span>
+            <p
+              aria-live="polite"
+              className="text-foreground/85 min-h-[2.5rem] text-sm leading-relaxed"
+            >
+              {current.operation}
+            </p>
+          </div>
         </div>
 
         {/* min-w-0 lets this column shrink inside the grid; without it a
             long pseudocode line forces the whole page wider. */}
         <aside className="min-w-0 space-y-3">
-          <div>
+          <div className="border-border rounded-lg border p-3">
             <p className="text-muted-foreground mb-1.5 text-[0.68rem] font-medium tracking-wider uppercase">
               Variables
             </p>
@@ -253,7 +264,7 @@ export function VisualizationPlayer({
             </dl>
           </div>
 
-          <div>
+          <div className="border-border rounded-lg border p-3">
             <p className="text-muted-foreground mb-1.5 text-[0.68rem] font-medium tracking-wider uppercase">
               Pseudocode
             </p>
@@ -279,7 +290,7 @@ export function VisualizationPlayer({
         </aside>
       </div>
 
-      <footer className="border-border flex flex-wrap items-center gap-2 border-t px-4 py-2.5">
+      <footer className="border-border bg-muted/20 flex flex-wrap items-center gap-2 border-t px-3 py-2.5 sm:px-4">
         <Button
           size="sm"
           variant="outline"
@@ -293,7 +304,7 @@ export function VisualizationPlayer({
 
         <Button
           size="sm"
-          className="h-8"
+          className="h-8 min-w-[5.5rem] rounded-full"
           onClick={() => {
             if (index >= total - 1) setIndex(0);
             setPlaying((value) => !value);
@@ -343,7 +354,11 @@ export function VisualizationPlayer({
           {index + 1}/{total}
         </span>
 
-        <div className="flex shrink-0 gap-0.5" role="group" aria-label="Playback speed">
+        <div
+          className="bg-muted/60 flex shrink-0 gap-0.5 rounded-md p-0.5"
+          role="group"
+          aria-label="Playback speed"
+        >
           {SPEEDS.map((speed, speedIdx) => (
             <button
               key={speed.label}
@@ -353,7 +368,7 @@ export function VisualizationPlayer({
               className={cn(
                 "rounded px-1.5 py-1 font-mono text-[0.65rem] transition-colors",
                 speedIdx === speedIndex
-                  ? "bg-ember-500/15 text-ember-300"
+                  ? "bg-card text-ember-300 shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >

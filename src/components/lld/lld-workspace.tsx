@@ -4,10 +4,13 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import {
   Check,
+  Code2,
   Lightbulb,
   Loader2,
   Plus,
   Send,
+  Shapes,
+  SlidersHorizontal,
   Trash2,
   Unlink,
 } from "lucide-react";
@@ -24,7 +27,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UnderlineTab, UNDERLINE_TABS_LIST } from "@/components/system-design/pane";
+import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   revealLLDHintAction,
@@ -331,7 +335,9 @@ export function LLDWorkspace({
 
   const palette = (
     <div>
-      <h3 className="text-xs font-medium">Add a type</h3>
+      <h3 className="text-muted-foreground text-[0.68rem] font-medium tracking-wider uppercase">
+        Add a type
+      </h3>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {TYPE_PALETTE.map((entry) => (
           <button
@@ -339,7 +345,7 @@ export function LLDWorkspace({
             type="button"
             onClick={() => addType(entry.kind)}
             title={entry.hint}
-            className="border-border text-muted-foreground hover:border-ember-500/40 hover:text-ember-300 focus-visible:ring-ring/50 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors focus-visible:ring-3 focus-visible:outline-none"
+            className="border-border bg-background/60 text-muted-foreground hover:border-ember-500/40 hover:text-ember-300 focus-visible:ring-ring/50 inline-flex h-7 items-center gap-1 rounded-md border px-2.5 text-xs transition-colors focus-visible:ring-3 focus-visible:outline-none"
           >
             <Plus className="size-3" aria-hidden="true" />
             {entry.label}
@@ -369,7 +375,7 @@ export function LLDWorkspace({
         value={relationKind}
         onValueChange={(v) => setRelationKind(v as RelationKind)}
       >
-        <SelectTrigger size="sm" className="h-8 w-44" aria-label="Relationship type">
+        <SelectTrigger size="sm" className="h-8 w-44 text-xs" aria-label="Relationship type">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -396,7 +402,7 @@ export function LLDWorkspace({
   );
 
   const inspector = selectedType ? (
-    <div className="border-border rounded-lg border p-3" data-testid="lld-inspector">
+    <div className="border-ember-500/30 bg-ember-500/5 rounded-lg border p-3" data-testid="lld-inspector">
       <div className="flex items-center gap-2">
         <Select
           value={selectedType.kind}
@@ -546,7 +552,7 @@ export function LLDWorkspace({
       </div>
     </div>
   ) : (
-    <p className="text-muted-foreground border-border rounded-lg border border-dashed p-4 text-center text-xs">
+    <p className="text-muted-foreground border-border bg-muted/20 rounded-lg border border-dashed p-5 text-center text-xs">
       Select a type in the diagram to edit its name, attributes and methods.
     </p>
   );
@@ -554,11 +560,11 @@ export function LLDWorkspace({
   const relationshipList = diagram.relationships.length > 0 && (
     <div>
       <h3 className="text-xs font-medium">Relationships</h3>
-      <ul className="mt-2 space-y-1">
+      <ul className="border-border mt-2 divide-y divide-[var(--border)] overflow-hidden rounded-lg border">
         {diagram.relationships.map((rel) => (
           <li
             key={rel.id}
-            className="text-muted-foreground flex items-center gap-2 text-xs"
+            className="text-muted-foreground flex items-center gap-2 px-3 py-1.5 text-xs"
           >
             <span className="min-w-0 flex-1 truncate">
               {nameOf(rel.from)} {RELATION_LABELS[rel.kind]} {nameOf(rel.to)}
@@ -609,12 +615,12 @@ export function LLDWorkspace({
 
   const codePane = (
     <div className="flex h-full flex-col">
-      <div className="border-border flex items-center gap-2 border-b px-3 py-2">
+      <div className="border-border bg-card/40 flex items-center gap-2 border-b px-3 py-2">
         <Select value={language} onValueChange={(v) => {
           dirty.current = true;
           setLanguage(v as Language);
         }}>
-          <SelectTrigger size="sm" className="h-8 w-36" aria-label="Language">
+          <SelectTrigger size="sm" className="h-8 w-36 text-xs" aria-label="Language">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -715,8 +721,8 @@ export function LLDWorkspace({
         </Alert>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-muted-foreground text-[0.65rem]" aria-live="polite">
+      <div className="border-border flex flex-wrap items-center justify-between gap-2 border-t pt-4">
+        <p className="text-muted-foreground text-[0.68rem]" aria-live="polite">
           {saveState === "saving" && "Saving…"}
           {saveState === "saved" && "Draft saved"}
           {saveState === "error" && "Could not save"}
@@ -755,8 +761,10 @@ export function LLDWorkspace({
 
   const diagramPane = (
     <>
-      {palette}
-      {connectBar}
+      <div className="border-border bg-muted/20 space-y-3 rounded-lg border p-3">
+        {palette}
+        {connectBar}
+      </div>
       <ClassDiagramView
         diagram={diagram}
         selectedTypeId={selected}
@@ -772,17 +780,17 @@ export function LLDWorkspace({
     // width, which is the only way the inspector's member rows fit.
     return (
       <div className="space-y-3" data-testid="lld-workspace">
-        <Tabs defaultValue="design">
-          <TabsList className="w-full">
-            <TabsTrigger value="design" className="flex-1">
+        <Tabs defaultValue="design" className="gap-0">
+          <TabsList className={cn(UNDERLINE_TABS_LIST, "-mx-4 -mt-4 w-auto")}>
+            <UnderlineTab value="design" icon={Shapes}>
               Design
-            </TabsTrigger>
-            <TabsTrigger value="edit" className="flex-1">
+            </UnderlineTab>
+            <UnderlineTab value="edit" icon={SlidersHorizontal}>
               Edit
-            </TabsTrigger>
-            <TabsTrigger value="code" className="flex-1">
+            </UnderlineTab>
+            <UnderlineTab value="code" icon={Code2}>
               Code
-            </TabsTrigger>
+            </UnderlineTab>
           </TabsList>
 
           <TabsContent value="design" className="mt-3 space-y-3">
@@ -810,7 +818,7 @@ export function LLDWorkspace({
 
   return (
     <div className="space-y-4" data-testid="lld-workspace">
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <div className="min-w-0 space-y-3">{diagramPane}</div>
         <div className="min-w-0 space-y-3">
           {inspector}
@@ -822,7 +830,7 @@ export function LLDWorkspace({
         {codePane}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-5 xl:grid-cols-2">
         {rationalePanel}
         <div>{hintsPanel}</div>
       </div>

@@ -24,7 +24,7 @@ export function ProblemListBlock({
   if (problems.length === 0) return null;
 
   return (
-    <section className="not-prose border-border bg-card my-6 overflow-hidden rounded-lg border">
+    <section className="not-prose border-border bg-card my-6 overflow-hidden rounded-xl border">
       <h3 className="border-border bg-muted/40 border-b px-4 py-2 text-xs font-medium">
         {title}
       </h3>

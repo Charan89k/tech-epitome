@@ -76,102 +76,112 @@ export function OnboardingForm({
   }, [state.status, router]);
 
   return (
-    <form action={formAction} className="space-y-6">
-      <Field id="experienceLevel" label="How much have you done before?">
-        <Select name="experienceLevel" defaultValue={defaults.experienceLevel ?? ""}>
-          <SelectTrigger id="experienceLevel" className="w-full">
-            <SelectValue placeholder="Prefer not to say" />
-          </SelectTrigger>
-          <SelectContent>
-            {EXPERIENCE.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
+    <form
+      action={formAction}
+      className="overflow-hidden rounded-xl border border-border bg-card"
+    >
+      <ol className="divide-y divide-border">
+        <Field step={1} id="experienceLevel" label="How much have you done before?">
+          <Select name="experienceLevel" defaultValue={defaults.experienceLevel ?? ""}>
+            <SelectTrigger id="experienceLevel" className="w-full">
+              <SelectValue placeholder="Prefer not to say" />
+            </SelectTrigger>
+            <SelectContent>
+              {EXPERIENCE.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
 
-      <Field id="primaryGoal" label="What are you here for?">
-        <Select name="primaryGoal" defaultValue={defaults.primaryGoal ?? ""}>
-          <SelectTrigger id="primaryGoal" className="w-full">
-            <SelectValue placeholder="Prefer not to say" />
-          </SelectTrigger>
-          <SelectContent>
-            {GOALS.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
+        <Field step={2} id="primaryGoal" label="What are you here for?">
+          <Select name="primaryGoal" defaultValue={defaults.primaryGoal ?? ""}>
+            <SelectTrigger id="primaryGoal" className="w-full">
+              <SelectValue placeholder="Prefer not to say" />
+            </SelectTrigger>
+            <SelectContent>
+              {GOALS.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
 
-      <Field
-        id="targetInterview"
-        label="Which interview are you most worried about?"
-      >
-        <Select name="targetInterview" defaultValue={defaults.targetInterview ?? ""}>
-          <SelectTrigger id="targetInterview" className="w-full">
-            <SelectValue placeholder="Prefer not to say" />
-          </SelectTrigger>
-          <SelectContent>
-            {INTERVIEW_TYPES.map((type) => (
-              <SelectItem key={type} value={type}>
-                {MACHINES[type].label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
-
-      <Field id="preferredLanguage" label="Which language do you write in?">
-        <Select
-          name="preferredLanguage"
-          defaultValue={defaults.preferredLanguage ?? ""}
+        <Field
+          step={3}
+          id="targetInterview"
+          label="Which interview are you most worried about?"
         >
-          <SelectTrigger id="preferredLanguage" className="w-full">
-            <SelectValue placeholder="Prefer not to say" />
-          </SelectTrigger>
-          <SelectContent>
-            {SUPPORTED_LANGUAGES.map((language) => (
-              <SelectItem key={language} value={language}>
-                {LANGUAGE_LABEL[language]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
+          <Select name="targetInterview" defaultValue={defaults.targetInterview ?? ""}>
+            <SelectTrigger id="targetInterview" className="w-full">
+              <SelectValue placeholder="Prefer not to say" />
+            </SelectTrigger>
+            <SelectContent>
+              {INTERVIEW_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {MACHINES[type].label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
 
-      <Field
-        id="weeklyTarget"
-        label="How much do you want to get through in a week?"
-        hint="Chapters and problems together. The dashboard shows progress against it; nothing happens if you miss it."
-      >
-        <Select
-          name="weeklyTarget"
-          defaultValue={defaults.weeklyTarget ? String(defaults.weeklyTarget) : ""}
+        <Field step={4} id="preferredLanguage" label="Which language do you write in?">
+          <Select
+            name="preferredLanguage"
+            defaultValue={defaults.preferredLanguage ?? ""}
+          >
+            <SelectTrigger id="preferredLanguage" className="w-full">
+              <SelectValue placeholder="Prefer not to say" />
+            </SelectTrigger>
+            <SelectContent>
+              {SUPPORTED_LANGUAGES.map((language) => (
+                <SelectItem key={language} value={language}>
+                  {LANGUAGE_LABEL[language]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+
+        <Field
+          step={5}
+          id="weeklyTarget"
+          label="How much do you want to get through in a week?"
+          hint="Chapters and problems together. The dashboard shows progress against it; nothing happens if you miss it."
         >
-          <SelectTrigger id="weeklyTarget" className="w-full">
-            <SelectValue placeholder="No target" />
-          </SelectTrigger>
-          <SelectContent>
-            {TARGETS.map((target) => (
-              <SelectItem key={target} value={String(target)}>
-                {target} a week
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
+          <Select
+            name="weeklyTarget"
+            defaultValue={defaults.weeklyTarget ? String(defaults.weeklyTarget) : ""}
+          >
+            <SelectTrigger id="weeklyTarget" className="w-full">
+              <SelectValue placeholder="No target" />
+            </SelectTrigger>
+            <SelectContent>
+              {TARGETS.map((target) => (
+                <SelectItem key={target} value={String(target)}>
+                  {target} a week
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+      </ol>
 
       {state.status === "error" && state.message && (
-        <p role="alert" className="text-destructive text-sm">
+        <p
+          role="alert"
+          className="border-t border-border px-4 py-3 text-sm text-destructive sm:px-5"
+        >
           {state.message}
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 border-t border-border bg-muted/20 px-4 py-3 sm:px-5">
         <Button type="submit" disabled={pending || skipping}>
           {pending && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
           Save and continue
@@ -191,31 +201,42 @@ export function OnboardingForm({
           {skipping && <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />}
           Skip
         </Button>
+        <p className="w-full text-xs text-muted-foreground/70 sm:ml-auto sm:w-auto">
+          You can change any of this later in settings.
+        </p>
       </div>
-
-      <p className="text-muted-foreground/70 text-xs">
-        You can change any of this later in settings.
-      </p>
     </form>
   );
 }
 
 function Field({
+  step,
   id,
   label,
   hint,
   children,
 }: {
+  step: number;
   id: string;
   label: string;
   hint?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
-      {children}
-      {hint && <p className="text-muted-foreground text-xs">{hint}</p>}
-    </div>
+    <li className="flex gap-3 px-4 py-4 sm:px-5">
+      <span
+        className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-ember-500/12 font-mono text-xs font-semibold text-ember-300"
+        aria-hidden="true"
+      >
+        {step}
+      </span>
+      <div className="min-w-0 flex-1 space-y-2">
+        <Label htmlFor={id}>{label}</Label>
+        {children}
+        {hint && (
+          <p className="text-xs leading-relaxed text-muted-foreground">{hint}</p>
+        )}
+      </div>
+    </li>
   );
 }

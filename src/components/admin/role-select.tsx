@@ -60,7 +60,7 @@ export function RoleSelect({
         onValueChange={(next) => change(next as Role)}
         disabled={self || pending}
       >
-        <SelectTrigger className="h-8 w-full" aria-label="Role">
+        <SelectTrigger size="sm" className="h-8 w-full text-xs" aria-label="Role">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

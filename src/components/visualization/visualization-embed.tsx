@@ -15,7 +15,7 @@ import { getVisualization } from "./registry";
  */
 const VisualizationPlayer = dynamic(
   () => import("./visualization-player").then((m) => m.VisualizationPlayer),
-  { ssr: false, loading: () => <Skeleton className="h-96 w-full rounded-lg" /> }
+  { ssr: false, loading: () => <Skeleton className="h-96 w-full rounded-xl" /> }
 );
 
 export function VisualizationEmbed({

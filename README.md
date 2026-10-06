@@ -19,9 +19,8 @@ and realistic interview practice.
 ---
 
 > [!NOTE]
-> **There is no public instance yet.** This repository has not been deployed
-> to a hosting provider, so there is no live URL to link to. You can
-> [run it locally](#-run-locally) in a few minutes, or
+> **Live at [tech-epitome.vercel.app](https://tech-epitome.vercel.app).** You can
+> also [run it locally](#-run-locally) in a few minutes, or
 > [deploy your own](#️-deploy-your-own) — everything needed is in the repo.
 
 ---
@@ -70,6 +69,21 @@ dependency order rather than as a pile of topics. Each chapter states what you
 should be able to do afterwards, then checks it with a quiz and linked
 problems. Content is stored as typed, validated blocks, so a lesson can embed a
 stepped visualization or an inline quiz rather than only prose.
+
+### 🎞️ Live code visualizer
+
+Every problem draws its input — the array, the string, the linked list —
+right in the statement. Run your Python or JavaScript and the picture replays
+**your own code** line by line: index variables become pointers under the
+cells, changed values flash, maps and sets fill in, linked-list pointers
+rewire, and recursion shows its call stack. The editor highlights the line
+each step is on, and with **Live** on the picture re-traces as you type.
+
+It runs entirely in your browser, in a worker — Python on Pyodide,
+JavaScript through an instrumenting rewrite — under its own
+Content-Security-Policy that gives the code no access to this site's API.
+Java and C++ show the input picture; step-by-step tracing needs an
+in-browser runtime they do not have.
 
 ### 💻 Problem solving
 

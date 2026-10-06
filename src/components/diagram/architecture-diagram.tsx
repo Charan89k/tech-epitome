@@ -56,18 +56,18 @@ const KIND_STYLE: Record<NodeKind, { fill: string; stroke: string; text: string 
     text: "var(--foreground)",
   },
   database: {
-    fill: "color-mix(in oklab, var(--success) 12%, transparent)",
-    stroke: "color-mix(in oklab, var(--success) 45%, transparent)",
+    fill: "color-mix(in oklab, var(--viz-compare) 12%, transparent)",
+    stroke: "color-mix(in oklab, var(--viz-compare) 55%, transparent)",
     text: "var(--foreground)",
   },
   object_storage: {
-    fill: "color-mix(in oklab, var(--success) 10%, transparent)",
-    stroke: "color-mix(in oklab, var(--success) 38%, transparent)",
+    fill: "color-mix(in oklab, var(--viz-visited) 10%, transparent)",
+    stroke: "color-mix(in oklab, var(--viz-visited) 55%, transparent)",
     text: "var(--foreground)",
   },
   search: {
-    fill: "color-mix(in oklab, var(--success) 10%, transparent)",
-    stroke: "color-mix(in oklab, var(--success) 38%, transparent)",
+    fill: "color-mix(in oklab, var(--viz-visited) 10%, transparent)",
+    stroke: "color-mix(in oklab, var(--viz-visited) 55%, transparent)",
     text: "var(--foreground)",
   },
   external: {
@@ -198,7 +198,7 @@ export function ArchitectureDiagram({
     return (
       <div
         className={cn(
-          "border-border text-muted-foreground rounded-lg border border-dashed p-8 text-center text-xs",
+          "viz-canvas border-border text-muted-foreground rounded-lg border border-dashed px-6 py-14 text-center text-xs",
           className
         )}
       >
@@ -211,13 +211,16 @@ export function ArchitectureDiagram({
 
   return (
     <figure className={cn("not-prose my-4", className)}>
-      <div className="border-border bg-card overflow-hidden rounded-lg border">
+      <div className="viz-canvas border-border overflow-hidden rounded-lg border p-2 sm:p-3">
         {/* A viewBox with no intrinsic width is what makes this responsive:
             the browser scales the whole coordinate space to the container,
             so nothing overflows at 320px. */}
         <svg
           viewBox={`0 0 ${laidOut.width} ${laidOut.height}`}
-          className="h-auto w-full"
+          className="mx-auto h-auto w-full"
+          // Scale up to fit, but not beyond 1.5x: a two-box design should
+          // not fill the screen with type larger than the page's own.
+          style={{ maxWidth: laidOut.width * 1.5 }}
           role="img"
           aria-labelledby={`${uid}-title ${uid}-desc`}
           preserveAspectRatio="xMidYMid meet"

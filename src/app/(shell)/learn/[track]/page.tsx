@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, BookOpen, Clock } from "lucide-react";
+import { ArrowRight, BookOpen, Clock, Layers } from "lucide-react";
 
 import { EmptyState } from "@/components/common/empty-state";
-import { PageHeader } from "@/components/common/page-header";
-import { ProgressRing } from "@/components/common/progress-ring";
+import { diagramFor } from "@/components/learning/diagram-for";
+import { MiniDiagram } from "@/components/marketing/mini-diagrams";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/session";
 import { READER_TRACKS, trackForSegment } from "@/lib/tracks";
 import { route } from "@/lib/utils";
-import { listCourses } from "@/services/curriculum";
+import { getCourse, listCourses } from "@/services/curriculum";
 
 /**
  * Per-track copy.
@@ -77,12 +77,28 @@ export default async function TrackRoadmapPage({
   const user = await getCurrentUser();
   const courses = await listCourses(track, user?.id);
 
+  // The section breakdown for each course, for the "what's inside" grid.
+  // Tracks have one or two courses, so this is a handful of reads.
+  const details = await Promise.all(
+    courses.map((course) => getCourse(course.slug, user?.id))
+  );
+
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-      <PageHeader title={copy.heading} description={copy.description} />
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+      <header className="max-w-3xl">
+        <p className="text-ember-400 text-[0.68rem] font-medium tracking-wider uppercase">
+          Learn
+        </p>
+        <h1 className="tracking-headline mt-2 text-2xl font-bold sm:text-3xl">
+          {copy.heading}
+        </h1>
+        <p className="text-muted-foreground mt-2 text-sm leading-relaxed text-pretty sm:text-base">
+          {copy.description}
+        </p>
+      </header>
 
       {courses.length === 0 ? (
-        <div className="border-border mt-8 rounded-lg border border-dashed">
+        <div className="border-border bg-card mt-8 rounded-xl border">
           <EmptyState
             icon={BookOpen}
             title="No published courses yet"
@@ -90,67 +106,145 @@ export default async function TrackRoadmapPage({
           />
         </div>
       ) : (
-        <ul className="mt-8 space-y-3">
-          {courses.map((course) => {
+        <div className="mt-8 space-y-12">
+          {courses.map((course, courseIndex) => {
             const percent =
               course.totalChapters > 0
                 ? Math.round(
                     (course.completedChapters / course.totalChapters) * 100
                   )
                 : 0;
+            const sections = details[courseIndex]?.sections ?? [];
 
             return (
-              <li key={course.id}>
+              <section key={course.id} aria-label={course.title}>
                 <Link
                   href={route(`/learn/${segment}/${course.slug}`)}
-                  className="border-border bg-card hover:border-ember-500/35 group flex items-center gap-5 rounded-lg border p-5 transition-colors"
+                  className="border-border bg-card hover:border-ember-500/40 group flex flex-col overflow-hidden rounded-xl border transition-colors sm:flex-row"
                 >
-                  <ProgressRing
-                    value={percent}
-                    size={52}
-                    strokeWidth={4}
-                    label={`${course.completedChapters} of ${course.totalChapters} chapters complete`}
+                  <MiniDiagram
+                    kind={diagramFor(course.slug, courseIndex)}
+                    className="border-border h-32 shrink-0 border-b sm:h-auto sm:w-56 sm:border-r sm:border-b-0"
                   />
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="truncate text-base font-medium">
-                        {course.title}
-                      </h2>
-                    </div>
-
+                  <div className="min-w-0 flex-1 p-5 sm:p-6">
+                    <h2 className="tracking-headline group-hover:text-ember-200 text-lg font-semibold transition-colors sm:text-xl">
+                      {course.title}
+                    </h2>
                     {course.subtitle && (
-                      <p className="text-muted-foreground mt-0.5 truncate text-sm">
+                      <p className="text-muted-foreground mt-1 text-sm">
                         {course.subtitle}
                       </p>
                     )}
 
-                    <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-                      <span className="tabular">
+                    <div className="text-muted-foreground mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                      <span className="tabular-nums">
                         {course.completedChapters}/{course.totalChapters} chapters
                       </span>
+                      {sections.length > 0 && (
+                        <span className="flex items-center gap-1">
+                          <Layers className="size-3" aria-hidden="true" />
+                          {sections.length} sections
+                        </span>
+                      )}
                       {course.estimatedHours > 0 && (
                         <span className="flex items-center gap-1">
-                          <Clock className="size-3" aria-hidden="true" />
-                          ~{course.estimatedHours}h
+                          <Clock className="size-3" aria-hidden="true" />~
+                          {course.estimatedHours}h
                         </span>
                       )}
                     </div>
-                  </div>
 
-                  <ArrowRight
-                    className="text-muted-foreground group-hover:text-ember-500 size-4 shrink-0 transition-colors"
-                    aria-hidden="true"
-                  />
+                    <div className="mt-4 flex items-center gap-3">
+                      <div
+                        className="bg-muted h-1.5 flex-1 overflow-hidden rounded-full"
+                        role="progressbar"
+                        aria-valuenow={percent}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={`${course.completedChapters} of ${course.totalChapters} chapters complete`}
+                      >
+                        <div
+                          className="bg-ember-500 h-full rounded-full"
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                      <span className="text-muted-foreground font-mono text-xs tabular-nums">
+                        {percent}%
+                      </span>
+                      <span className="text-ember-300 flex shrink-0 items-center gap-1 text-sm font-medium">
+                        {course.completedChapters > 0 ? "Continue" : "Open course"}
+                        <ArrowRight
+                          className="size-4 transition-transform group-hover:translate-x-0.5"
+                          aria-hidden="true"
+                        />
+                      </span>
+                    </div>
+                  </div>
                 </Link>
-              </li>
+
+                {sections.length > 0 && (
+                  <>
+                    <h3 className="tracking-headline mt-8 text-lg font-semibold">
+                      What&rsquo;s inside
+                    </h3>
+                    <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {sections.map((section, sectionIndex) => {
+                        const sectionPercent = section.totalChapters
+                          ? Math.round(
+                              (section.completedChapters / section.totalChapters) * 100
+                            )
+                          : 0;
+                        return (
+                          <li key={section.id}>
+                            <Link
+                              href={route(
+                                `/learn/${segment}/${course.slug}#section-${section.slug}`
+                              )}
+                              className="border-border bg-card hover:border-ember-500/40 group flex h-full overflow-hidden rounded-xl border transition-colors sm:flex-col"
+                            >
+                              <MiniDiagram
+                                kind={diagramFor(section.slug, sectionIndex)}
+                                className="border-border w-24 shrink-0 border-r sm:h-28 sm:w-full sm:border-r-0 sm:border-b"
+                              />
+                              <div className="flex min-w-0 flex-1 flex-col p-4">
+                                <p className="text-muted-foreground font-mono text-[0.65rem] tabular-nums">
+                                  {String(sectionIndex + 1).padStart(2, "0")}
+                                </p>
+                                <p className="group-hover:text-ember-200 mt-0.5 truncate text-sm font-semibold transition-colors">
+                                  {section.title}
+                                </p>
+                                {section.summary && (
+                                  <p className="text-muted-foreground mt-1 line-clamp-2 text-xs leading-snug">
+                                    {section.summary}
+                                  </p>
+                                )}
+                                <div className="mt-auto flex items-center gap-2 pt-3">
+                                  <div className="bg-muted h-1 flex-1 overflow-hidden rounded-full">
+                                    <div
+                                      className="bg-ember-500 h-full rounded-full"
+                                      style={{ width: `${sectionPercent}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-muted-foreground font-mono text-[0.65rem] tabular-nums">
+                                    {section.completedChapters}/{section.totalChapters}
+                                  </span>
+                                </div>
+                              </div>
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </>
+                )}
+              </section>
             );
           })}
-        </ul>
+        </div>
       )}
 
       {!user && courses.length > 0 && (
-        <div className="border-border bg-card mt-8 flex flex-col items-start gap-3 rounded-lg border p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="border-border bg-card mt-10 flex flex-col items-start gap-3 rounded-xl border p-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-muted-foreground text-sm">
             Create an account to track progress, save notes and get revision
             scheduled for you.

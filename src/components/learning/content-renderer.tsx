@@ -139,7 +139,7 @@ function Block({
 
     case "table":
       return (
-        <figure className="not-prose border-border bg-card my-5 overflow-hidden rounded-lg border">
+        <figure className="not-prose border-border bg-card my-5 overflow-hidden rounded-xl border">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

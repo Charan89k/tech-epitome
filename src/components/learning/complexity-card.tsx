@@ -14,7 +14,7 @@ export function ComplexityCard({
   caption?: string;
 }) {
   return (
-    <figure className="not-prose border-border bg-card my-5 overflow-hidden rounded-lg border">
+    <figure className="not-prose border-border bg-card my-5 overflow-hidden rounded-xl border">
       <table className="w-full text-sm">
         <caption className="sr-only">
           {caption ?? "Time and space complexity by operation"}

@@ -47,7 +47,7 @@ export function CodeBlock({
 
   return (
     <figure className={cn("group not-prose my-5", className)}>
-      <div className="border-border bg-card overflow-hidden rounded-lg border">
+      <div className="border-border bg-card overflow-hidden rounded-xl border">
         <div className="border-border bg-muted/40 flex items-center justify-between border-b px-3 py-1.5">
           <span className="text-muted-foreground font-mono text-[0.7rem] tracking-wide uppercase">
             {language}

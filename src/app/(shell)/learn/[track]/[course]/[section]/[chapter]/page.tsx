@@ -212,14 +212,16 @@ export default async function ChapterPage({ params }: Params) {
 
   return (
     <div className="mx-auto flex w-full max-w-[100rem]">
-      {/* Left: curriculum navigation */}
-      <aside className="border-border sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-64 shrink-0 border-r xl:block">
-        {nav}
+      {/* Left: curriculum navigation, a floating panel beside the rail */}
+      <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-72 shrink-0 py-3 pl-3 xl:block">
+        <div className="bg-card/60 border-border h-full overflow-hidden rounded-xl border">
+          {nav}
+        </div>
       </aside>
 
       <div className="min-w-0 flex-1">
         {/* Mobile controls */}
-        <div className="border-border bg-background/80 sticky top-14 z-20 flex items-center gap-2 border-b px-4 py-2 backdrop-blur-md xl:hidden">
+        <div className="border-border bg-background/85 sticky top-14 z-20 flex items-center gap-2 border-b px-4 py-2 backdrop-blur-md xl:hidden">
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="sm" className="h-8">
@@ -238,7 +240,7 @@ export default async function ChapterPage({ params }: Params) {
           {toc.length > 0 && (
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8">
+                <Button variant="ghost" size="sm" className="h-8 lg:hidden">
                   On this page
                 </Button>
               </SheetTrigger>
@@ -252,13 +254,17 @@ export default async function ChapterPage({ params }: Params) {
               </SheetContent>
             </Sheet>
           )}
+
+          <span className="text-muted-foreground ml-auto truncate text-xs">
+            {courseDetail.title}
+          </span>
         </div>
 
         <div className="flex">
           {/* Centre: the lesson */}
           {/* Not a `main`: the shell already provides the landmark, and
               nesting them is invalid. */}
-          <div className="min-w-0 flex-1 px-4 py-8 sm:px-8">
+          <div className="min-w-0 flex-1 px-4 pt-8 pb-16 sm:px-8 lg:px-10">
             <article className="mx-auto max-w-[44rem]">
               <ChapterHeader
                 sectionTitle={chapter.section.title}
@@ -268,111 +274,112 @@ export default async function ChapterPage({ params }: Params) {
                 readingMinutes={chapter.readingMinutes}
                 percent={chapter.progress.percent}
                 objectives={chapter.objectives}
+                actions={
+                  // Rendered once, not once per breakpoint: two launchers
+                  // would mean two independent open states and two
+                  // identical buttons in the accessibility tree.
+                  <>
+                    <BookmarkButton
+                      entityType="CHAPTER"
+                      entityId={chapter.id}
+                      initiallyBookmarked={bookmarked}
+                      signedIn={Boolean(user)}
+                    />
+                    {tutor}
+                  </>
+                }
               />
 
-              {/* Rendered once, not once per breakpoint: two launchers would
-                  mean two independent open states and two identical buttons
-                  in the accessibility tree. */}
-              <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-                <BookmarkButton
+              {/* The reader is still server-rendered; Highlightable
+                  only adds a selection listener and some marks on top
+                  of the DOM that is already there. */}
+              <Highlightable
+                entityType="CHAPTER"
+                entityId={chapter.id}
+                initialHighlights={highlights}
+                signedIn={Boolean(user)}
+              >
+                <div className={READING_CLASSES}>
+                  <ContentRenderer blocks={blocks} resources={resources} />
+                </div>
+              </Highlightable>
+
+              {footerProblems.length > 0 && (
+                <ProblemListBlock
+                  problems={footerProblems}
+                  title="Practice for this chapter"
+                />
+              )}
+
+              {/* After the lesson, before the completion prompt: a note
+                  is something you write once you have read the thing. */}
+              <div className="mt-8">
+                <NoteEditor
                   entityType="CHAPTER"
                   entityId={chapter.id}
-                  initiallyBookmarked={bookmarked}
+                  initialBody={note?.body ?? ""}
                   signedIn={Boolean(user)}
                 />
-                {tutor}
               </div>
 
-                {/* The reader is still server-rendered; Highlightable
-                    only adds a selection listener and some marks on top
-                    of the DOM that is already there. */}
-                <Highlightable
-                  entityType="CHAPTER"
-                  entityId={chapter.id}
-                  initialHighlights={highlights}
-                  signedIn={Boolean(user)}
-                >
-                  <div className="mt-8 space-y-4">
-                    <ContentRenderer blocks={blocks} resources={resources} />
-                  </div>
-                </Highlightable>
-
-                {footerProblems.length > 0 && (
-                  <ProblemListBlock
-                    problems={footerProblems}
-                    title="Practice for this chapter"
-                  />
-                )}
-
-                {/* After the lesson, before the completion prompt: a note
-                    is something you write once you have read the thing. */}
-                <div className="mt-8">
-                  <NoteEditor
-                    entityType="CHAPTER"
-                    entityId={chapter.id}
-                    initialBody={note?.body ?? ""}
-                    signedIn={Boolean(user)}
-                  />
-                </div>
-
-                <ChapterCompletion
-                  chapterId={chapter.id}
-                  keyTakeaways={chapter.keyTakeaways}
-                  initiallyComplete={chapter.progress.status === "COMPLETED"}
-                  signedIn={Boolean(user)}
-                  next={chapter.next}
-                  hasQuiz={chapter.quizSlugs.length > 0}
-                  problemCount={chapter.problems.length}
-                />
+              <ChapterCompletion
+                chapterId={chapter.id}
+                keyTakeaways={chapter.keyTakeaways}
+                initiallyComplete={chapter.progress.status === "COMPLETED"}
+                signedIn={Boolean(user)}
+                next={chapter.next}
+                hasQuiz={chapter.quizSlugs.length > 0}
+                problemCount={chapter.problems.length}
+              />
 
               {/* Previous / next */}
               <nav
                 aria-label="Chapter navigation"
-                className="border-border mt-8 flex items-stretch justify-between gap-3 border-t pt-6"
+                className="mt-8 grid grid-cols-2 gap-3"
               >
                 {chapter.previous ? (
                   <Link
                     href={route(chapter.previous.href)}
                     rel="prev"
-                    className="border-border hover:border-ember-500/35 group min-w-0 flex-1 rounded-lg border p-3 transition-colors"
+                    className="border-border bg-card hover:border-ember-500/40 group min-w-0 rounded-xl border p-4 transition-colors"
                   >
                     <span className="text-muted-foreground flex items-center gap-1 text-xs">
                       <ChevronLeft className="size-3.5" aria-hidden="true" />
                       Previous
                     </span>
-                    <span className="mt-0.5 block truncate text-sm font-medium">
+                    <span className="group-hover:text-ember-200 mt-1 block truncate text-sm font-semibold transition-colors">
                       {chapter.previous.title}
                     </span>
                   </Link>
                 ) : (
-                  <span className="flex-1" />
+                  <span />
                 )}
 
                 {chapter.next ? (
                   <Link
                     href={route(chapter.next.href)}
                     rel="next"
-                    className="border-border hover:border-ember-500/35 group min-w-0 flex-1 rounded-lg border p-3 text-right transition-colors"
+                    className="border-border bg-card hover:border-ember-500/40 group min-w-0 rounded-xl border p-4 text-right transition-colors"
                   >
                     <span className="text-muted-foreground flex items-center justify-end gap-1 text-xs">
                       Next
                       <ChevronRight className="size-3.5" aria-hidden="true" />
                     </span>
-                    <span className="mt-0.5 block truncate text-sm font-medium">
+                    <span className="group-hover:text-ember-200 mt-1 block truncate text-sm font-semibold transition-colors">
                       {chapter.next.title}
                     </span>
                   </Link>
                 ) : (
-                  <span className="flex-1" />
+                  <span />
                 )}
               </nav>
             </article>
           </div>
 
-          {/* Right: table of contents */}
+          {/* Right: reading progress and table of contents */}
           {toc.length > 0 && (
             <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-60 shrink-0 overflow-y-auto py-8 pr-6 lg:block xl:w-64">
-              <ChapterToc entries={toc} />
+              <ChapterToc entries={toc} showProgress />
             </aside>
           )}
         </div>
@@ -380,3 +387,18 @@ export default async function ChapterPage({ params }: Params) {
     </div>
   );
 }
+
+/**
+ * Long-form reading styles for the lesson body.
+ *
+ * Applied from here rather than inside ContentRenderer, which also renders
+ * problem statements at a denser size. Only direct prose blocks are touched
+ * — a paragraph inside a callout or card keeps its own styling.
+ */
+const READING_CLASSES = [
+  "reading mt-10 space-y-5",
+  "[&_[data-block-index]>p]:text-foreground/85 [&_[data-block-index]>p]:leading-[1.75]",
+  "[&_[data-block-index]>ul>li]:text-foreground/85 [&_[data-block-index]>ol>li]:text-foreground/85",
+  "[&_[data-block-index]>h2]:tracking-headline [&_[data-block-index]>h2]:text-2xl [&_[data-block-index]>h2]:font-bold [&_[data-block-index]>h2]:scroll-mt-32",
+  "[&_[data-block-index]>h3]:tracking-headline [&_[data-block-index]>h3]:text-lg [&_[data-block-index]>h3]:scroll-mt-32",
+].join(" ");

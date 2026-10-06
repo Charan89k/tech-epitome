@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { AdminNav } from "@/components/admin/admin-nav";
 
 import { requireAdmin } from "@/lib/auth/session";
 
@@ -41,26 +41,13 @@ export default async function AdminLayout({
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-xl font-semibold tracking-tight">Admin</h1>
-        <span className="border-border text-muted-foreground rounded-full border px-2 py-0.5 text-[0.65rem]">
+        <h1 className="tracking-headline text-2xl font-bold sm:text-3xl">Admin</h1>
+        <span className="bg-ember-500/12 text-ember-300 rounded-full px-2 py-0.5 text-[0.65rem] font-medium">
           Staff only
         </span>
       </div>
 
-      <nav
-        aria-label="Admin sections"
-        className="border-border mt-4 flex gap-1 overflow-x-auto border-b pb-px"
-      >
-        {TABS.map((tab) => (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            className="text-muted-foreground hover:text-foreground hover:border-border -mb-px shrink-0 border-b-2 border-transparent px-3 py-2 text-sm transition-colors"
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </nav>
+      <AdminNav tabs={TABS} />
 
       <div className="mt-6">{children}</div>
     </div>

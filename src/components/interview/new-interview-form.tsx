@@ -129,7 +129,7 @@ export function NewInterviewForm() {
   const usesEditor = MACHINES[type].codeStages.length > 0;
 
   return (
-    <div className="border-border bg-card rounded-lg border p-4">
+    <div>
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="text-xs">
           <span className="text-muted-foreground">Type</span>
@@ -209,7 +209,7 @@ export function NewInterviewForm() {
         </Alert>
       )}
 
-      <Button size="sm" className="mt-3" onClick={begin} disabled={pending}>
+      <Button className="mt-4" onClick={begin} disabled={pending}>
         {pending ? (
           <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
         ) : (

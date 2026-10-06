@@ -116,10 +116,7 @@ export function DesignWorkspace({
     const id = nextId(diagram, kind);
     mutate({
       ...diagram,
-      nodes: [
-        ...diagram.nodes,
-        { id, kind, label: NODE_KIND_LABELS[kind] },
-      ],
+      nodes: [...diagram.nodes, { id, kind, label: NODE_KIND_LABELS[kind] }],
     });
     setSelected(id);
   }
@@ -130,9 +127,7 @@ export function DesignWorkspace({
       nodes: diagram.nodes.filter((n) => n.id !== selected),
       // Edges touching a removed node go with it, otherwise the stored
       // diagram fails validation on the next save.
-      edges: diagram.edges.filter(
-        (e) => e.from !== selected && e.to !== selected
-      ),
+      edges: diagram.edges.filter((e) => e.from !== selected && e.to !== selected),
     });
     setSelected(null);
     setConnectFrom(null);
@@ -148,9 +143,7 @@ export function DesignWorkspace({
       return;
     }
 
-    const exists = diagram.edges.some(
-      (e) => e.from === connectFrom && e.to === id
-    );
+    const exists = diagram.edges.some((e) => e.from === connectFrom && e.to === id);
     if (!exists) {
       let n = 1;
       while (diagram.edges.some((e) => e.id === `edge-${n}`)) n += 1;
@@ -169,9 +162,7 @@ export function DesignWorkspace({
     if (!selected) return;
     mutate({
       ...diagram,
-      nodes: diagram.nodes.map((n) =>
-        n.id === selected ? { ...n, ...patch } : n
-      ),
+      nodes: diagram.nodes.map((n) => (n.id === selected ? { ...n, ...patch } : n)),
     });
   }
 
@@ -196,68 +187,71 @@ export function DesignWorkspace({
 
   const selectedNode = diagram.nodes.find((n) => n.id === selected) ?? null;
   const observations = diagramObservations(diagram);
-  const label = (id: string) =>
-    diagram.nodes.find((n) => n.id === id)?.label ?? id;
+  const label = (id: string) => diagram.nodes.find((n) => n.id === id)?.label ?? id;
 
   return (
     <div className="space-y-4" data-testid="design-workspace">
-      {/* Palette */}
-      <div>
-        <h3 className="text-xs font-medium">Add a component</h3>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {PALETTE.map((entry) => (
-            <button
-              key={entry.kind}
-              type="button"
-              onClick={() => addNode(entry.kind)}
-              title={entry.hint}
-              className="border-border text-muted-foreground hover:border-ember-500/40 hover:text-ember-300 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors"
-            >
-              <Plus className="size-3" aria-hidden="true" />
-              {entry.label}
-            </button>
-          ))}
+      {/* Toolbar: palette and connect mode */}
+      <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+        <div>
+          <h3 className="text-[0.68rem] font-medium tracking-wider text-muted-foreground uppercase">
+            Add a component
+          </h3>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {PALETTE.map((entry) => (
+              <button
+                key={entry.kind}
+                type="button"
+                onClick={() => addNode(entry.kind)}
+                title={entry.hint}
+                className="inline-flex h-7 items-center gap-1 rounded-md border border-border bg-background/60 px-2.5 text-xs text-muted-foreground transition-colors hover:border-ember-500/40 hover:text-ember-300 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+              >
+                <Plus className="size-3" aria-hidden="true" />
+                {entry.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Connect mode */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          size="sm"
-          variant={connectFrom ? "default" : "outline"}
-          className="h-8"
-          disabled={diagram.nodes.length < 2}
-          onClick={() =>
-            setConnectFrom(connectFrom ? null : (selected ?? diagram.nodes[0]!.id))
-          }
-        >
-          {connectFrom
-            ? `Connecting from ${label(connectFrom)} — pick a target`
-            : "Connect two components"}
-        </Button>
-
-        <Select value={edgeKind} onValueChange={(v) => setEdgeKind(v as EdgeKind)}>
-          <SelectTrigger size="sm" className="h-8 w-36" aria-label="Connection type">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="sync">Synchronous</SelectItem>
-            <SelectItem value="async">Asynchronous</SelectItem>
-            <SelectItem value="replication">Replication</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {selected && (
+        {/* Connect mode */}
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             size="sm"
-            variant="ghost"
-            className="text-destructive h-8"
-            onClick={removeSelected}
+            variant={connectFrom ? "default" : "outline"}
+            className="h-8"
+            disabled={diagram.nodes.length < 2}
+            onClick={() =>
+              setConnectFrom(connectFrom ? null : (selected ?? diagram.nodes[0]!.id))
+            }
           >
-            <Trash2 className="size-3.5" />
-            Remove {label(selected)}
+            {connectFrom
+              ? `Connecting from ${label(connectFrom)} — pick a target`
+              : "Connect two components"}
           </Button>
-        )}
+
+          <Select value={edgeKind} onValueChange={(v) => setEdgeKind(v as EdgeKind)}>
+            <SelectTrigger size="sm" className="h-8 w-36 text-xs" aria-label="Connection type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sync">Synchronous</SelectItem>
+              <SelectItem value="async">Asynchronous</SelectItem>
+              <SelectItem value="replication">Replication</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {selected && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 text-destructive"
+              onClick={removeSelected}
+            >
+              <Trash2 className="size-3.5" />
+              Remove {label(selected)}
+            </Button>
+          )}
+        </div>
       </div>
 
       <ArchitectureDiagram
@@ -269,8 +263,8 @@ export function DesignWorkspace({
 
       {/* Selected component editor */}
       {selectedNode && (
-        <div className="border-border rounded-lg border p-3">
-          <p className="text-muted-foreground text-[0.65rem] font-medium tracking-wider uppercase">
+        <div className="rounded-lg border border-ember-500/30 bg-ember-500/5 p-3">
+          <p className="text-[0.65rem] font-medium tracking-wider text-ember-300 uppercase">
             {NODE_KIND_LABELS[selectedNode.kind]}
           </p>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -280,19 +274,17 @@ export function DesignWorkspace({
                 value={selectedNode.label}
                 onChange={(e) => updateSelected({ label: e.target.value })}
                 maxLength={60}
-                className="border-input focus-visible:border-ring focus-visible:ring-ring/50 mt-1 w-full rounded-md border bg-transparent px-2 py-1 text-sm outline-none focus-visible:ring-3"
+                className="mt-1 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               />
             </label>
             <label className="text-xs">
-              <span className="text-muted-foreground">
-                Note — why is it here?
-              </span>
+              <span className="text-muted-foreground">Note — why is it here?</span>
               <input
                 value={selectedNode.note ?? ""}
                 onChange={(e) => updateSelected({ note: e.target.value })}
                 maxLength={120}
                 placeholder="write-through, 8 shards…"
-                className="border-input focus-visible:border-ring focus-visible:ring-ring/50 mt-1 w-full rounded-md border bg-transparent px-2 py-1 text-sm outline-none focus-visible:ring-3"
+                className="mt-1 w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               />
             </label>
           </div>
@@ -303,11 +295,11 @@ export function DesignWorkspace({
       {diagram.edges.length > 0 && (
         <div>
           <h3 className="text-xs font-medium">Connections</h3>
-          <ul className="mt-2 space-y-1">
+          <ul className="mt-2 divide-y divide-[var(--border)] overflow-hidden rounded-lg border border-border">
             {diagram.edges.map((edge) => (
               <li
                 key={edge.id}
-                className="text-muted-foreground flex items-center gap-2 text-xs"
+                className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground"
               >
                 <span className="min-w-0 flex-1 truncate">
                   {label(edge.from)} → {label(edge.to)}
@@ -319,7 +311,7 @@ export function DesignWorkspace({
                   type="button"
                   onClick={() => removeEdge(edge.id)}
                   aria-label={`Remove connection from ${label(edge.from)} to ${label(edge.to)}`}
-                  className="hover:text-destructive rounded p-0.5"
+                  className="rounded p-1 hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
                 >
                   <Unlink className="size-3" />
                 </button>
@@ -331,11 +323,11 @@ export function DesignWorkspace({
 
       {/* Structural observations — facts, never a score. */}
       {observations.length > 0 && (
-        <div className="border-warning/25 bg-warning/5 rounded-lg border p-3">
-          <p className="text-warning text-[0.65rem] font-medium tracking-wider uppercase">
+        <div className="rounded-lg border border-warning/25 bg-warning/5 p-3">
+          <p className="text-[0.65rem] font-medium tracking-wider text-warning uppercase">
             Worth a second look
           </p>
-          <ul className="text-muted-foreground mt-1.5 space-y-1 text-xs">
+          <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground">
             {observations.map((note) => (
               <li key={note}>{note}</li>
             ))}
@@ -348,9 +340,9 @@ export function DesignWorkspace({
         <label htmlFor="design-notes" className="text-xs font-medium">
           Why this design?
         </label>
-        <p className="text-muted-foreground mt-0.5 text-xs">
-          What did you optimise for, and what did you trade away? An
-          architecture without its reasoning is not a design.
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          What did you optimise for, and what did you trade away? An architecture
+          without its reasoning is not a design.
         </p>
         <Textarea
           id="design-notes"
@@ -372,8 +364,8 @@ export function DesignWorkspace({
         </Alert>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-muted-foreground text-[0.65rem]" aria-live="polite">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
+        <p className="text-[0.68rem] text-muted-foreground" aria-live="polite">
           {saveState === "saving" && "Saving…"}
           {saveState === "saved" && "Draft saved"}
           {saveState === "error" && "Could not save"}
@@ -381,7 +373,7 @@ export function DesignWorkspace({
         </p>
 
         {submitted ? (
-          <Badge className="border-success/35 bg-success/12 text-success gap-1 border">
+          <Badge className="gap-1 border border-success/35 bg-success/12 text-success">
             <Check className="size-3" aria-hidden="true" />
             Submitted
           </Badge>
@@ -398,9 +390,9 @@ export function DesignWorkspace({
       </div>
 
       {!submitted && (
-        <p className="text-muted-foreground/70 text-[0.65rem]">
-          Submitting unlocks the reference architecture and its trade-offs.
-          Draw your own first — comparing is where the learning is.
+        <p className="text-[0.65rem] text-muted-foreground/70">
+          Submitting unlocks the reference architecture and its trade-offs. Draw your
+          own first — comparing is where the learning is.
         </p>
       )}
     </div>

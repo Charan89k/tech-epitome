@@ -44,14 +44,14 @@ export function AuthForm({
 
   return (
     <div className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">
+      <header className="space-y-1.5 text-center">
+        <h1 className="tracking-headline text-2xl font-bold">
           {mode === "signin" ? "Sign in to Tech Epitome" : "Create your account"}
         </h1>
         <p className="text-muted-foreground text-sm">
           {mode === "signin"
             ? "Pick up where you left off."
-            : "Free to start. No card required."}
+            : "Free, every track and feature. No card."}
         </p>
       </header>
 
@@ -89,7 +89,7 @@ export function AuthForm({
 
           <div className="relative">
             <Separator />
-            <span className="bg-background text-muted-foreground absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-3 text-xs">
+            <span className="bg-card text-muted-foreground absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-3 text-xs">
               or
             </span>
           </div>
@@ -148,7 +148,7 @@ export function AuthForm({
             New here?{" "}
             <Link
               href={{ pathname: "/signup", query: { next } }}
-              className="text-foreground hover:text-ember-400 font-medium underline-offset-4 hover:underline"
+              className="text-ember-300 hover:text-ember-200 font-medium underline-offset-4 hover:underline"
             >
               Create an account
             </Link>
@@ -158,7 +158,7 @@ export function AuthForm({
             Already have an account?{" "}
             <Link
               href={{ pathname: "/login", query: { next } }}
-              className="text-foreground hover:text-ember-400 font-medium underline-offset-4 hover:underline"
+              className="text-ember-300 hover:text-ember-200 font-medium underline-offset-4 hover:underline"
             >
               Sign in
             </Link>
@@ -173,7 +173,7 @@ function SubmitButton({ mode }: { mode: Mode }) {
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" className="w-full" disabled={pending}>
+    <Button type="submit" className="h-10 w-full" disabled={pending}>
       {pending && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
       {pending
         ? mode === "signin"
@@ -199,7 +199,7 @@ function ProviderButton({ provider }: { provider: keyof typeof PROVIDERS }) {
     <Button
       type="submit"
       variant="outline"
-      className="w-full"
+      className="h-10 w-full"
       disabled={pending}
     >
       {pending ? (
@@ -252,7 +252,7 @@ function Field({
         required={required}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
-        className={cn(error && "border-destructive focus-visible:ring-destructive/40")}
+        className={cn("h-10", error && "border-destructive focus-visible:ring-destructive/40")}
       />
       {hint && !error && (
         <p id={`${id}-hint`} className="text-muted-foreground text-xs">

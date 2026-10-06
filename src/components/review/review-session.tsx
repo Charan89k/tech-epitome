@@ -84,14 +84,16 @@ const GRADES: {
     label: "Recalled",
     hint: "Normal spacing",
     key: "3",
-    className: "border-ember-500/40 text-ember-300 hover:bg-ember-500/10",
+    className:
+      "border-ember-500/40 text-ember-300 hover:bg-ember-500/10 hover:text-ember-200",
   },
   {
     grade: "EASY",
     label: "Effortless",
     hint: "Longer gap",
     key: "4",
-    className: "border-success/40 text-success hover:bg-success/10 hover:text-success",
+    className:
+      "border-ember-500/60 bg-ember-500/10 text-ember-200 hover:bg-ember-500/20 hover:text-ember-100",
   },
 ];
 
@@ -197,20 +199,22 @@ export function ReviewSession({ initialQueue }: { initialQueue: SessionCard[] })
 
   if (finished) {
     return (
-      <div className="mx-auto max-w-md px-4 py-16 text-center">
-        <CheckCircle2 className="text-success mx-auto size-7" aria-hidden="true" />
-        <h1 className="mt-4 text-xl font-semibold tracking-tight">
-          Session complete
-        </h1>
-        <p className="text-muted-foreground mt-2 text-sm">
-          {completed} review{completed === 1 ? "" : "s"} done. Each one is
-          scheduled to come back just before you would have forgotten it.
-        </p>
-        <div className="mt-7 flex flex-wrap justify-center gap-3">
-          <Button onClick={() => router.refresh()}>Check for more</Button>
-          <Button asChild variant="outline">
-            <Link href="/dashboard">Back to dashboard</Link>
-          </Button>
+      <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-16">
+        <div className="mx-auto max-w-md rounded-xl border border-border bg-card px-6 py-10 text-center">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-ember-500/12 ring-1 ring-ember-500/25">
+            <CheckCircle2 className="size-6 text-ember-400" aria-hidden="true" />
+          </div>
+          <h1 className="tracking-headline mt-4 text-xl font-bold">Session complete</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {completed} review{completed === 1 ? "" : "s"} done. Each one is scheduled
+            to come back just before you would have forgotten it.
+          </p>
+          <div className="mt-7 flex flex-wrap justify-center gap-3">
+            <Button onClick={() => router.refresh()}>Check for more</Button>
+            <Button asChild variant="outline">
+              <Link href="/dashboard">Back to dashboard</Link>
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -221,175 +225,179 @@ export function ReviewSession({ initialQueue }: { initialQueue: SessionCard[] })
   const Icon = TYPE_ICON[current.entityType] ?? BookOpen;
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-6 sm:py-10">
-      {/* Progress. Deliberately plain: a review session is not a game. */}
-      <div className="mb-6">
-        <div className="text-muted-foreground mb-2 flex items-baseline justify-between text-xs">
-          <span className="tabular-nums">
-            {index + 1} of {total}
-          </span>
-          {completed > 0 && (
-            <span className="tabular-nums">{completed} done</span>
-          )}
-        </div>
-        <div
-          className="bg-muted h-1 w-full overflow-hidden rounded-full"
-          role="progressbar"
-          aria-valuenow={index}
-          aria-valuemin={0}
-          aria-valuemax={total}
-          aria-label="Session progress"
-        >
-          <div
-            className="bg-ember-500 h-full rounded-full transition-[width] duration-300"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-      </div>
-
-      {lastResult && (
-        <p
-          aria-live="polite"
-          className="text-muted-foreground mb-4 text-center text-xs"
-        >
-          {lastResult}
-        </p>
-      )}
-
-      <article className="border-border bg-card surface-edge rounded-lg border">
-        <header className="border-border flex flex-wrap items-center gap-2 border-b px-5 py-3">
-          <Icon className="text-ember-500 size-4 shrink-0" aria-hidden="true" />
-          <span className="text-muted-foreground font-mono text-[0.68rem] tracking-wider uppercase">
-            {current.prompt.kind}
-          </span>
-          {current.overdueDays > 0 && (
-            <span className="text-warning ml-auto text-[0.68rem]">
-              {current.overdueDays} day{current.overdueDays === 1 ? "" : "s"} overdue
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+      <div className="mx-auto w-full max-w-2xl">
+        {/* Progress. Deliberately plain: a review session is not a game. */}
+        <div className="mb-6">
+          <div className="mb-2 flex items-baseline justify-between gap-3 text-xs">
+            <span className="text-[0.68rem] font-medium tracking-wider text-muted-foreground uppercase">
+              Review session
             </span>
-          )}
-        </header>
+            <span className="font-mono text-muted-foreground tabular-nums">
+              <span className="text-foreground">
+                {index + 1} of {total}
+              </span>
+              {completed > 0 && <span> · {completed} done</span>}
+            </span>
+          </div>
+          <div
+            className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+            role="progressbar"
+            aria-valuenow={index}
+            aria-valuemin={0}
+            aria-valuemax={total}
+            aria-label="Session progress"
+          >
+            <div
+              className="h-full rounded-full bg-ember-500 transition-[width] duration-300"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
 
-        <div className="px-5 py-6">
-          <h1 className="text-lg leading-snug font-medium text-balance">
-            {current.prompt.question}
-          </h1>
+        {lastResult && (
+          <p
+            aria-live="polite"
+            className="mb-4 text-center text-xs text-muted-foreground"
+          >
+            {lastResult}
+          </p>
+        )}
 
-          {current.prompt.context && (
-            <p className="text-muted-foreground mt-3 text-xs">
-              {current.prompt.context}
-            </p>
-          )}
+        <article className="overflow-hidden rounded-xl border border-border bg-card">
+          <header className="flex flex-wrap items-center gap-2 border-b border-border px-5 py-3 sm:px-6">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-ember-500/12 px-2.5 py-1 text-[0.68rem] font-medium tracking-wider text-ember-300 uppercase">
+              <Icon className="size-3.5 shrink-0" aria-hidden="true" />
+              {current.prompt.kind}
+            </span>
+            {current.overdueDays > 0 && (
+              <span className="ml-auto text-[0.68rem] text-warning">
+                {current.overdueDays} day{current.overdueDays === 1 ? "" : "s"} overdue
+              </span>
+            )}
+          </header>
 
-          {!revealed ? (
-            <div className="mt-8">
-              <p className="text-muted-foreground mb-4 text-sm">
-                Answer it in your head first — out loud is better. Retrieval is
-                what moves this into long-term memory; re-reading does not.
+          <div className="px-5 py-7 sm:px-6 sm:py-8">
+            <h1 className="tracking-headline text-xl leading-snug font-semibold text-balance sm:text-2xl">
+              {current.prompt.question}
+            </h1>
+
+            {current.prompt.context && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                {current.prompt.context}
               </p>
-              {/* h-11 rather than the default h-8: this is the primary
+            )}
+
+            {!revealed ? (
+              <div className="mt-8 border-t border-dashed border-border pt-6">
+                <p className="mb-4 max-w-prose text-sm leading-relaxed text-muted-foreground">
+                  Answer it in your head first — out loud is better. Retrieval is what
+                  moves this into long-term memory; re-reading does not.
+                </p>
+                {/* h-11 rather than the default h-8: this is the primary
                   action of the page and the one control a thumb has to hit
                   reliably. */}
-              <Button
-                onClick={() => setRevealed(true)}
-                className="h-11 w-full sm:w-auto"
-              >
-                <Eye className="size-4" />
-                Show answer
-                <kbd className="bg-background/20 ml-1 hidden rounded px-1.5 py-0.5 font-mono text-[0.65rem] sm:inline">
-                  space
-                </kbd>
-              </Button>
-            </div>
-          ) : (
-            <div className="mt-6 space-y-5">
-              {current.prompt.answer.map((section) => (
-                <section key={section.heading}>
-                  <h2 className="text-muted-foreground text-[0.68rem] font-medium tracking-wider uppercase">
-                    {section.heading}
-                  </h2>
-                  <ul className="mt-2 space-y-1.5">
-                    {section.items.map((item) => (
-                      <li key={item} className="flex gap-2.5 text-sm">
-                        <span
-                          className="bg-ember-500/50 mt-2 size-1 shrink-0 rounded-full"
-                          aria-hidden="true"
-                        />
-                        <span className="text-muted-foreground leading-relaxed">
-                          {item}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ))}
-
-              <Link
-                href={route(current.prompt.href)}
-                className="text-muted-foreground hover:text-ember-300 inline-flex items-center gap-1.5 text-xs transition-colors"
-              >
-                Re-read {current.prompt.title}
-                <ExternalLink className="size-3" aria-hidden="true" />
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {revealed && (
-          <footer className="border-border border-t px-5 py-4">
-            <p className="text-muted-foreground mb-3 text-xs">
-              How did that go? Be honest — the schedule is only as good as the
-              answer.
-            </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {GRADES.map((option) => (
                 <Button
-                  key={option.grade}
-                  variant="outline"
-                  onClick={() => void submit(option.grade)}
-                  disabled={pending}
-                  className={cn(
-                    "h-auto flex-col items-start gap-0.5 px-3 py-2.5 text-left",
-                    option.className
-                  )}
+                  onClick={() => setRevealed(true)}
+                  className="h-11 w-full sm:w-auto"
                 >
-                  <span className="flex w-full items-center gap-1.5 text-sm font-medium">
-                    {pending ? (
-                      <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                    ) : null}
-                    {option.label}
-                    <kbd className="text-muted-foreground ml-auto hidden font-mono text-[0.6rem] sm:inline">
-                      {option.key}
-                    </kbd>
-                  </span>
-                  <span className="text-muted-foreground text-[0.65rem] font-normal">
-                    {option.hint}
-                  </span>
+                  <Eye className="size-4" />
+                  Show answer
+                  <kbd className="ml-1 hidden rounded bg-background/20 px-1.5 py-0.5 font-mono text-[0.65rem] sm:inline">
+                    space
+                  </kbd>
                 </Button>
-              ))}
-            </div>
-          </footer>
-        )}
-      </article>
+              </div>
+            ) : (
+              <div className="mt-7 space-y-5 border-t border-border pt-6">
+                {current.prompt.answer.map((section) => (
+                  <section key={section.heading}>
+                    <h2 className="text-[0.68rem] font-medium tracking-wider text-ember-300/90 uppercase">
+                      {section.heading}
+                    </h2>
+                    <ul className="mt-2 space-y-1.5">
+                      {section.items.map((item) => (
+                        <li key={item} className="flex gap-2.5 text-sm">
+                          <span
+                            className="mt-2 size-1 shrink-0 rounded-full bg-ember-500/50"
+                            aria-hidden="true"
+                          />
+                          <span className="leading-relaxed text-foreground/85">
+                            {item}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ))}
 
-      {error && (
-        <Alert variant="destructive" className="mt-4">
-          <AlertDescription className="flex items-center justify-between gap-3">
-            {error}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setError(null);
-                setRevealed(false);
-                setIndex((value) => value + 1);
-              }}
-            >
-              Skip
-              <ArrowRight className="size-3.5" />
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
+                <Link
+                  href={route(current.prompt.href)}
+                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-ember-300"
+                >
+                  Re-read {current.prompt.title}
+                  <ExternalLink className="size-3" aria-hidden="true" />
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {revealed && (
+            <footer className="border-t border-border bg-muted/20 px-5 py-4 sm:px-6">
+              <p className="mb-3 text-xs text-muted-foreground">
+                How did that go? Be honest — the schedule is only as good as the answer.
+              </p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {GRADES.map((option) => (
+                  <Button
+                    key={option.grade}
+                    variant="outline"
+                    onClick={() => void submit(option.grade)}
+                    disabled={pending}
+                    className={cn(
+                      "h-auto flex-col items-start gap-0.5 rounded-lg px-3 py-2.5 text-left whitespace-normal",
+                      option.className
+                    )}
+                  >
+                    <span className="flex w-full items-center gap-1.5 text-sm font-medium">
+                      {pending ? (
+                        <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                      ) : null}
+                      {option.label}
+                      <kbd className="ml-auto hidden rounded border border-border px-1 font-mono text-[0.6rem] text-muted-foreground sm:inline">
+                        {option.key}
+                      </kbd>
+                    </span>
+                    <span className="text-[0.65rem] font-normal text-muted-foreground">
+                      {option.hint}
+                    </span>
+                  </Button>
+                ))}
+              </div>
+            </footer>
+          )}
+        </article>
+
+        {error && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertDescription className="flex items-center justify-between gap-3">
+              {error}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setError(null);
+                  setRevealed(false);
+                  setIndex((value) => value + 1);
+                }}
+              >
+                Skip
+                <ArrowRight className="size-3.5" />
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
     </div>
   );
 }

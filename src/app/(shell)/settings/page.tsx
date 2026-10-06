@@ -31,13 +31,13 @@ export default async function SettingsPage() {
   });
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <PageHeader
         title="Settings"
         description="Account details and how the product behaves for you."
       />
 
-      <div className="mt-6">
+      <div className="mt-8">
         <SettingsForm
           // Whether this deployment can send mail at all. The form says
           // so rather than offering a toggle for a channel that does not
@@ -59,24 +59,32 @@ export default async function SettingsPage() {
       {/* Onboarding is reachable afterwards on purpose: somebody who
           skipped should be able to come back, and somebody who answered
           should be able to change their mind. */}
-      <div className="border-border bg-card mt-6 flex flex-col items-start gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-medium">
-            {profile?.onboardedAt
-              ? "Your learning preferences"
-              : "You have not answered the getting-started questions"}
-          </p>
-          <p className="text-muted-foreground mt-0.5 text-xs leading-relaxed">
-            Experience, goal, target interview and a weekly target. All
-            optional, and none of them lock anything.
+      <section className="mt-8 grid gap-3 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
+        <div className="lg:pt-4">
+          <h2 className="text-base font-semibold">Getting started</h2>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            The questions asked when you signed up.
           </p>
         </div>
-        <Button asChild size="sm" variant="outline">
-          <Link href="/onboarding">
-            {profile?.onboardedAt ? "Review answers" : "Answer them"}
-          </Link>
-        </Button>
-      </div>
+        <div className="flex flex-col items-start gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div>
+            <p className="text-sm font-medium">
+              {profile?.onboardedAt
+                ? "Your learning preferences"
+                : "You have not answered the getting-started questions"}
+            </p>
+            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+              Experience, goal, target interview and a weekly target. All optional, and
+              none of them lock anything.
+            </p>
+          </div>
+          <Button asChild size="sm" variant="outline" className="shrink-0">
+            <Link href="/onboarding">
+              {profile?.onboardedAt ? "Review answers" : "Answer them"}
+            </Link>
+          </Button>
+        </div>
+      </section>
     </div>
   );
 }

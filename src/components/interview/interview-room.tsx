@@ -3,13 +3,23 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { FileText, Loader2, Send, Square, UserRound } from "lucide-react";
+import {
+  Check,
+  Code2,
+  FileText,
+  Loader2,
+  MessagesSquare,
+  Send,
+  Square,
+  UserRound,
+} from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Pane, UnderlineTab, UNDERLINE_TABS_LIST } from "@/components/system-design/pane";
+import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   endInterviewAction,
@@ -260,18 +270,53 @@ export function InterviewRoom({
   // -------------------------------------------------------------------------
 
   const stepper = (
-    <ol className="flex flex-wrap items-center gap-1" aria-label="Interview progress">
+    <ol
+      className="relative -mx-1 flex items-start overflow-x-auto px-1 pb-1"
+      aria-label="Interview progress"
+    >
       {stages.map((s, i) => {
         const state = i < current ? "done" : i === current ? "current" : "todo";
         return (
-          <li key={s} className="flex items-center gap-1">
+          <li key={s} className="flex min-w-[5.5rem] flex-1 flex-col items-center gap-1.5">
+            <div className="flex w-full items-center">
+              <span
+                className={cn(
+                  "h-px flex-1",
+                  i === 0 ? "bg-transparent" : i <= current ? "bg-ember-500/60" : "bg-border"
+                )}
+                aria-hidden="true"
+              />
+              <span
+                className={cn(
+                  "flex size-6 shrink-0 items-center justify-center rounded-full border font-mono text-[0.65rem] font-semibold transition-colors",
+                  state === "done" && "border-ember-500 bg-ember-500 text-primary-foreground",
+                  state === "current" &&
+                    "border-ember-500 bg-ember-500/15 text-ember-300 ring-ember-500/20 ring-4",
+                  state === "todo" && "border-border text-muted-foreground/60"
+                )}
+                aria-hidden="true"
+              >
+                {state === "done" ? <Check className="size-3.5" /> : i + 1}
+              </span>
+              <span
+                className={cn(
+                  "h-px flex-1",
+                  i === stages.length - 1
+                    ? "bg-transparent"
+                    : i < current
+                      ? "bg-ember-500/60"
+                      : "bg-border"
+                )}
+                aria-hidden="true"
+              />
+            </div>
             <span
               aria-current={state === "current" ? "step" : undefined}
               className={cn(
-                "rounded-full border px-2 py-0.5 text-[0.65rem] transition-colors",
-                state === "done" && "border-success/35 bg-success/10 text-success",
-                state === "current" && "border-ember-500/50 bg-ember-500/12 text-ember-300",
-                state === "todo" && "border-border text-muted-foreground/60"
+                "px-1 text-center text-[0.68rem] leading-tight",
+                state === "done" && "text-muted-foreground",
+                state === "current" && "text-foreground font-medium",
+                state === "todo" && "text-muted-foreground/60"
               )}
             >
               {/* State is in the text, not only in the colour. */}
@@ -288,7 +333,7 @@ export function InterviewRoom({
 
   const transcriptPane = (
     <div
-      className="min-h-0 flex-1 space-y-4 overflow-y-auto px-1 py-2"
+      className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4"
       data-testid="interview-transcript"
     >
       {turns.length === 0 && (
@@ -301,7 +346,7 @@ export function InterviewRoom({
       {turns.map((t) =>
         t.role === "USER" ? (
           <div key={t.id} className="flex justify-end">
-            <div className="bg-muted max-w-[85%] rounded-lg rounded-br-sm px-3 py-2">
+            <div className="bg-ember-500/10 border-ember-500/20 max-w-[85%] rounded-xl rounded-br-sm border px-3 py-2">
               <p className="text-sm leading-relaxed whitespace-pre-wrap">{t.content}</p>
             </div>
           </div>
@@ -330,7 +375,7 @@ export function InterviewRoom({
   );
 
   const composer = (
-    <div className="border-border space-y-2 border-t px-1 py-3">
+    <div className="border-border bg-card/40 space-y-2 border-t px-4 py-3">
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
@@ -413,11 +458,6 @@ export function InterviewRoom({
 
   const codePane = (
     <div className="flex h-full flex-col">
-      <div className="border-border flex items-center gap-2 border-b px-3 py-2">
-        <span className="text-muted-foreground text-[0.65rem]">
-          Saved with the interview. The interviewer can see this.
-        </span>
-      </div>
       <div className="min-h-0 flex-1">
         <CodeEditor
           language={language}
@@ -440,7 +480,7 @@ export function InterviewRoom({
    */
   const brief = problemStatement.trim() && turns.length > 0 && (
     <details
-      className="border-border bg-card group mt-3 rounded-lg border"
+      className="border-border bg-muted/20 group mt-4 rounded-lg border"
       data-testid="interview-brief"
       open
     >
@@ -461,43 +501,46 @@ export function InterviewRoom({
   );
 
   const header = (
-    <div className="border-border border-b pb-3">
+    <div className="bg-card border-border rounded-xl border p-4 sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-sm font-semibold">{problemTitle}</h2>
-        <Badge variant="secondary" className="text-[0.65rem]">
+        <h2 className="text-base font-semibold">{problemTitle}</h2>
+        <Badge className="bg-ember-500/12 text-ember-300 border-ember-500/30 border text-[0.65rem]">
           {STAGE_LABELS[stage]}
         </Badge>
       </div>
-      <div className="mt-2">{stepper}</div>
+      <div className="mt-4">{stepper}</div>
       {brief}
     </div>
   );
 
+  const codeNote = (
+    <span className="text-muted-foreground hidden truncate text-[0.68rem] sm:inline">
+      Saved with the interview. The interviewer can see this.
+    </span>
+  );
+
   if (isMobile) {
     return (
-      <div className="space-y-3" data-testid="interview-room">
+      <div className="space-y-4" data-testid="interview-room">
         {header}
-        <Tabs defaultValue="talk">
-          <TabsList className="w-full">
-            <TabsTrigger value="talk" className="flex-1">
+        <Tabs defaultValue="talk" className="bg-card border-border gap-0 overflow-hidden rounded-xl border">
+          <TabsList className={UNDERLINE_TABS_LIST}>
+            <UnderlineTab value="talk" icon={MessagesSquare}>
               Interview
-            </TabsTrigger>
-            <TabsTrigger
-              value="code"
-              className="flex-1"
-              disabled={!codeIsRelevant(kind, stage)}
-            >
+            </UnderlineTab>
+            <UnderlineTab value="code" icon={Code2} disabled={!codeIsRelevant(kind, stage)}>
               Code
-            </TabsTrigger>
+            </UnderlineTab>
           </TabsList>
-          <TabsContent value="talk" className="mt-3">
+          <TabsContent value="talk" className="mt-0">
             <div className="flex h-[55dvh] flex-col">{transcriptPane}</div>
             {composer}
           </TabsContent>
-          <TabsContent value="code" className="mt-3">
-            <div className="border-border h-[60dvh] overflow-hidden rounded-lg border">
-              {codePane}
-            </div>
+          <TabsContent value="code" className="mt-0">
+            <p className="text-muted-foreground border-border border-b px-4 py-2 text-[0.68rem]">
+              Saved with the interview. The interviewer can see this.
+            </p>
+            <div className="h-[60dvh] overflow-hidden">{codePane}</div>
           </TabsContent>
         </Tabs>
       </div>
@@ -509,18 +552,18 @@ export function InterviewRoom({
       {header}
       <div
         className={cn(
-          "grid gap-5",
+          "grid gap-4",
           codeIsRelevant(kind, stage) ? "lg:grid-cols-2" : "lg:grid-cols-1"
         )}
       >
-        <div className="flex h-[60vh] min-w-0 flex-col">
+        <Pane label="Interview" icon={MessagesSquare} className="h-[62vh]" bodyClassName="flex flex-col">
           {transcriptPane}
           {composer}
-        </div>
+        </Pane>
         {codeIsRelevant(kind, stage) && (
-          <div className="border-border h-[60vh] min-w-0 overflow-hidden rounded-lg border">
+          <Pane label="Code" icon={Code2} actions={codeNote} className="h-[62vh]">
             {codePane}
-          </div>
+          </Pane>
         )}
       </div>
     </div>

@@ -36,21 +36,21 @@ export function EmptyState({
       )}
     >
       {Icon && (
-        <div className="bg-muted/60 text-muted-foreground rounded-lg p-2.5">
+        <div className="rounded-lg bg-ember-500/10 p-2.5 text-ember-400 ring-1 ring-ember-500/20">
           <Icon className={size === "md" ? "size-5" : "size-4"} aria-hidden="true" />
         </div>
       )}
       <div className="space-y-1">
         <p
           className={cn(
-            "text-foreground font-medium",
+            "font-medium text-foreground",
             size === "md" ? "text-sm" : "text-[0.8rem]"
           )}
         >
           {title}
         </p>
         {description && (
-          <p className="text-muted-foreground mx-auto max-w-sm text-xs leading-relaxed text-pretty">
+          <p className="mx-auto max-w-sm text-xs leading-relaxed text-pretty text-muted-foreground">
             {description}
           </p>
         )}

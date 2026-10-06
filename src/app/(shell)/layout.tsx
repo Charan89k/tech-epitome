@@ -1,13 +1,13 @@
-import { AppSidebar } from "@/components/layout/app-sidebar";
+import { AppRail } from "@/components/layout/app-rail";
 import { CommandPaletteProvider } from "@/components/layout/command-palette";
-import { TopBar } from "@/components/layout/top-bar";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { SiteHeader } from "@/components/layout/site-header";
 import { getCurrentUser } from "@/lib/auth/session";
 import { unreadCount } from "@/services/notifications";
 import { getStreak } from "@/services/progress";
 
 /**
- * The application shell: sidebar, top bar, command palette.
+ * The application shell: a full-width header with section menus, a floating
+ * icon rail, and the page beside it.
  *
  * Deliberately does NOT require authentication. Course, pattern and problem
  * pages are public and indexable - a visitor should be able to walk the
@@ -24,37 +24,32 @@ export default async function ShellLayout({ children }: LayoutProps<"/">) {
     : [0, 0];
 
   return (
-    <SidebarProvider>
-      <CommandPaletteProvider>
-        <AppSidebar
-          user={user ? { role: user.role } : null}
-        />
-
-        <SidebarInset className="min-w-0">
-          <TopBar
-            user={
-              user
-                ? {
-                    name: user.name,
-                    email: user.email,
-                    image: user.image,
-                    role: user.role,
-                  }
-                : null
-            }
-            streak={streak}
-            unreadNotifications={unread}
-          />
-          {/* The one `main` landmark in the shell, and the skip link's
-              target. Pages render sections inside it rather than a
-              `main` of their own — nested `main` is invalid HTML and
-              leaves a screen-reader user with two landmarks to choose
-              between. */}
-          <main id="main" className="min-w-0 flex-1">
-            {children}
-          </main>
-        </SidebarInset>
-      </CommandPaletteProvider>
-    </SidebarProvider>
+    <CommandPaletteProvider>
+      <SiteHeader
+        user={
+          user
+            ? {
+                name: user.name,
+                email: user.email,
+                image: user.image,
+                role: user.role,
+              }
+            : null
+        }
+        streak={streak}
+        unreadNotifications={unread}
+      />
+      <div className="flex min-h-0 flex-1">
+        <AppRail user={user ? { role: user.role } : null} />
+        {/* The one `main` landmark in the shell, and the skip link's
+            target. Pages render sections inside it rather than a
+            `main` of their own — nested `main` is invalid HTML and
+            leaves a screen-reader user with two landmarks to choose
+            between. */}
+        <main id="main" className="min-w-0 flex-1">
+          {children}
+        </main>
+      </div>
+    </CommandPaletteProvider>
   );
 }

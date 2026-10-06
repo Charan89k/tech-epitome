@@ -34,7 +34,7 @@ export function ComparisonCard({
 }) {
   return (
     <section
-      className="not-prose border-border bg-card surface-edge my-5 rounded-lg border p-4"
+      className="not-prose border-border bg-card surface-edge my-5 rounded-xl border p-4"
       aria-label={title ?? "Approach comparison"}
     >
       <p className="text-ember-400 font-mono text-[0.7rem] tracking-wider uppercase">

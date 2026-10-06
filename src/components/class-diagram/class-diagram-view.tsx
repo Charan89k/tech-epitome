@@ -49,8 +49,8 @@ const KIND_STYLE: Record<TypeKind, { fill: string; stroke: string; dashed: boole
     dashed: true,
   },
   interface: {
-    fill: "color-mix(in oklab, var(--success) 10%, transparent)",
-    stroke: "color-mix(in oklab, var(--success) 45%, transparent)",
+    fill: "color-mix(in oklab, var(--viz-compare) 12%, transparent)",
+    stroke: "color-mix(in oklab, var(--viz-compare) 55%, transparent)",
     dashed: false,
   },
   enum: {
@@ -322,7 +322,7 @@ export function ClassDiagramView({
     return (
       <div
         className={cn(
-          "border-border text-muted-foreground rounded-lg border border-dashed p-8 text-center text-xs",
+          "viz-canvas border-border text-muted-foreground rounded-lg border border-dashed px-6 py-14 text-center text-xs",
           className
         )}
       >
@@ -335,10 +335,13 @@ export function ClassDiagramView({
 
   return (
     <figure className={cn("not-prose my-4", className)}>
-      <div className="border-border bg-card overflow-hidden rounded-lg border">
+      <div className="viz-canvas border-border overflow-hidden rounded-lg border p-2 sm:p-3">
         <svg
           viewBox={`0 0 ${laidOut.width} ${laidOut.height}`}
-          className="h-auto w-full"
+          className="mx-auto h-auto w-full"
+          // Scale up to fit, but not beyond 1.5x: a two-box design should
+          // not fill the screen with type larger than the page's own.
+          style={{ maxWidth: laidOut.width * 1.5 }}
           role="img"
           aria-labelledby={`${uid}-title ${uid}-desc`}
           preserveAspectRatio="xMidYMid meet"
