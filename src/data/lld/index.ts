@@ -2,6 +2,7 @@ import type { CourseSeed } from "@/data/curriculum/types";
 import { LLD_FOUNDATIONS, LLD_OOP } from "./foundations";
 import { LLD_PATTERNS, LLD_PRINCIPLES, LLD_SOLID } from "./solid-patterns";
 import { LLD_WORKFLOW } from "./workflow";
+import { LLD_MORE_SECTIONS } from "./concurrency-cases";
 
 /**
  * The Low-Level Design track.
@@ -31,5 +32,7 @@ export const LLD_COURSE: CourseSeed = {
     LLD_PRINCIPLES,
     LLD_PATTERNS,
     LLD_WORKFLOW,
+    // Appended, never interleaved: section order comes from position.
+    ...LLD_MORE_SECTIONS,
   ],
 };

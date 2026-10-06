@@ -21,10 +21,14 @@ import { buildHarness, spliceUserCode } from "./signature";
 const URL = process.env.JUDGE0_TEST_URL;
 
 describe.skipIf(!URL)("judge0 against the reference solutions", () => {
-  const adapter = new Judge0ExecutionAdapter({ url: URL ?? "", key: process.env.JUDGE0_TEST_KEY });
-
   for (const language of ["PYTHON", "JAVA"] as Language[]) {
     it(`accepts every ${language} reference solution`, async () => {
+      // Built here, not at collection time: a skipped suite still collects,
+      // and an empty URL would throw before the skip took effect.
+      const adapter = new Judge0ExecutionAdapter({
+        url: URL!,
+        key: process.env.JUDGE0_TEST_KEY,
+      });
       const failures: string[] = [];
       for (const problem of PROBLEMS) {
         const code = problem.solutions.at(-1)!.code[language];

@@ -1,5 +1,6 @@
 import type { Difficulty } from "@/generated/prisma/enums";
 import type { ClassDiagram } from "@/lib/class-diagram/types";
+import { MORE_LLD_EXERCISES } from "./exercises-more";
 
 /**
  * LLD exercises.
@@ -42,7 +43,7 @@ const cls = (
   methods: ClassDiagram["types"][number]["methods"] = []
 ) => ({ id, name, kind, attributes, methods });
 
-export const LLD_EXERCISES: LLDExerciseSeed[] = [
+const CORE_LLD_EXERCISES: LLDExerciseSeed[] = [
   {
     slug: "parking-garage",
     title: "Parking Garage",
@@ -550,3 +551,6 @@ public final class Logger {
     ],
   },
 ];
+
+/** The originals first, then additions — position sets each exercise's order. */
+export const LLD_EXERCISES: LLDExerciseSeed[] = [...CORE_LLD_EXERCISES, ...MORE_LLD_EXERCISES];

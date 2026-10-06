@@ -1,5 +1,6 @@
 import type { Difficulty } from "@/generated/prisma/enums";
 import type { Diagram } from "@/lib/diagram/types";
+import { MORE_SYSTEM_DESIGN_EXERCISES } from "./exercises-more";
 
 /**
  * System-design exercises.
@@ -33,7 +34,7 @@ export type ExerciseSeed = {
   scalingNotes: { stage: string; problem: string; response: string }[];
 };
 
-export const SYSTEM_DESIGN_EXERCISES: ExerciseSeed[] = [
+const CORE_SYSTEM_DESIGN_EXERCISES: ExerciseSeed[] = [
   {
     slug: "short-link-service",
     title: "Short Link Service",
@@ -331,4 +332,10 @@ export const SYSTEM_DESIGN_EXERCISES: ExerciseSeed[] = [
       { stage: "Feed reads grow", problem: "History queries slow", response: "Index on (userId, createdAt); age rows out past retention" },
     ],
   },
+];
+
+/** The originals first, then additions — position sets each exercise's order. */
+export const SYSTEM_DESIGN_EXERCISES: ExerciseSeed[] = [
+  ...CORE_SYSTEM_DESIGN_EXERCISES,
+  ...MORE_SYSTEM_DESIGN_EXERCISES,
 ];

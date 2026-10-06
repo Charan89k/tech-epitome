@@ -2,6 +2,8 @@ import type { CourseSeed } from "@/data/curriculum/types";
 import { DISTRIBUTED, INFRASTRUCTURE, PATTERNS } from "./distributed-infra";
 import { FOUNDATIONS } from "./foundations";
 import { DATA, NETWORKING } from "./networking-data";
+import { SD_RELIABILITY_CASE_SECTIONS } from "./reliability-cases";
+import { SD_STORAGE_SCALING_SECTIONS } from "./storage-scaling";
 
 /**
  * The System Design track.
@@ -31,5 +33,8 @@ export const SYSTEM_DESIGN_COURSE: CourseSeed = {
     DISTRIBUTED,
     INFRASTRUCTURE,
     PATTERNS,
+    // Appended, never interleaved: section order comes from position.
+    ...SD_STORAGE_SCALING_SECTIONS,
+    ...SD_RELIABILITY_CASE_SECTIONS,
   ],
 };
