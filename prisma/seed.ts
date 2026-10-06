@@ -20,8 +20,8 @@ import { PATTERNS } from "../src/data/patterns";
 import { PREP_SOURCE, PREP_TRACKS } from "../src/data/prep/tracks";
 import { PROBLEMS } from "../src/data/problems";
 import { QUIZZES } from "../src/data/quizzes";
-import { buildAllStarters } from "../src/lib/code-execution/signature";
 import { databaseConnection } from "../src/lib/db/ssl";
+import { upsertProblem, upsertTopics } from "./problem-writer";
 
 // Before anything reads DATABASE_URL. Mirrors Next.js' own file order, so
 // `NODE_ENV=production npm run db:seed` seeds the hosted database and a bare
@@ -64,13 +64,6 @@ const prisma = new PrismaClient({
 const ARGON2 = { memoryCost: 19456, timeCost: 2, parallelism: 1 } as const;
 
 /** Turns a slug into a display name: "two-pointers" -> "Two Pointers". */
-function titleise(slug: string): string {
-  return slug
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
-
 async function seedUsers() {
   const accounts = [
     {
@@ -145,20 +138,8 @@ async function seedPatterns(): Promise<Map<string, string>> {
 
 /** Topics are created on demand from whatever the problems reference. */
 async function seedTopics(): Promise<Map<string, string>> {
-  const slugs = [...new Set(PROBLEMS.flatMap((problem) => problem.topics))].sort();
-  const bySlug = new Map<string, string>();
-
-  for (const [index, slug] of slugs.entries()) {
-    const row = await prisma.topic.upsert({
-      where: { slug },
-      create: { slug, name: titleise(slug), order: index * 10 },
-      update: { name: titleise(slug), order: index * 10 },
-      select: { id: true },
-    });
-    bySlug.set(slug, row.id);
-  }
-
-  console.log(`  topics         ${slugs.length}`);
+  const bySlug = await upsertTopics(prisma, PROBLEMS);
+  console.log(`  topics         ${bySlug.size}`);
   return bySlug;
 }
 
@@ -167,113 +148,14 @@ async function seedProblems(
   topicIds: Map<string, string>
 ): Promise<Map<string, string>> {
   const bySlug = new Map<string, string>();
-
   for (const [index, problem] of PROBLEMS.entries()) {
     // Problem numbers follow catalogue order, which is why appending to a
     // topic file is safe but reordering one is not.
-    const number = index + 1;
-
-    const starterCode = buildAllStarters(problem.signature);
-
-    const row = await prisma.problem.upsert({
-      where: { slug: problem.slug },
-      create: {
-        number,
-        slug: problem.slug,
-        title: problem.title,
-        statement: problem.statement as object,
-        learningObjective: problem.learningObjective,
-        constraints: problem.constraints,
-        difficulty: problem.difficulty,
-        status: "PUBLISHED",
-        starterCode,
-        // The harness is regenerated from the signature at execution time,
-        // so it is stored only for reference and debugging.
-        harnessCode: { signature: problem.signature } as object,
-        expectedTime: problem.expectedTime,
-        expectedSpace: problem.expectedSpace,
-      },
-      update: {
-        number,
-        title: problem.title,
-        statement: problem.statement as object,
-        learningObjective: problem.learningObjective,
-        constraints: problem.constraints,
-        difficulty: problem.difficulty,
-        status: "PUBLISHED",
-        starterCode,
-        harnessCode: { signature: problem.signature } as object,
-        expectedTime: problem.expectedTime,
-        expectedSpace: problem.expectedSpace,
-      },
-      select: { id: true },
-    });
-
-    bySlug.set(problem.slug, row.id);
-
-    // Children are replaced wholesale rather than diffed. They have no
-    // natural key beyond their ordinal, and nothing references them, so
-    // delete-then-create is simpler and cannot drift.
-    await prisma.testCase.deleteMany({ where: { problemId: row.id } });
-    await prisma.testCase.createMany({
-      data: problem.tests.map((test, order) => ({
-        problemId: row.id,
-        input: test.input,
-        expected: test.expected,
-        isSample: test.isSample ?? false,
-        explanation: test.explanation ?? null,
-        order,
-      })),
-    });
-
-    await prisma.hint.deleteMany({ where: { problemId: row.id } });
-    await prisma.hint.createMany({
-      data: problem.hints.map((body, index) => ({
-        problemId: row.id,
-        order: index + 1,
-        body,
-      })),
-    });
-
-    await prisma.solution.deleteMany({ where: { problemId: row.id } });
-    for (const solution of problem.solutions) {
-      await prisma.solution.create({
-        data: {
-          problemId: row.id,
-          title: solution.title,
-          order: solution.order,
-          intuition: solution.intuition,
-          approach: solution.approach as object,
-          code: solution.code as object,
-          timeComplexity: solution.timeComplexity,
-          spaceComplexity: solution.spaceComplexity,
-          edgeCases: solution.edgeCases,
-          commonMistakes: solution.commonMistakes,
-        },
-      });
-    }
-
-    await prisma.problemPattern.deleteMany({ where: { problemId: row.id } });
-    for (const [position, slug] of problem.patterns.entries()) {
-      const patternId = patternIds.get(slug);
-      if (!patternId) {
-        throw new Error(`Problem ${problem.slug} references unknown pattern ${slug}`);
-      }
-      await prisma.problemPattern.create({
-        data: { problemId: row.id, patternId, isPrimary: position === 0 },
-      });
-    }
-
-    await prisma.problemTopic.deleteMany({ where: { problemId: row.id } });
-    for (const slug of problem.topics) {
-      const topicId = topicIds.get(slug);
-      if (!topicId) {
-        throw new Error(`Problem ${problem.slug} references unknown topic ${slug}`);
-      }
-      await prisma.problemTopic.create({ data: { problemId: row.id, topicId } });
-    }
+    bySlug.set(
+      problem.slug,
+      await upsertProblem(prisma, problem, index + 1, patternIds, topicIds)
+    );
   }
-
   console.log(`  problems       ${PROBLEMS.length}`);
   return bySlug;
 }

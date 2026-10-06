@@ -111,7 +111,10 @@ function blockTypes(content: unknown): string[] {
 }
 
 async function main() {
-  const url = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
+  // The pooled DATABASE_URL, not DIRECT_URL: Supabase's direct host is
+  // IPv6-only and unreachable from many networks, while the pooler answers
+  // on IPv4. Plain reads and short transactions work through it fine.
+  const url = process.env.CONTENT_SYNC_URL ?? process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set.");
 
   // Reuses the application's own connection helper, which pins Supabase's
