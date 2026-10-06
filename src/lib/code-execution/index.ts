@@ -2,6 +2,7 @@ import "server-only";
 
 import { getEnv } from "@/lib/env";
 import { DockerExecutionAdapter } from "./docker-adapter";
+import { Judge0ExecutionAdapter } from "./judge0-adapter";
 import { LocalExecutionAdapter } from "./local-adapter";
 import type { CodeExecutionService } from "./types";
 
@@ -48,10 +49,14 @@ export async function getExecutionService(): Promise<CodeExecutionService> {
     }
 
     case "remote":
-      throw new Error(
-        "CODE_EXECUTION_DRIVER=remote is reserved for a future external " +
-          "execution service and is not implemented yet."
-      );
+      // Judge0, wherever it is hosted. env.ts has already refused a
+      // remote driver with no URL, so this never builds a half-configured
+      // client.
+      cached = new Judge0ExecutionAdapter({
+        url: env.CODE_EXECUTION_API_URL!,
+        key: env.CODE_EXECUTION_API_KEY,
+      });
+      return cached;
 
     case "local":
     default: {
