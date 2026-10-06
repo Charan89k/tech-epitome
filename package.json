@@ -28,6 +28,7 @@
     "content:sync:dry": "tsx scripts/chapter-content-sync.ts --dry-run",
     "content:sync:prod": "NODE_ENV=production tsx scripts/chapter-content-sync.ts",
     "content:sync:prod:dry": "NODE_ENV=production tsx scripts/chapter-content-sync.ts --dry-run",
+    "problems:verify": "tsx --conditions=react-server scripts/verify-problems.ts",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset --force",
     "db:status:prod": "NODE_ENV=production prisma migrate status",
