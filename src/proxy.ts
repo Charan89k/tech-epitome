@@ -95,10 +95,12 @@ function withCsp(request: NextRequest): NextResponse {
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https:`,
     // Next inlines critical CSS, and Radix writes inline styles for
-    // positioning; neither can be nonced.
-    `style-src 'self' 'unsafe-inline'`,
+    // positioning; neither can be nonced. Monaco loads its own stylesheet
+    // and icon font from its CDN directory; without these the editor
+    // renders with no gutter or line numbers.
+    `style-src 'self' 'unsafe-inline' ${MONACO_CDN}`,
     `img-src 'self' blob: data: https:`,
-    `font-src 'self' data:`,
+    `font-src 'self' data: ${MONACO_CDN}`,
     // Monaco's language workers run from a blob URL.
     `worker-src 'self' blob:`,
     `connect-src 'self' https:`,
@@ -117,6 +119,14 @@ function withCsp(request: NextRequest): NextResponse {
   response.headers.set("Content-Security-Policy", csp);
   return response;
 }
+
+/**
+ * The one directory Monaco's CSS and codicon font come from. A path, not
+ * the whole CDN host, so the page cannot be made to load any other
+ * package's stylesheet. Pinned by @monaco-editor/loader's default config:
+ * update together with that dependency.
+ */
+const MONACO_CDN = "https://cdn.jsdelivr.net/npm/monaco-editor@0.55.1/";
 
 /** Where the trace workers fetch Pyodide from. Pinned in python-worker.js. */
 const TRACE_RUNTIME_ORIGIN = "https://cdn.jsdelivr.net";
