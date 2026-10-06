@@ -21,6 +21,11 @@ import { PREP_SOURCE, PREP_TRACKS } from "../src/data/prep/tracks";
 import { PROBLEMS } from "../src/data/problems";
 import { QUIZZES } from "../src/data/quizzes";
 import { databaseConnection } from "../src/lib/db/ssl";
+import {
+  upsertCourse,
+  upsertLLDExercises,
+  upsertSystemDesignExercises,
+} from "./content-writer";
 import { upsertProblem, upsertTopics } from "./problem-writer";
 
 // Before anything reads DATABASE_URL. Mirrors Next.js' own file order, so
@@ -174,120 +179,16 @@ async function seedCourse(
   patternIds: Map<string, string>,
   problemIds: Map<string, string>
 ): Promise<Map<string, string>> {
-  const chapterIds = new Map<string, string>();
-
-  const course = await prisma.course.upsert({
-    where: { slug: seed.slug },
-    create: {
-      slug: seed.slug,
-      title: seed.title,
-      subtitle: seed.subtitle,
-      description: seed.description,
-      track,
-      icon: seed.icon,
-      status: "PUBLISHED",
-      order,
-      estimatedHours: seed.estimatedHours,
-    },
-    update: {
-      title: seed.title,
-      subtitle: seed.subtitle,
-      description: seed.description,
-      icon: seed.icon,
-      status: "PUBLISHED",
-      order,
-      estimatedHours: seed.estimatedHours,
-    },
-    select: { id: true },
-  });
-
-  let chapterCount = 0;
-
-  for (const [sectionIndex, section] of seed.sections.entries()) {
-    const sectionRow = await prisma.courseSection.upsert({
-      where: { courseId_slug: { courseId: course.id, slug: section.slug } },
-      create: {
-        courseId: course.id,
-        slug: section.slug,
-        title: section.title,
-        summary: section.summary,
-        order: sectionIndex * 10,
-        status: "PUBLISHED",
-      },
-      update: {
-        title: section.title,
-        summary: section.summary,
-        order: sectionIndex * 10,
-        status: "PUBLISHED",
-      },
-      select: { id: true },
-    });
-
-    for (const [chapterIndex, chapter] of section.chapters.entries()) {
-      const chapterRow = await prisma.chapter.upsert({
-        where: {
-          sectionId_slug: { sectionId: sectionRow.id, slug: chapter.slug },
-        },
-        create: {
-          sectionId: sectionRow.id,
-          slug: chapter.slug,
-          title: chapter.title,
-          summary: chapter.summary,
-          content: chapter.content as object,
-          objectives: chapter.objectives,
-          keyTakeaways: chapter.keyTakeaways,
-          readingMinutes: chapter.readingMinutes,
-          difficulty: chapter.difficulty,
-          order: chapterIndex * 10,
-          status: "PUBLISHED",
-        },
-        update: {
-          title: chapter.title,
-          summary: chapter.summary,
-          content: chapter.content as object,
-          objectives: chapter.objectives,
-          keyTakeaways: chapter.keyTakeaways,
-          readingMinutes: chapter.readingMinutes,
-          difficulty: chapter.difficulty,
-          order: chapterIndex * 10,
-          status: "PUBLISHED",
-        },
-        select: { id: true },
-      });
-
-      chapterIds.set(chapter.slug, chapterRow.id);
-      chapterCount += 1;
-
-      await prisma.chapterPattern.deleteMany({
-        where: { chapterId: chapterRow.id },
-      });
-      for (const slug of chapter.patterns ?? []) {
-        const patternId = patternIds.get(slug);
-        if (!patternId) {
-          throw new Error(`Chapter ${chapter.slug} references unknown pattern ${slug}`);
-        }
-        await prisma.chapterPattern.create({
-          data: { chapterId: chapterRow.id, patternId },
-        });
-      }
-
-      await prisma.chapterProblem.deleteMany({
-        where: { chapterId: chapterRow.id },
-      });
-      for (const [order, slug] of (chapter.problems ?? []).entries()) {
-        const problemId = problemIds.get(slug);
-        if (!problemId) {
-          throw new Error(`Chapter ${chapter.slug} references unknown problem ${slug}`);
-        }
-        await prisma.chapterProblem.create({
-          data: { chapterId: chapterRow.id, problemId, order },
-        });
-      }
-    }
-  }
-
+  const chapterIds = await upsertCourse(
+    prisma,
+    seed,
+    track,
+    order,
+    patternIds,
+    problemIds
+  );
   console.log(
-    `  ${seed.title.padEnd(14)} ${seed.sections.length} sections, ${chapterCount} chapters`
+    `  ${seed.title.padEnd(14)} ${seed.sections.length} sections, ${chapterIds.size} chapters`
   );
   return chapterIds;
 }
@@ -296,7 +197,9 @@ async function seedQuizzes(chapterIds: Map<string, string>) {
   for (const quiz of QUIZZES) {
     const chapterId = chapterIds.get(quiz.chapterSlug);
     if (!chapterId) {
-      throw new Error(`Quiz ${quiz.slug} references unknown chapter ${quiz.chapterSlug}`);
+      throw new Error(
+        `Quiz ${quiz.slug} references unknown chapter ${quiz.chapterSlug}`
+      );
     }
 
     const row = await prisma.quiz.upsert({
@@ -349,31 +252,7 @@ async function seedQuizzes(chapterIds: Map<string, string>) {
  * reference these by id and are untouched.
  */
 async function seedSystemDesignExercises() {
-  for (const [index, exercise] of SYSTEM_DESIGN_EXERCISES.entries()) {
-    const payload = {
-      title: exercise.title,
-      tagline: exercise.tagline,
-      difficulty: exercise.difficulty,
-      status: "PUBLISHED" as const,
-      order: index * 10,
-      functionalRequirements: exercise.functionalRequirements,
-      nonFunctionalRequirements: exercise.nonFunctionalRequirements,
-      scaleEstimate: exercise.scaleEstimate as object,
-      apiDesign: exercise.apiDesign as object,
-      dataModel: exercise.dataModel as object,
-      architecture: exercise.architecture as object,
-      bottlenecks: exercise.bottlenecks,
-      scalingNotes: exercise.scalingNotes as object,
-      tradeoffs: exercise.tradeoffs as object,
-    };
-
-    await prisma.systemDesignProblem.upsert({
-      where: { slug: exercise.slug },
-      create: { slug: exercise.slug, ...payload },
-      update: payload,
-    });
-  }
-
+  await upsertSystemDesignExercises(prisma, SYSTEM_DESIGN_EXERCISES);
   console.log(`  system design  ${SYSTEM_DESIGN_EXERCISES.length} exercises`);
 }
 
@@ -385,180 +264,154 @@ async function seedSystemDesignExercises() {
  * untouched.
  */
 async function seedLLDExercises() {
-  for (const [index, exercise] of LLD_EXERCISES.entries()) {
-    const payload = {
-      title: exercise.title,
-      tagline: exercise.tagline,
-      difficulty: exercise.difficulty,
-      status: "PUBLISHED" as const,
-      order: index * 10,
-      requirements: exercise.requirements,
-      constraints: exercise.constraints,
-      objectives: exercise.objectives,
-      principles: exercise.principles,
-      designPatterns: exercise.designPatterns,
-      extensions: exercise.extensions,
-      entities: exercise.entities as object,
-      hints: exercise.hints,
-      classDiagram: exercise.classDiagram as object,
-      code: exercise.code as object,
-      tradeoffs: exercise.tradeoffs as object,
-    };
-
-    await prisma.lLDProblem.upsert({
-      where: { slug: exercise.slug },
-      create: { slug: exercise.slug, ...payload },
-      update: payload,
-    });
-  }
-
+  await upsertLLDExercises(prisma, LLD_EXERCISES);
   console.log(`  lld            ${LLD_EXERCISES.length} exercises`);
 }
 
 async function main() {
-/**
- * Behavioural interview questions.
- *
- * `lookingFor` is written to the database because the feedback pass reads
- * it after an interview ends. It is never selected by the paths that build
- * the interviewer's context — see `BRIEF_SELECT` in services/interview.ts.
- */
-async function seedBehavioral() {
-  for (const category of BEHAVIORAL_CATEGORIES) {
-    const categoryPayload = {
-      name: category.name,
-      description: category.description,
-      order: category.order,
-    };
-
-    const row = await prisma.behavioralCategory.upsert({
-      where: { slug: category.slug },
-      create: { slug: category.slug, ...categoryPayload },
-      update: categoryPayload,
-      select: { id: true },
-    });
-
-    for (const question of category.questions) {
-      const payload = {
-        categoryId: row.id,
-        prompt: question.prompt,
-        lookingFor: question.lookingFor,
-        followUps: question.followUps,
-        order: question.order,
-        status: "PUBLISHED" as const,
+  /**
+   * Behavioural interview questions.
+   *
+   * `lookingFor` is written to the database because the feedback pass reads
+   * it after an interview ends. It is never selected by the paths that build
+   * the interviewer's context — see `BRIEF_SELECT` in services/interview.ts.
+   */
+  async function seedBehavioral() {
+    for (const category of BEHAVIORAL_CATEGORIES) {
+      const categoryPayload = {
+        name: category.name,
+        description: category.description,
+        order: category.order,
       };
-      await prisma.behavioralQuestion.upsert({
-        where: { slug: question.slug },
-        create: { slug: question.slug, ...payload },
-        update: payload,
+
+      const row = await prisma.behavioralCategory.upsert({
+        where: { slug: category.slug },
+        create: { slug: category.slug, ...categoryPayload },
+        update: categoryPayload,
+        select: { id: true },
       });
+
+      for (const question of category.questions) {
+        const payload = {
+          categoryId: row.id,
+          prompt: question.prompt,
+          lookingFor: question.lookingFor,
+          followUps: question.followUps,
+          order: question.order,
+          status: "PUBLISHED" as const,
+        };
+        await prisma.behavioralQuestion.upsert({
+          where: { slug: question.slug },
+          create: { slug: question.slug, ...payload },
+          update: payload,
+        });
+      }
     }
+
+    console.log(
+      `  behavioral     ${BEHAVIORAL_CATEGORIES.length} categories, ${BEHAVIORAL_QUESTION_COUNT} questions`
+    );
   }
 
-  console.log(
-    `  behavioral     ${BEHAVIORAL_CATEGORIES.length} categories, ${BEHAVIORAL_QUESTION_COUNT} questions`
-  );
-}
+  /**
+   * Interview preparation tracks.
+   *
+   * Every association is written with its provenance and its reason, because
+   * the columns are NOT NULL and the UI prints them. `reportedAt` is the seed
+   * run's own date: these are Tech Epitome's current editorial judgements, and
+   * dating them is how they become reviewable rather than permanent.
+   */
+  async function seedPrepTracks() {
+    const reportedAt = new Date();
+    let problemLinks = 0;
+    let designLinks = 0;
 
-/**
- * Interview preparation tracks.
- *
- * Every association is written with its provenance and its reason, because
- * the columns are NOT NULL and the UI prints them. `reportedAt` is the seed
- * run's own date: these are Tech Epitome's current editorial judgements, and
- * dating them is how they become reviewable rather than permanent.
- */
-async function seedPrepTracks() {
-  const reportedAt = new Date();
-  let problemLinks = 0;
-  let designLinks = 0;
+    for (const track of PREP_TRACKS) {
+      const payload = {
+        name: track.name,
+        blurb: track.blurb,
+        status: "PUBLISHED" as const,
+        order: track.order,
+        interviewStages: track.interviewStages as object,
+        focusAreas: track.focusAreas,
+        roadmap: track.roadmap as object,
+      };
 
-  for (const track of PREP_TRACKS) {
-    const payload = {
-      name: track.name,
-      blurb: track.blurb,
-      status: "PUBLISHED" as const,
-      order: track.order,
-      interviewStages: track.interviewStages as object,
-      focusAreas: track.focusAreas,
-      roadmap: track.roadmap as object,
-    };
-
-    const row = await prisma.prepTrack.upsert({
-      where: { slug: track.slug },
-      create: { slug: track.slug, ...payload },
-      update: payload,
-      select: { id: true },
-    });
-
-    for (const entry of track.problems) {
-      const problem = await prisma.problem.findUnique({
-        where: { slug: entry.slug },
+      const row = await prisma.prepTrack.upsert({
+        where: { slug: track.slug },
+        create: { slug: track.slug, ...payload },
+        update: payload,
         select: { id: true },
       });
-      // A track referencing a problem that does not exist is a content
-      // bug, and a silent skip would hide it.
-      if (!problem) {
-        throw new Error(
-          `Prep track ${track.slug} references unknown problem ${entry.slug}`
-        );
+
+      for (const entry of track.problems) {
+        const problem = await prisma.problem.findUnique({
+          where: { slug: entry.slug },
+          select: { id: true },
+        });
+        // A track referencing a problem that does not exist is a content
+        // bug, and a silent skip would hide it.
+        if (!problem) {
+          throw new Error(
+            `Prep track ${track.slug} references unknown problem ${entry.slug}`
+          );
+        }
+
+        const link = {
+          source: PREP_SOURCE,
+          sourceUrl: null,
+          reportedAt,
+          confidence: entry.confidence,
+          rationale: entry.rationale,
+        };
+        await prisma.prepTrackProblem.upsert({
+          where: { trackId_problemId: { trackId: row.id, problemId: problem.id } },
+          create: { trackId: row.id, problemId: problem.id, ...link },
+          update: link,
+        });
+        problemLinks += 1;
       }
 
-      const link = {
-        source: PREP_SOURCE,
-        sourceUrl: null,
-        reportedAt,
-        confidence: entry.confidence,
-        rationale: entry.rationale,
-      };
-      await prisma.prepTrackProblem.upsert({
-        where: { trackId_problemId: { trackId: row.id, problemId: problem.id } },
-        create: { trackId: row.id, problemId: problem.id, ...link },
-        update: link,
-      });
-      problemLinks += 1;
-    }
+      for (const entry of track.systemDesign) {
+        const design = await prisma.systemDesignProblem.findUnique({
+          where: { slug: entry.slug },
+          select: { id: true },
+        });
+        if (!design) {
+          throw new Error(
+            `Prep track ${track.slug} references unknown design exercise ${entry.slug}`
+          );
+        }
 
-    for (const entry of track.systemDesign) {
-      const design = await prisma.systemDesignProblem.findUnique({
-        where: { slug: entry.slug },
-        select: { id: true },
-      });
-      if (!design) {
-        throw new Error(
-          `Prep track ${track.slug} references unknown design exercise ${entry.slug}`
-        );
-      }
-
-      const link = {
-        source: PREP_SOURCE,
-        sourceUrl: null,
-        reportedAt,
-        confidence: entry.confidence,
-        rationale: entry.rationale,
-      };
-      await prisma.prepTrackSystemDesignTopic.upsert({
-        where: {
-          trackId_systemDesignProblemId: {
+        const link = {
+          source: PREP_SOURCE,
+          sourceUrl: null,
+          reportedAt,
+          confidence: entry.confidence,
+          rationale: entry.rationale,
+        };
+        await prisma.prepTrackSystemDesignTopic.upsert({
+          where: {
+            trackId_systemDesignProblemId: {
+              trackId: row.id,
+              systemDesignProblemId: design.id,
+            },
+          },
+          create: {
             trackId: row.id,
             systemDesignProblemId: design.id,
+            ...link,
           },
-        },
-        create: {
-          trackId: row.id,
-          systemDesignProblemId: design.id,
-          ...link,
-        },
-        update: link,
-      });
-      designLinks += 1;
+          update: link,
+        });
+        designLinks += 1;
+      }
     }
-  }
 
-  console.log(
-    `  prep tracks    ${PREP_TRACKS.length} (${problemLinks} problems, ${designLinks} design)`
-  );
-}
+    console.log(
+      `  prep tracks    ${PREP_TRACKS.length} (${problemLinks} problems, ${designLinks} design)`
+    );
+  }
 
   console.log("Seeding Tech Epitome…");
 
