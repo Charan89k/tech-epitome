@@ -13,6 +13,7 @@ import {
   Network,
   PlayCircle,
   Repeat2,
+  Route,
   Shapes,
   ShieldCheck,
   Sparkles,
@@ -95,6 +96,12 @@ export const primaryNav: NavGroup[] = [
         href: "/learn/lld",
         icon: Blocks,
         description: "Responsibilities, SOLID, and the patterns worth knowing",
+      },
+      {
+        title: "Roadmaps",
+        href: "/roadmaps",
+        icon: Route,
+        description: "What to learn, in what order, and where to practise it",
       },
       {
         title: "Visualize",
