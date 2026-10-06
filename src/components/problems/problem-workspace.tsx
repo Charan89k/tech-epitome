@@ -2,7 +2,7 @@
 
 import { useCallback, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
-import { Loader2, Play, RotateCcw, Send } from "lucide-react";
+import { Activity, FileText, Loader2, Play, RotateCcw, Send } from "lucide-react";
 // react-resizable-panels v4 renamed PanelGroup -> Group and
 // PanelResizeHandle -> Separator, and `direction` -> `orientation`.
 import { Group, Panel, Separator } from "react-resizable-panels";
@@ -10,6 +10,10 @@ import { Group, Panel, Separator } from "react-resizable-panels";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 import { runCodeAction, submitCodeAction } from "@/app/(shell)/problems/actions";
+import {
+  LiveVisualizer,
+  type VisualSample,
+} from "@/components/live-visual/live-visualizer";
 import { TestResults } from "@/components/problems/test-results";
 import { TutorLauncher } from "@/components/tutor/tutor-launcher";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -24,7 +28,12 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Language } from "@/generated/prisma/enums";
-import { LANGUAGE_LABEL, SUPPORTED_LANGUAGES } from "@/lib/code-execution/signature";
+import {
+  LANGUAGE_LABEL,
+  SUPPORTED_LANGUAGES,
+  type Signature,
+} from "@/lib/code-execution/signature";
+import { isTraceable } from "@/lib/trace/types";
 import { cn } from "@/lib/utils";
 import type { TutorContextLabel, TutorQuickAction, TutorCodeState } from "@/lib/tutor/types";
 import type { RunOutcome } from "@/services/submissions";
@@ -52,6 +61,9 @@ type Props = {
   signedIn: boolean;
   /** Rendered in the left pane on desktop, and in a tab on mobile. */
   description: React.ReactNode;
+  /** Drives the live visualizer; null when the problem has none stored. */
+  signature: Signature | null;
+  samples: VisualSample[];
   /**
    * Tutor wiring.
    *
@@ -100,6 +112,8 @@ export function ProblemWorkspace({
   defaultLanguage,
   signedIn,
   description,
+  signature,
+  samples,
   tutor,
 }: Props) {
   // Only one layout is rendered at a time. Showing both and hiding one
@@ -121,6 +135,24 @@ export function ProblemWorkspace({
   const [mode, setMode] = useState<"run" | "submit" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // Live visualizer wiring: a token to request an auto-playing trace, the
+  // line it is on (mirrored into the editor), and which pane is showing.
+  const [runToken, setRunToken] = useState(0);
+  const [highlight, setHighlight] = useState<{ line: number; kind: "step" | "error" } | null>(null);
+  const [leftPane, setLeftPane] = useState<"description" | "visualize">("description");
+  const [mobilePane, setMobilePane] = useState("problem");
+  const traceable = isTraceable(language);
+
+  const onTraceLine = useCallback((line: number | null, kind: "step" | "error") => {
+    setHighlight(line === null ? null : { line, kind });
+  }, []);
+
+  function visualize() {
+    setRunToken((token) => token + 1);
+    setLeftPane("visualize");
+    setMobilePane("visual");
+  }
 
   // Switching language loads that language's draft, or its starter code.
   // Adjusting state during render is React's documented way to respond to a
@@ -188,6 +220,12 @@ export function ProblemWorkspace({
   }
 
   function execute(which: "run" | "submit") {
+    // A run is also a trace: the picture should follow the code the
+    // learner just ran, without a second click.
+    if (which === "run" && traceable && signature) {
+      setRunToken((token) => token + 1);
+      setLeftPane("visualize");
+    }
     setError(null);
     setMode(which);
     startTransition(async () => {
@@ -250,6 +288,24 @@ export function ProblemWorkspace({
             of the two is ever mounted, because only one layout is. */}
         {!isMobile && tutorLauncher}
 
+        {signature && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-ember-300 hover:text-ember-200 h-8"
+            onClick={visualize}
+            disabled={!traceable}
+            title={
+              traceable
+                ? "Run on an example and watch each line execute"
+                : "Step-by-step tracing is available for Python and JavaScript"
+            }
+          >
+            <Activity className="size-3.5" />
+            Visualize
+          </Button>
+        )}
+
         <Button
           variant="outline"
           size="sm"
@@ -287,7 +343,12 @@ export function ProblemWorkspace({
     <div className="flex h-full flex-col">
       {controls}
       <div className="min-h-0 flex-1">
-        <CodeEditor language={language} value={code} onChange={persist} />
+        <CodeEditor
+          language={language}
+          value={code}
+          onChange={persist}
+          highlight={highlight}
+        />
       </div>
       <p className="border-border text-muted-foreground/70 border-t px-3 py-1.5 text-[0.65rem]">
         Tab moves focus out of the editor. Press Ctrl+M to let Tab indent instead.
@@ -319,10 +380,25 @@ export function ProblemWorkspace({
     </div>
   );
 
+  const visualPane = signature ? (
+    <LiveVisualizer
+      signature={signature}
+      samples={samples}
+      language={language}
+      code={code}
+      runToken={runToken}
+      onLine={onTraceLine}
+    />
+  ) : (
+    <p className="text-muted-foreground p-6 text-sm">
+      This problem has no visual yet.
+    </p>
+  );
+
   if (isMobile) {
     // Stacked tabs: a three-way split at 390px is unusable.
     return (
-      <Tabs defaultValue="problem">
+      <Tabs value={mobilePane} onValueChange={setMobilePane}>
         <div className="border-border flex items-center justify-end border-b px-2 py-1.5">
           {tutorLauncher}
         </div>
@@ -333,6 +409,9 @@ export function ProblemWorkspace({
           </TabsTrigger>
           <TabsTrigger value="code" className="flex-1">
             Code
+          </TabsTrigger>
+          <TabsTrigger value="visual" className="flex-1">
+            Visual
           </TabsTrigger>
           <TabsTrigger value="results" className="flex-1">
             Results
@@ -347,6 +426,10 @@ export function ProblemWorkspace({
           <div className="h-[70dvh]">{editorPane}</div>
         </TabsContent>
 
+        <TabsContent value="visual" className="mt-0">
+          <div className="h-[75dvh]">{visualPane}</div>
+        </TabsContent>
+
         <TabsContent value="results" className="mt-0">
           <div className="min-h-[50dvh]">{resultsPane}</div>
         </TabsContent>
@@ -358,7 +441,34 @@ export function ProblemWorkspace({
     <div className="h-[calc(100dvh-3.5rem)]">
       <Group orientation="horizontal" id="tech-epitome-problem-h" className="h-full">
         <Panel defaultSize="42%" minSize="25%">
-          <div className="h-full overflow-y-auto px-6 py-6">{description}</div>
+          <Tabs
+            value={leftPane}
+            onValueChange={(value) => setLeftPane(value as typeof leftPane)}
+            className="flex h-full flex-col gap-0"
+          >
+            <div className="border-border bg-card/40 flex items-center border-b px-2">
+              <TabsList className="h-10 bg-transparent p-0">
+                <PaneTab value="description" icon={FileText} label="Description" />
+                <PaneTab value="visualize" icon={Activity} label="Visualizer" live={traceable} />
+              </TabsList>
+            </div>
+            {/* forceMount keeps both mounted: the description holds draft
+                notes and highlights, and the visualizer holds its trace. */}
+            <TabsContent
+              value="description"
+              forceMount
+              className="mt-0 min-h-0 flex-1 overflow-y-auto px-6 py-6 data-[state=inactive]:hidden"
+            >
+              {description}
+            </TabsContent>
+            <TabsContent
+              value="visualize"
+              forceMount
+              className="mt-0 min-h-0 flex-1 data-[state=inactive]:hidden"
+            >
+              {visualPane}
+            </TabsContent>
+          </Tabs>
         </Panel>
 
         <ResizeHandle orientation="horizontal" />
@@ -392,5 +502,28 @@ function ResizeHandle({
       )}
       aria-label={`Resize ${orientation === "horizontal" ? "panels" : "editor"}`}
     />
+  );
+}
+
+function PaneTab({
+  value,
+  icon: Icon,
+  label,
+  live = false,
+}: {
+  value: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  live?: boolean;
+}) {
+  return (
+    <TabsTrigger
+      value={value}
+      className="data-[state=active]:text-foreground data-[state=active]:after:bg-ember-500 relative h-10 rounded-none border-0 bg-transparent px-3 text-xs shadow-none after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+    >
+      <Icon className="size-3.5" />
+      {label}
+      {live && <span className="bg-ember-500 size-1.5 rounded-full" aria-hidden="true" />}
+    </TabsTrigger>
   );
 }

@@ -83,6 +83,8 @@ export default auth((request) => {
  * and is verified against a production build.
  */
 function withCsp(request: NextRequest): NextResponse {
+  if (request.nextUrl.pathname.startsWith("/trace/")) return traceWorkerResponse();
+
   if (process.env.NODE_ENV !== "production") {
     return NextResponse.next();
   }
@@ -113,6 +115,33 @@ function withCsp(request: NextRequest): NextResponse {
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", csp);
+  return response;
+}
+
+/** Where the trace workers fetch Pyodide from. Pinned in python-worker.js. */
+const TRACE_RUNTIME_ORIGIN = "https://cdn.jsdelivr.net";
+
+/**
+ * The policy for the live-trace workers in /public/trace.
+ *
+ * A dedicated worker is governed by the CSP delivered with its own script,
+ * not the page's, so these files can be granted what the page never is:
+ * eval, to run the learner's JavaScript, and WebAssembly, to run Python.
+ * In exchange they get almost no network. connect-src names only the
+ * runtime CDN, so code typed into the editor cannot reach this site's API
+ * carrying the learner's session cookie. Issued in development too: workers
+ * do not take part in hot reload, so there is nothing to loosen it for.
+ */
+function traceWorkerResponse(): NextResponse {
+  const response = NextResponse.next();
+  response.headers.set(
+    "Content-Security-Policy",
+    [
+      `default-src 'none'`,
+      `script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' ${TRACE_RUNTIME_ORIGIN}`,
+      `connect-src ${TRACE_RUNTIME_ORIGIN}`,
+    ].join("; ")
+  );
   return response;
 }
 

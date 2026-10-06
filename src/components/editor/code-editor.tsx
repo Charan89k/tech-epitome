@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import Editor, { type OnMount } from "@monaco-editor/react";
 import { Loader2 } from "lucide-react";
 
@@ -21,16 +21,58 @@ export function CodeEditor({
   value,
   onChange,
   readOnly = false,
+  highlight = null,
 }: {
   language: Language;
   value: string;
   onChange: (value: string) => void;
   readOnly?: boolean;
+  /**
+   * A line to mark: the one the live trace is on, or the one an error came
+   * from. Drawn as a whole-line tint plus a gutter marker, and scrolled into
+   * view only when it is off screen, so stepping does not yank the editor.
+   */
+  highlight?: { line: number; kind: "step" | "error" } | null;
 }) {
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
+  const decorationsRef = useRef<ReturnType<
+    Parameters<OnMount>[0]["createDecorationsCollection"]
+  > | null>(null);
+
+  const highlightLine = highlight?.line ?? null;
+  const highlightKind = highlight?.kind ?? "step";
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    const decorations = decorationsRef.current;
+    if (!editor || !decorations) return;
+    const lineCount = editor.getModel()?.getLineCount() ?? 0;
+    if (highlightLine === null || highlightLine < 1 || highlightLine > lineCount) {
+      decorations.clear();
+      return;
+    }
+    decorations.set([
+      {
+        range: {
+          startLineNumber: highlightLine,
+          startColumn: 1,
+          endLineNumber: highlightLine,
+          endColumn: 1,
+        },
+        options: {
+          isWholeLine: true,
+          className: highlightKind === "error" ? "trace-line-error" : "trace-line",
+          linesDecorationsClassName:
+            highlightKind === "error" ? "trace-gutter-error" : "trace-gutter",
+        },
+      },
+    ]);
+    editor.revealLineInCenterIfOutsideViewport(highlightLine);
+  }, [highlightLine, highlightKind]);
 
   const onMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
+    decorationsRef.current = editor.createDecorationsCollection();
 
     monaco.editor.defineTheme("tech-epitome", {
       base: "vs-dark",

@@ -8,6 +8,7 @@ import { BookmarkButton } from "@/components/library/bookmark-button";
 import { Highlightable } from "@/components/learning/highlightable";
 import { NoteEditor } from "@/components/library/note-editor";
 import { ContentRenderer, type ContentResources } from "@/components/learning/content-renderer";
+import { StateView } from "@/components/live-visual/state-view";
 import { HintLadder } from "@/components/problems/hint-ladder";
 import { ProblemWorkspace } from "@/components/problems/problem-workspace";
 import {
@@ -26,6 +27,8 @@ import { loadContextBundle } from "@/services/tutor";
 import { getCurrentUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { parseContent } from "@/lib/validation/content";
+import type { Signature } from "@/lib/code-execution/signature";
+import { inputStep, parseWireInput } from "@/lib/trace/wire";
 import { route } from "@/lib/utils";
 import { listHighlightsFor } from "@/services/highlights";
 import { getNoteFor, isBookmarked } from "@/services/library";
@@ -224,6 +227,7 @@ export default async function ProblemPage({
                 <p className="text-muted-foreground text-[0.68rem] font-medium tracking-wider uppercase">
                   Example {index + 1}
                 </p>
+                <ExamplePicture signature={problem.signature} input={test.input} />
                 <dl className="mt-2 space-y-1.5">
                   <div className="grid grid-cols-[4.5rem_1fr] gap-2">
                     <dt className="text-muted-foreground text-xs">Input</dt>
@@ -325,11 +329,38 @@ export default async function ProblemPage({
       defaultLanguage="PYTHON"
       signedIn={Boolean(user)}
       description={description}
+      signature={problem.signature}
+      samples={problem.sampleTests.map((test) => ({
+        input: test.input,
+        expected: test.expected,
+      }))}
       tutor={{
         label: tutorLabel,
         quickActions: [...PROBLEM_QUICK_ACTIONS, ...CODE_QUICK_ACTIONS],
         enabled: tutorAllowed,
       }}
     />
+  );
+}
+
+/**
+ * The example's input, drawn — the same picture the visualizer starts
+ * from, so a learner sees the shape of the data before reading the numbers.
+ * Pure server markup: nothing here runs code.
+ */
+function ExamplePicture({
+  signature,
+  input,
+}: {
+  signature: Signature | null;
+  input: string;
+}) {
+  if (!signature) return null;
+  const parsed = parseWireInput(signature, input);
+  if (!parsed.ok) return null;
+  return (
+    <div className="viz-canvas border-border mt-2 rounded-lg border p-3">
+      <StateView step={inputStep(signature, parsed.args)} paramNames={signature.paramNames} />
+    </div>
   );
 }

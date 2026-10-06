@@ -7,6 +7,7 @@ import type {Difficulty,
   ProblemStatus} from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
+import type { Signature } from "@/lib/code-execution/signature";
 
 /**
  * Problem catalogue reads.
@@ -237,6 +238,12 @@ export type ProblemDetail = {
   constraints: string[];
   difficulty: Difficulty;
   starterCode: Record<string, string>;
+  /**
+   * The entry point's shape. Not secret — the starter code already shows
+   * it — and the live visualizer needs it to parse samples and call the
+   * learner's function in the browser.
+   */
+  signature: Signature | null;
   timeLimitMs: number;
   memoryLimitMb: number;
   expectedTime: string | null;
@@ -270,6 +277,7 @@ export const getProblem = cache(
         constraints: true,
         difficulty: true,
         starterCode: true,
+        harnessCode: true,
         timeLimitMs: true,
         memoryLimitMb: true,
         expectedTime: true,
@@ -327,6 +335,7 @@ export const getProblem = cache(
       constraints: problem.constraints,
       difficulty: problem.difficulty,
       starterCode: (problem.starterCode ?? {}) as Record<string, string>,
+      signature: (problem.harnessCode as { signature?: Signature } | null)?.signature ?? null,
       timeLimitMs: problem.timeLimitMs,
       memoryLimitMb: problem.memoryLimitMb,
       expectedTime: problem.expectedTime,
@@ -365,3 +374,99 @@ export const LANGUAGE_LABELS: Record<Language, string> = {
   CPP: "C++",
   GO: "Go",
 };
+
+/** What the live visualizer will draw for a problem, from its first input. */
+export type InputShape = "array" | "string" | "linked list" | "grid" | "words" | "number";
+
+const SHAPE_OF: Record<string, InputShape> = {
+  "int[]": "array",
+  string: "string",
+  list: "linked list",
+  "int[][]": "grid",
+  "string[]": "words",
+  int: "number",
+};
+
+export type PatternGroup = {
+  pattern: { slug: string; name: string; tagline: string } | null;
+  problems: (ProblemListItem & { inputShape: InputShape | null })[];
+};
+
+/**
+ * The catalogue grouped by each problem's primary pattern, in curriculum
+ * order — the default view of the problems page, where a learner drills one
+ * pattern at a time and watches its progress bar fill.
+ *
+ * Unlike `listProblems` this reads every published problem. That is
+ * deliberate and bounded: the grouped view is the whole catalogue by
+ * definition, and `take` caps it so a much larger catalogue degrades to a
+ * truncated page rather than an unbounded query. Filtering and search still
+ * go through the paginated query.
+ */
+export async function listProblemsByPattern(userId?: string): Promise<PatternGroup[]> {
+  const rows = await prisma.problem.findMany({
+    where: { status: "PUBLISHED" },
+    orderBy: { number: "asc" },
+    take: 500,
+    select: {
+      id: true,
+      number: true,
+      slug: true,
+      title: true,
+      difficulty: true,
+      harnessCode: true,
+      patterns: {
+        select: {
+          isPrimary: true,
+          pattern: { select: { slug: true, name: true, tagline: true, order: true } },
+        },
+        orderBy: { isPrimary: "desc" },
+      },
+      topics: { select: { topic: { select: { slug: true, name: true } } } },
+      progress: userId ? { where: { userId }, select: { status: true }, take: 1 } : false,
+    },
+  });
+
+  const bookmarkedIds = userId
+    ? new Set(
+        (
+          await prisma.bookmark.findMany({
+            where: { userId, entityType: "PROBLEM", entityId: { in: rows.map((r) => r.id) } },
+            select: { entityId: true },
+          })
+        ).map((b) => b.entityId)
+      )
+    : new Set<string>();
+
+  const groups = new Map<string, PatternGroup & { order: number }>();
+  for (const row of rows) {
+    const primary = row.patterns[0]?.pattern ?? null;
+    const key = primary?.slug ?? "";
+    if (!groups.has(key)) {
+      groups.set(key, {
+        pattern: primary ? { slug: primary.slug, name: primary.name, tagline: primary.tagline } : null,
+        problems: [],
+        order: primary?.order ?? Number.MAX_SAFE_INTEGER,
+      });
+    }
+    const signature = (row.harnessCode as { signature?: Signature } | null)?.signature;
+    const firstParam = signature?.params[0];
+    groups.get(key)!.problems.push({
+      id: row.id,
+      number: row.number,
+      slug: row.slug,
+      title: row.title,
+      difficulty: row.difficulty,
+      patterns: row.patterns.map((p) => ({ slug: p.pattern.slug, name: p.pattern.name })),
+      topics: row.topics.map((t) => t.topic),
+      status:
+        (Array.isArray(row.progress) ? row.progress[0]?.status : undefined) ?? "NOT_STARTED",
+      bookmarked: bookmarkedIds.has(row.id),
+      inputShape: firstParam ? (SHAPE_OF[firstParam] ?? null) : null,
+    });
+  }
+
+  return [...groups.values()]
+    .sort((a, b) => a.order - b.order)
+    .map(({ pattern, problems }) => ({ pattern, problems }));
+}

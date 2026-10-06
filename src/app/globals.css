@@ -14,9 +14,9 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  --font-heading: var(--font-inter);
 
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
@@ -380,4 +380,81 @@ body[data-reduced-motion="true"] *::after {
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
+}
+
+/* --------------------------------------------------------------------------
+   Live trace markers inside Monaco. Global because Monaco renders outside
+   React and only accepts class names for decorations.
+   -------------------------------------------------------------------------- */
+.monaco-editor .trace-line {
+  background: oklch(0.769 0.155 62 / 14%);
+}
+.monaco-editor .trace-gutter {
+  background: var(--ember-500);
+  width: 3px !important;
+  margin-left: 3px;
+}
+.monaco-editor .trace-line-error {
+  background: oklch(0.645 0.201 18 / 16%);
+}
+.monaco-editor .trace-gutter-error {
+  background: var(--destructive);
+  width: 3px !important;
+  margin-left: 3px;
+}
+
+/* ==========================================================================
+   Redesign utilities.
+
+   Layout language: a full-width top bar, a floating icon rail, flat surfaces
+   separated by hairlines and small tonal steps. The one expressive move is
+   an ember gradient on a single headline phrase.
+   ========================================================================== */
+@layer utilities {
+  /* One phrase per headline, never body copy. */
+  .text-gradient-ember {
+    background-image: linear-gradient(
+      120deg,
+      var(--ember-200) 0%,
+      var(--ember-500) 45%,
+      var(--ember-700) 100%
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+
+  /* The faint warm haze behind a hero. */
+  .bg-hero-haze {
+    background-image: radial-gradient(
+      ellipse 60% 50% at 50% 0%,
+      color-mix(in oklch, var(--ember-500) 13%, transparent),
+      transparent 70%
+    );
+  }
+
+  /* Diagrams and live visuals sit on a darker panel than the chrome, so the
+     visualization palette reads as the subject rather than decoration. */
+  .viz-canvas {
+    background-color: color-mix(in oklch, var(--background) 72%, black);
+    background-image: radial-gradient(
+      color-mix(in oklch, var(--foreground) 5%, transparent) 1px,
+      transparent 1px
+    );
+    background-size: 18px 18px;
+  }
+
+  /* Long-form reading: 18px on a 1.75 line height, softened slightly. */
+  .reading {
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    color: color-mix(in oklch, var(--foreground) 90%, transparent);
+  }
+
+  .tracking-headline {
+    letter-spacing: -0.025em;
+  }
+  .tracking-display {
+    letter-spacing: -0.045em;
+  }
 }
