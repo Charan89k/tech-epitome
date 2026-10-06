@@ -18,7 +18,9 @@ export const authConfig = {
 
   pages: {
     signIn: "/login",
-    newUser: "/dashboard",
+    // A first sign-in through Google or GitHub is a new account, and gets
+    // the same skippable onboarding an email signup does.
+    newUser: "/onboarding",
     error: "/login",
   },
 

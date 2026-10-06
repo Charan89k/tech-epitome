@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { AuthForm } from "@/components/auth/auth-form";
+import { authErrorMessage } from "@/lib/auth/errors";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isGitHubAuthEnabled, isGoogleAuthEnabled } from "@/lib/env";
 import { safeInternalPath } from "@/lib/safe-redirect";
@@ -26,6 +27,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       next={next}
       googleEnabled={isGoogleAuthEnabled()}
       githubEnabled={isGitHubAuthEnabled()}
+      notice={authErrorMessage(params.error)}
     />
   );
 }

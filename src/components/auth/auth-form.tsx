@@ -27,6 +27,11 @@ type AuthFormProps = {
   next: string;
   googleEnabled: boolean;
   githubEnabled: boolean;
+  /**
+   * A message from a failed provider sign-in, already mapped from Auth.js'
+   * `?error=` code by the page. Never the raw parameter.
+   */
+  notice?: string | null;
 };
 
 const EMPTY: AuthFormState = {};
@@ -36,6 +41,7 @@ export function AuthForm({
   next,
   googleEnabled,
   githubEnabled,
+  notice = null,
 }: AuthFormProps) {
   const action = mode === "signin" ? signInAction : signUpAction;
   const [state, formAction] = useActionState(action, EMPTY);
@@ -54,6 +60,15 @@ export function AuthForm({
             : "Free, every track and feature. No card."}
         </p>
       </header>
+
+      {/* The form's own error wins: once the learner has tried again, the
+          message about the earlier provider attempt is stale. */}
+      {!state.error && notice && (
+        <Alert variant="destructive" role="alert">
+          <AlertCircle className="size-4" />
+          <AlertDescription>{notice}</AlertDescription>
+        </Alert>
+      )}
 
       {state.error && (
         <Alert variant="destructive" role="alert">
