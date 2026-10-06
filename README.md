@@ -87,7 +87,7 @@ in-browser runtime they do not have.
 
 ### 💻 Problem solving
 
-50 original problems with a Monaco editor, four languages (Python, JavaScript,
+150 original problems with a Monaco editor, four languages (Python, JavaScript,
 Java, C++), progressive hints you open one at a time, and solutions that walk
 from brute force through the observation that improves it. Failures show the
 case that broke, not a red cross.
@@ -428,7 +428,7 @@ explicitly.
 | `AI_PROVIDER` | No | `ollama` (default), `anthropic`, or `mock` (rejected in production) |
 | `AI_API_KEY` | Conditional | Required when `AI_PROVIDER=anthropic` |
 | `OLLAMA_BASE_URL` / `OLLAMA_MODEL` | No | Local model configuration |
-| `CODE_EXECUTION_DRIVER` | No | `docker` (default), `local`, or `remote` |
+| `CODE_EXECUTION_DRIVER` | No | `docker` (default), `local`, or `remote` (Judge0) |
 | `EMAIL_PROVIDER` | No | `console` (default, logs only, rejected in production) or `resend` |
 | `RESEND_API_KEY` / `EMAIL_FROM` | Conditional | Required when `EMAIL_PROVIDER=resend` |
 | `CRON_SECRET` | No | Authenticates the review-reminder job. Unset ⇒ the route refuses everything |
@@ -481,10 +481,18 @@ Vercel Postgres all work.
 - **TLS.** Supabase serves Postgres under its own CA, which Node rejects against
   the system trust store. `src/lib/db/ssl.ts` pins that root so verification
   stays on instead of reaching for `sslmode=no-verify`.
-- **Code execution.** Set `CODE_EXECUTION_DRIVER=docker` and give the deployment
-  a reachable Docker daemon. On a serverless platform there is none, so the
-  editor's run/submit will refuse rather than execute learner code on the host.
-  **That refusal is deliberate and must not be worked around.**
+- **Code execution.** On a serverless platform (Vercel) set
+  `CODE_EXECUTION_DRIVER=remote` and `CODE_EXECUTION_API_URL` to a Judge0
+  server: `https://ce.judge0.com` (public, free, rate limited — what the live
+  site uses), a RapidAPI Judge0 plan, or your own instance, with its key in
+  `CODE_EXECUTION_API_KEY`. On a host with Docker, `docker` works instead.
+  Learner code is never executed on the application host in production.
+- **AI spend.** `AI_DAILY_TURN_LIMIT` (default 80) and
+  `AI_DAILY_INTERVIEW_LIMIT` (default 4) cap each learner per rolling 24h;
+  `AI_DAILY_BUDGET_CENTS` optionally caps the whole site per UTC day.
+- **Publishing new problems.** `npm run problems:verify` must pass, then
+  `npm run problems:sync:prod:dry` and `npm run problems:sync:prod` — never
+  the full seed against production.
 - **Review reminder emails.** Point a scheduler at
   `POST /api/cron/notifications` with `Authorization: Bearer $CRON_SECRET`.
   Without it no reminders are sent; nothing else is affected.

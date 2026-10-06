@@ -109,8 +109,8 @@ come in, with the source, confidence and reason printed beside every
 recommendation.
 
 Seeded content, all original: **3 courses, 22 sections, 53 chapters, 20
-patterns, 50 problems** (377 test cases, 200 hints, 56 solutions), **15
-quizzes**, **6 interactive visualizations**, **3 system-design
+patterns, 150 problems** (1,321 test cases, 593 hints, 254 solutions), **15
+quizzes**, **7 interactive visualizations** plus a live tracer that draws every problem, **3 system-design
 exercises**, **3 LLD exercises**, **16 behavioural questions** across 8
 categories, and **3 preparation tracks**.
 
@@ -276,8 +276,8 @@ Problems declare a signature once:
 ```
 
 From that, `src/lib/code-execution/signature.ts` derives both the starter stub
-the learner sees and the harness that feeds it stdin, for every language. 50
-problems x 4 languages is 200 harnesses, and hand-writing 200 near-identical
+the learner sees and the harness that feeds it stdin, for every language. 150
+problems x 4 languages is 600 harnesses, and hand-writing 200 near-identical
 stdin parsers is exactly the kind of repetition that rots. There is one reader
 per (type, language) pair and a signature composes them. Harnesses are
 regenerated at execution time rather than stored, so fixing a reader bug fixes

@@ -70,9 +70,13 @@ for (const p of selected) {
     if (!patternSlugs.has(slug)) fail(p.slug, `unknown pattern ${slug}`);
   if (p.topics.length === 0) fail(p.slug, "needs a topic");
   if (p.statement.length === 0) fail(p.slug, "empty statement");
-  const best = p.solutions.at(-1);
-  if (!best?.code.PYTHON || !best.code.JAVA)
-    fail(p.slug, "final solution needs PYTHON and JAVA");
+  // Same rule as the catalogue test: every approach, not just the last,
+  // is authored in Python and Java, because the solution panel shows each.
+  p.solutions.forEach((solution, index) => {
+    if (!solution.code.PYTHON || !solution.code.JAVA) {
+      fail(p.slug, `solution ${index + 1} (${solution.title}) needs PYTHON and JAVA`);
+    }
+  });
   for (const test of p.tests) {
     const parsed = parseWireInput(p.signature, test.input);
     if (!parsed.ok)
