@@ -1,5 +1,6 @@
 "use server";
 
+import { checkInterviewQuota } from "@/lib/ai/quota";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -96,6 +97,11 @@ export async function createInterviewAction(
   if (!limited.success) {
     return { ok: false, error: "Slow down a moment before starting another." };
   }
+
+  // Every turn of an interview is an AI call, so the cap is on starting
+  // one: an interview that has begun is never cut off mid-way.
+  const quota = await checkInterviewQuota(user);
+  if (!quota.ok) return { ok: false, error: quota.message };
 
   const result = await createInterview({
     userId: user.id,

@@ -49,6 +49,19 @@ const serverSchema = z.object({
   OLLAMA_BASE_URL: z.string().url().default("http://127.0.0.1:11434"),
   OLLAMA_MODEL: z.string().default("qwen2.5:14b"),
 
+  /**
+   * AI spend controls (src/lib/ai/quota.ts). Tech Epitome is free, so these
+   * are what keep one enthusiastic learner — or one script — from running
+   * up the provider bill for everyone. Per-user caps are a rolling 24 hours;
+   * the site budget is per UTC day and unset means no site-wide cap.
+   */
+  AI_DAILY_TURN_LIMIT: z.coerce.number().int().positive().default(80),
+  AI_DAILY_INTERVIEW_LIMIT: z.coerce.number().int().positive().default(4),
+  AI_DAILY_BUDGET_CENTS: z.preprocess(
+    emptyToUndefined,
+    z.coerce.number().int().positive().optional()
+  ),
+
   CODE_EXECUTION_DRIVER: z.enum(["local", "docker", "remote"]).default("docker"),
   CODE_EXECUTION_API_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
   CODE_EXECUTION_API_KEY: z.preprocess(emptyToUndefined, z.string().optional()),

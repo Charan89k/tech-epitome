@@ -5,6 +5,7 @@ import { getAIProvider, recordAIUsage } from "@/lib/ai";
 import { AIProviderUnavailableError } from "@/lib/ai/types";
 import { canAccess, FEATURES } from "@/lib/auth/access";
 import { getCurrentUser } from "@/lib/auth/session";
+import { checkAiTurnQuota } from "@/lib/ai/quota";
 import { RATE_LIMITS, rateLimit } from "@/lib/rate-limit";
 import { assembleMessages } from "@/lib/tutor/context";
 import { buildSystemPrompt, resolveHintLevel } from "@/lib/tutor/policy";
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
   if (!user) return fail(401, "Sign in to use the tutor.");
 
   if (!canAccess(user, FEATURES.AI_TUTOR)) {
-    return fail(403, "The AI tutor is part of Pro.");
+    return fail(403, "Sign in to use the tutor.");
   }
 
   const limited = await rateLimit(`tutor:${user.id}`, RATE_LIMITS.AI_MESSAGE);
@@ -103,6 +104,9 @@ export async function POST(request: NextRequest) {
       `That is a lot of questions at once. Try again in ${seconds} second${seconds === 1 ? "" : "s"}.`
     );
   }
+
+  const quota = await checkAiTurnQuota(user);
+  if (!quota.ok) return fail(429, quota.message);
 
   let body: unknown;
   try {

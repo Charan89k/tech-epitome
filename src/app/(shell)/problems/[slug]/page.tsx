@@ -64,7 +64,7 @@ export default async function ProblemPage({
   );
 
   // Every learner gets the optimal solution — a problem you cannot learn
-  // from is worthless. What Pro adds is the full worst-to-best walkthrough:
+  // from is worthless. A signed-in learner also gets the full worst-to-best walkthrough:
   // the brute force and the observation that improves on it, which is the
   // part that teaches the reasoning rather than the answer.
   //

@@ -16,6 +16,7 @@ import {
   nextStage,
   type InterviewKind,
 } from "@/lib/interview/types";
+import { checkAiTurnQuota } from "@/lib/ai/quota";
 import { RATE_LIMITS, rateLimit } from "@/lib/rate-limit";
 import {
   appendTranscript,
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
   if (!user) return fail(401, "Sign in to run a mock interview.");
 
   if (!canAccess(user, FEATURES.AI_MOCK_INTERVIEW)) {
-    return fail(403, "Mock interviews are part of Pro.");
+    return fail(403, "Sign in to run a mock interview.");
   }
 
   const limited = await rateLimit(`interview:${user.id}`, RATE_LIMITS.AI_MESSAGE);
@@ -82,6 +83,9 @@ export async function POST(request: NextRequest) {
     const seconds = Math.max(1, Math.ceil((limited.resetAt - Date.now()) / 1000));
     return fail(429, `Too many turns at once. Try again in ${seconds}s.`);
   }
+
+  const quota = await checkAiTurnQuota(user);
+  if (!quota.ok) return fail(429, quota.message);
 
   let body: unknown;
   try {

@@ -95,7 +95,8 @@ export function SolutionPanel({
           {withheldApproaches} earlier approach
           {withheldApproaches === 1 ? "" : "es"} — the brute force and the
           observation that improves on it — {withheldApproaches === 1 ? "is" : "are"}{" "}
-          part of Pro. The optimal solution below is always free.
+          shown once you sign in. It is free, and the optimal solution is below
+          either way.
         </p>
       )}
 
