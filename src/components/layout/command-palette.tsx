@@ -241,9 +241,22 @@ export function CommandPaletteProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/** The search affordance in the top bar. */
-export function CommandPaletteTrigger() {
+/** The search affordance in the top bar. `compact` is the phone-width icon. */
+export function CommandPaletteTrigger({ compact = false }: { compact?: boolean }) {
   const { setOpen } = useCommandPalette();
+
+  if (compact) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Search"
+        className="text-muted-foreground hover:text-foreground hover:bg-muted/60 flex size-9 items-center justify-center rounded-md transition-colors"
+      >
+        <Search className="size-4" aria-hidden="true" />
+      </button>
+    );
+  }
 
   return (
     <button

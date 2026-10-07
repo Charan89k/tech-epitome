@@ -87,6 +87,9 @@ export function SiteHeader({ user, streak, unreadNotifications }: Props) {
         <div className="hidden w-56 md:block">
           <CommandPaletteTrigger />
         </div>
+        <div className="md:hidden">
+          <CommandPaletteTrigger compact />
+        </div>
         <ThemeToggle />
         {user ? (
           <>

@@ -109,6 +109,10 @@ export default defineConfig({
     command: `npx next dev --port ${PORT}`,
     env: {
       RATE_LIMIT_DISABLED: "true",
+      // The daily AI quotas are unit-tested in src/lib/ai/quota; here they
+      // would only stop specs that start many interviews with one account.
+      AI_DAILY_INTERVIEW_LIMIT: process.env.AI_DAILY_INTERVIEW_LIMIT ?? "1000",
+      AI_DAILY_TURN_LIMIT: process.env.AI_DAILY_TURN_LIMIT ?? "10000",
       // See src/lib/db/prisma.ts. Harmless against real Postgres.
       DATABASE_POOL_MAX: process.env.DATABASE_POOL_MAX ?? "1",
       // The tutor streams from a deterministic double, so the suite needs
