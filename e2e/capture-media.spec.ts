@@ -39,6 +39,52 @@ async function signUp(page: Page, tag: string): Promise<string> {
   return email;
 }
 
+// Solutions typed into the editor for the visualizer shots. Seeded as the
+// editor's saved draft, which is exactly where a learner's code lives.
+const COMPACT_QUEUE = `def compactQueue(tickets):
+    write = 0
+    for value in tickets:
+        if value != 0:
+            tickets[write] = value
+            write += 1
+    return write
+`;
+
+const REVERSE_CHAIN = `def reverseChain(head):
+    prev = None
+    node = head
+    while node is not None:
+        nxt = node.next
+        node.next = prev
+        prev = node
+        node = nxt
+    return prev
+`;
+
+/** Opens a problem with `code` in the editor, traces it, and parks mid-run. */
+async function traceToMiddle(page: Page, slug: string, code: string): Promise<void> {
+  await page.addInitScript(
+    ([key, value]) => {
+      try {
+        window.localStorage.setItem(key, value);
+      } catch {
+        // The shot falls back to the starter code.
+      }
+    },
+    [`tech-epitome:draft:${slug}:PYTHON`, code] as const
+  );
+  await page.goto(`/problems/${slug}`);
+  await page.getByRole("button", { name: "Visualize" }).click();
+  const counter = page.getByTestId("trace-counter");
+  await expect(counter).toHaveText(/^\d+\/\d+$/, { timeout: 120_000 });
+  await page.getByRole("button", { name: "Last step" }).click();
+  const total = Number((await counter.textContent())!.split("/")[1]);
+  await page.getByRole("button", { name: "First step" }).click();
+  for (let i = 0; i < Math.floor(total * 0.55); i++) {
+    await page.getByRole("button", { name: "Next step" }).click();
+  }
+}
+
 test.afterAll(async () => {
   await closeDb();
 });
@@ -127,6 +173,27 @@ test("capture the product screenshots", async ({ page }) => {
   await page.waitForTimeout(2_500); // Monaco
   await shot(page, "problem-workspace");
 
+  // --- problem catalogue and the live visualizer ----------------------------
+  await page.goto("/problems");
+  await expect(page.getByRole("heading", { name: "Problems" })).toBeVisible();
+  await shot(page, "problems");
+
+  await traceToMiddle(page, "compact-the-queue", COMPACT_QUEUE);
+  await shot(page, "live-visualizer");
+
+  await traceToMiddle(page, "reverse-chain", REVERSE_CHAIN);
+  await shot(page, "live-visualizer-list");
+
+  for (const [route, name] of [
+    ["/roadmaps", "roadmaps"],
+    ["/patterns", "patterns"],
+    ["/visualize", "visualize"],
+  ] as const) {
+    await page.goto(route);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await shot(page, name);
+  }
+
   // --- AI tutor -----------------------------------------------------------
   await page.goto("/ai-tutor");
   await expect(
@@ -211,4 +278,57 @@ test("capture the product screenshots", async ({ page }) => {
     timeout: 30_000,
   });
   await shot(page, "admin");
+});
+
+/**
+ * The README's demo: the live visualizer, start to finish.
+ *
+ * Recorded in its own context so the video is exactly this walk-through,
+ * at a steady pace a reader can follow. Converted to MP4 and GIF by
+ * `npm run capture:media` (see scripts/encode-demo.sh).
+ */
+test("record the demo", async ({ browser }) => {
+  test.slow();
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    recordVideo: { dir: "test-results/demo-video", size: { width: 1440, height: 900 } },
+  });
+  const page = await context.newPage();
+  const pause = (ms: number) => page.waitForTimeout(ms);
+
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await pause(1_800);
+
+  await page.goto("/problems");
+  await expect(page.getByRole("heading", { name: "Problems" })).toBeVisible();
+  await pause(1_800);
+
+  await page.addInitScript(
+    ([key, value]) => window.localStorage.setItem(key, value),
+    ["tech-epitome:draft:compact-the-queue:PYTHON", COMPACT_QUEUE] as const
+  );
+  await page.goto("/problems/compact-the-queue");
+  await expect(page.getByRole("button", { name: "Visualize" })).toBeVisible();
+  await pause(1_500);
+  await page.getByRole("button", { name: "Visualize" }).click();
+  await expect(page.getByText(/Step \d+ of \d+/)).toBeVisible({ timeout: 120_000 });
+  // Let it play: every step is the learner's own code moving the data.
+  await pause(9_000);
+  await page.getByRole("button", { name: "Last step" }).click();
+  await pause(1_800);
+
+  await page.goto("/roadmaps");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await pause(1_800);
+
+  await page.goto(CHAPTER_URL);
+  await expect(page.getByRole("main").locator("[data-block-index]").first()).toBeVisible({
+    timeout: 30_000,
+  });
+  await pause(2_000);
+
+  const video = page.video();
+  await context.close();
+  if (video) await video.saveAs("test-results/demo-video/demo.webm");
 });

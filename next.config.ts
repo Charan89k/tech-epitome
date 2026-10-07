@@ -24,6 +24,10 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
+  // The development badge would otherwise appear in every screenshot the
+  // README's capture script takes. Development-only; production never shows it.
+  devIndicators: false,
+
   // `unauthorized()` and `forbidden()` return real 401/403 responses and
   // render unauthorized.tsx / forbidden.tsx. Still flagged experimental in
   // 16.x; see README "Known limitations".

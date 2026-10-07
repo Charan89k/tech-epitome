@@ -10,6 +10,8 @@ A free, interactive learning platform for software engineering — data
 structures and algorithms, coding patterns, system design, low-level design,
 and realistic interview practice.
 
+**150 problems · 77 chapters · 16 design exercises · a live visualizer for your own code**
+
 **No subscriptions · No premium tiers · No paywalls**
 
 [Features](#-what-you-can-do) · [Screenshots](#-screenshots) · [Demo](#-demo) · [Run locally](#-run-locally) · [Deploy](#️-deploy-your-own) · [Engineering docs](docs/ENGINEERING.md)
@@ -44,16 +46,28 @@ none is planned.
 
 ## 🎬 Demo
 
-A recording of the real application — signup, onboarding, the chapter reader,
-highlighting, the problem workspace, the AI tutor, and a mock interview.
+The live code visualizer, recorded from the real application: a problem draws
+its input, then replays a solution typed into the editor one line at a time —
+the `write` pointer moving, values being compacted, the editor following along.
 
 <div align="center">
 
-![Tech Epitome walkthrough](docs/screenshots/demo.gif)
+![The live code visualizer replaying a solution step by step](docs/screenshots/demo.gif)
 
 </div>
 
-▶️ **[Watch the full walkthrough (69s, MP4)](docs/videos/tech-epitome-demo.mp4)**
+▶️ **[Watch the walkthrough (MP4)](docs/videos/tech-epitome-demo.mp4)**
+
+<table>
+<tr>
+<td><img src="docs/screenshots/live-visualizer.png" alt="An array being compacted in place, with the write pointer under the current cell"></td>
+<td><img src="docs/screenshots/live-visualizer-list.png" alt="A linked list mid-reversal, with prev, node and head marked on the nodes"></td>
+</tr>
+<tr>
+<td align="center"><sub>Arrays: pointers under cells, changed cells flash</sub></td>
+<td align="center"><sub>Linked lists: the reversed prefix and the untouched rest</sub></td>
+</tr>
+</table>
 
 > Every screenshot and every frame of the recording is the actual application,
 > captured by driving the real UI with Playwright. Nothing here is a mockup.
@@ -64,8 +78,13 @@ highlighting, the problem workspace, the AI tutor, and a mock interview.
 
 ### 📚 Structured learning
 
-Three tracks — **DSA**, **System Design** and **Low-Level Design** — in
-dependency order rather than as a pile of topics. Each chapter states what you
+Three tracks — **DSA** (29 chapters), **System Design** (27) and
+**Low-Level Design** (21) — in dependency order rather than as a pile of
+topics, with a **roadmap** for each that tracks where you are. System Design
+runs from estimation and storage internals through reliability to six worked
+interview case studies (news feed, chat, video streaming, key-value store,
+web crawler, payments); Low-Level Design from responsibilities and SOLID
+through concurrency to five modelling case studies. Each chapter states what you
 should be able to do afterwards, then checks it with a quiz and linked
 problems. Content is stored as typed, validated blocks, so a lesson can embed a
 stepped visualization or an inline quiz rather than only prose.
@@ -87,10 +106,12 @@ in-browser runtime they do not have.
 
 ### 💻 Problem solving
 
-150 original problems with a Monaco editor, four languages (Python, JavaScript,
-Java, C++), progressive hints you open one at a time, and solutions that walk
-from brute force through the observation that improves it. Failures show the
-case that broke, not a red cross.
+150 original problems (59 easy, 72 medium, 19 hard) grouped by the pattern
+they teach, with a Monaco editor, four languages (Python, JavaScript, Java,
+C++), progressive hints you open one at a time, and solutions that walk from
+brute force through the observation that improves it. Code is judged in a
+sandbox (Judge0 in production) and failures show the case that broke, not a
+red cross.
 
 ### 🧠 Pattern recognition
 
@@ -127,7 +148,10 @@ precision that reading a transcript does not have.
 
 ### 🏗️ Design practice
 
-Draw an architecture or a class design for a realistic brief, say what you
+Sixteen briefs — eight architectures (short links, rate limiter, notifications,
+news feed, chat, file sync, web crawler, ride matching) and eight class
+designs (parking garage, vending machine, event logger, elevator, library,
+expense splitter, chess, hotel reservations). Draw your design, say what you
 traded away, and submit. **The reference design is withheld until you do** — an
 exercise you can read as a worked example is not an exercise.
 
@@ -193,6 +217,15 @@ pointing at a paywall.
 
 ## 📸 Screenshots
 
+### Problems, grouped by pattern
+![The problem catalogue grouped by pattern, with progress per pattern and the shape each problem's visual draws](docs/screenshots/problems.png)
+
+### Roadmaps
+![Ordered roadmaps for DSA, system design and low-level design built from the course sections](docs/screenshots/roadmaps.png)
+
+### Pattern library
+![Pattern cards with line-art diagrams and problem counts](docs/screenshots/patterns.png)
+
 ### Dashboard
 ![Dashboard showing continue-learning, today's practice and progress tiles](docs/screenshots/dashboard.png)
 
@@ -233,6 +266,9 @@ pointing at a paywall.
 ### Onboarding
 ![Five optional onboarding questions, each skippable](docs/screenshots/onboarding.png)
 
+### Algorithm visualizations
+![A gallery of stepped algorithm visualizations](docs/screenshots/visualize.png)
+
 ### Admin
 ![The admin overview with user, content, activity and AI-usage counts](docs/screenshots/admin.png)
 
@@ -240,7 +276,8 @@ pointing at a paywall.
 
 ## 🔐 Login & authentication
 
-Authentication is **email and password**, handled by Auth.js v5 with
+Authentication is **email and password** plus optional **Google** and
+**GitHub** sign-in, handled by Auth.js v5, with
 [argon2id](https://en.wikipedia.org/wiki/Argon2) password hashing at OWASP 2024
 parameters.
 
@@ -253,9 +290,14 @@ parameters.
    records only that you were asked. Nothing there gates anything.
 4. Sign out from the account menu in the top bar.
 
-**Google OAuth** is implemented and the button appears only when both
-`AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` are set. It has **not been verified
-against real Google credentials** — see [Known limitations](#-known-limitations).
+**Google and GitHub** sign-in each appear only when their credentials are set
+(`AUTH_GOOGLE_ID`/`AUTH_GOOGLE_SECRET`, `AUTH_GITHUB_ID`/`AUTH_GITHUB_SECRET`;
+callback `<app-url>/api/auth/callback/<provider>`). Accounts are never linked
+on a matching email alone — that would let anyone who can set an address on a
+provider profile into the existing account — so a clash is explained on the
+sign-in page instead. Provider tokens are discarded after sign-in; they are
+used for identity only. A first provider sign-in gets the same skippable
+onboarding as an email signup.
 
 Sessions are JWT-based, but **roles and preferences are read from the database
 per request, never from the token**, so a demoted admin loses access on their
@@ -267,9 +309,10 @@ next request rather than their next sign-in.
 
 1. **Run it locally** (below) or deploy your own.
 2. **Create an account** and complete or skip onboarding.
-3. **Pick a track** — DSA, System Design or Low-Level Design.
+3. **Pick a roadmap** — DSA, System Design or Low-Level Design — and follow it.
 4. **Read a chapter**, highlight what matters, take the end-of-chapter quiz.
 5. **Solve the linked problems** in the editor, opening hints only when stuck.
+   Press **Visualize** to watch your own code move through the example.
 6. **Ask the AI Tutor** when you are stuck on the idea rather than the syntax.
 7. **Submit a design exercise** before looking at the reference.
 8. **Run a mock interview** and read the feedback against your transcript.
@@ -286,8 +329,10 @@ next request rather than their next sign-in.
 | Language | TypeScript (strict) |
 | Styling | Tailwind CSS v4, shadcn/ui, Radix primitives |
 | Database | PostgreSQL via Prisma 7 (`@prisma/adapter-pg`) |
-| Auth | Auth.js v5 (credentials + optional Google), argon2id |
+| Auth | Auth.js v5 (credentials + optional Google and GitHub), argon2id |
 | Editor | Monaco |
+| Code execution | Judge0 (production), Docker or local subprocess (development) |
+| Live tracing | Pyodide in a Web Worker (Python), acorn instrumentation (JavaScript) |
 | AI | Provider abstraction — Ollama, Anthropic, deterministic mock |
 | Email | Provider abstraction — Resend, console (dev) |
 | Rate limiting | In-process by default; Redis store for multi-instance |
@@ -507,7 +552,7 @@ Vercel Postgres all work.
 
 ```bash
 npm run verify        # typecheck + lint + unit tests
-npm run test:e2e      # 238 browser tests, desktop and mobile
+npm run test:e2e      # 270 browser tests, desktop and mobile
 npm run test:redis    # 16 tests against a real Redis server
 npm run test:e2e:prod # CSP, against a real production build
 ```
@@ -515,7 +560,7 @@ npm run test:e2e:prod # CSP, against a real production build
 | Suite | Count | Status |
 |---|---|---|
 | Unit + integration (Vitest) | 698 | ✅ passing |
-| End-to-end (Playwright, 2 viewports) | 238 | ✅ passing |
+| End-to-end (Playwright, 2 viewports) | 270 | ✅ passing |
 | Redis, against a real server | 16 | ✅ passing |
 | Production CSP | 1 | ✅ passing |
 | Migration replay from empty + seed idempotency | — | ✅ verified |
@@ -530,15 +575,21 @@ withholding, server-owned interview state, and the free-platform guarantee.
 
 Stated plainly, because a README that hides them is not documentation.
 
-- **No public deployment.** Nothing has been deployed; there is no live URL.
+- **Code runs on Judge0's public instance.** It is free and rate limited, so
+  heavy traffic will see "the code runner is busy" messages. Moving to a
+  RapidAPI plan or a self-hosted Judge0 is a change of two environment
+  variables.
+- **Step-by-step tracing covers Python and JavaScript only.** Java and C++
+  have no in-browser runtime, so they show the input picture and are judged
+  normally, but are not replayed line by line.
+- **Google and GitHub sign-in are not yet switched on in production.** The
+  code is complete and its redirects are tested; the live site needs its
+  OAuth credentials before the buttons appear.
 - **Docker execution is not runtime-verified.** The container executor is
-  written and selectable, but no Docker daemon was available to run it against.
-- **No Anthropic or Google OAuth credentials** were available, so those paths
-  are implemented but unverified end to end.
-- **The Resend adapter has never talked to Resend.** Its request shape, parsing
-  and failure classification are tested against a stubbed `fetch`.
-- **Real PostgreSQL is unexercised.** Development used Prisma's PGlite-backed
-  dev database.
+  written and selectable, but no Docker daemon was available to run it
+  against. Production uses Judge0 instead.
+- **The Anthropic adapter and the Resend adapter** are tested against stubs,
+  not their real services.
 - **Interview feedback is AI-generated** and labelled as such. It is a language
   model reading a transcript, not an assessment.
 
