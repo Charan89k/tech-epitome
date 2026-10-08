@@ -1,13 +1,29 @@
 import "server-only";
 
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
 import { authConfig } from "@/lib/auth/config";
 import { verifyPassword } from "@/lib/auth/password";
 import { prisma } from "@/lib/db";
+import { RATE_LIMITS, rateLimit } from "@/lib/rate-limit";
+import { clientIpFromHeaders } from "@/lib/request-context";
 import { credentialsSchema } from "@/lib/validation/auth";
+
+/**
+ * Thrown from `authorize` when the attempt is over the sign-in limit.
+ *
+ * A `CredentialsSignin` subclass so Auth.js passes it through unwrapped:
+ * the sign-in action catches it by type and tells the learner when to
+ * retry, instead of reporting a wrong password they did not type.
+ */
+export class SignInRateLimited extends CredentialsSignin {
+  code = "rate_limited";
+  constructor(readonly resetAt: number) {
+    super();
+  }
+}
 
 /**
  * Full Auth.js setup. Node runtime only - it pulls in Prisma and the argon2
@@ -30,11 +46,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(raw) {
+      async authorize(raw, request) {
         const parsed = credentialsSchema.safeParse(raw);
         if (!parsed.success) return null;
 
         const { email, password } = parsed.data;
+
+        // The limit lives here, not in the sign-in action, because this is
+        // the one place every password check passes through. Auth.js also
+        // serves POST /api/auth/callback/credentials, which calls this
+        // directly; a limit in the action alone would leave that route open
+        // to unlimited guessing. Keyed by address as well as IP so that
+        // rotating IPs does not buy more guesses against one account.
+        const [byIp, byEmail] = await Promise.all([
+          rateLimit(
+            `signin:${clientIpFromHeaders(request.headers)}`,
+            RATE_LIMITS.AUTH_SIGNIN
+          ),
+          rateLimit(`signin-email:${email.toLowerCase()}`, RATE_LIMITS.AUTH_SIGNIN),
+        ]);
+        if (!byIp.success || !byEmail.success) {
+          throw new SignInRateLimited(Math.max(byIp.resetAt, byEmail.resetAt));
+        }
 
         const user = await prisma.user.findUnique({
           where: { email: email.toLowerCase() },

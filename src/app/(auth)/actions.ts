@@ -3,7 +3,7 @@
 import { redirect, unstable_rethrow } from "next/navigation";
 import { AuthError } from "next-auth";
 
-import { signIn, signOut } from "@/lib/auth";
+import { signIn, signOut, SignInRateLimited } from "@/lib/auth";
 import { hashPassword } from "@/lib/auth/password";
 import { prisma } from "@/lib/db";
 import { getClientIp } from "@/lib/request-context";
@@ -29,17 +29,8 @@ export async function signInAction(
   _prev: AuthFormState,
   formData: FormData
 ): Promise<AuthFormState> {
-  const ip = await getClientIp();
-  const limited = await rateLimit(`signin:${ip}`, RATE_LIMITS.AUTH_SIGNIN);
-  if (!limited.success) {
-    const minutes = Math.ceil((limited.resetAt - Date.now()) / 60_000);
-    return {
-      error: `Too many sign-in attempts. Try again in ${minutes} minute${
-        minutes === 1 ? "" : "s"
-      }.`,
-    };
-  }
-
+  // Sign-in is rate limited inside the credentials `authorize` callback,
+  // which every route to a password check goes through; see lib/auth.
   const parsed = credentialsSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -62,6 +53,15 @@ export async function signInAction(
     // is the supported way to let Next's internal control-flow errors
     // through a catch block instead of reaching into next/dist.
     unstable_rethrow(error);
+
+    if (error instanceof SignInRateLimited) {
+      const minutes = Math.max(1, Math.ceil((error.resetAt - Date.now()) / 60_000));
+      return {
+        error: `Too many sign-in attempts. Try again in ${minutes} minute${
+          minutes === 1 ? "" : "s"
+        }.`,
+      };
+    }
 
     if (error instanceof AuthError) {
       // Deliberately not distinguishing "no such user" from "wrong password".

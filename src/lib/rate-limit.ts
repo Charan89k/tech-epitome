@@ -209,4 +209,10 @@ export const RATE_LIMITS = {
    * never notices.
    */
   REVIEW_GRADE: { limit: 120, windowMs: 60_000 },
+  /**
+   * Command-palette search. Open to signed-out visitors and six queries
+   * per call, so it needs a server-side ceiling; the palette's debounce
+   * only governs a well-behaved browser.
+   */
+  SEARCH: { limit: 60, windowMs: 60_000 },
 } as const;

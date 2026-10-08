@@ -12,7 +12,15 @@ import { headers } from "next/headers";
  * are the password hash cost and the auth checks themselves.
  */
 export async function getClientIp(): Promise<string> {
-  const h = await headers();
+  return clientIpFromHeaders(await headers());
+}
+
+/**
+ * The same derivation for code that holds a `Request` rather than running
+ * inside a render — the credentials `authorize` callback, which Auth.js
+ * reaches both from the sign-in action and from its own route handler.
+ */
+export function clientIpFromHeaders(h: Headers): string {
   const forwarded = h.get("x-forwarded-for");
   if (forwarded) {
     const first = forwarded.split(",")[0]?.trim();
