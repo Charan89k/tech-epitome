@@ -18,6 +18,14 @@ import { resetEnvForTests } from "@/lib/env";
 const ORIGINAL = process.env.CRON_SECRET;
 const SECRET = "a-sufficiently-long-cron-secret-value";
 
+/**
+ * An authorised request runs the whole reminder job over every learner
+ * with due reviews in the shared dev database, sequentially by design.
+ * That database accumulates accounts from every e2e run, so the job
+ * outgrows vitest's 5s default; it took ~15s locally on 2026-10-08.
+ */
+const RUNS_THE_REAL_JOB = 60_000;
+
 function request(headers: Record<string, string> = {}): Request {
   return new Request("http://localhost/api/cron/notifications", {
     method: "POST",
@@ -108,12 +116,12 @@ describe("with a configured secret", () => {
     expect(body.email).toBeDefined();
     expect(typeof body.email.considered).toBe("number");
     expect(typeof body.email.sent).toBe("number");
-  });
+  }, RUNS_THE_REAL_JOB);
 
   it("never echoes the secret back", async () => {
     const response = await POST(
       request({ authorization: `Bearer ${SECRET}` }) as never
     );
     expect(JSON.stringify(await response.json())).not.toContain(SECRET);
-  });
+  }, RUNS_THE_REAL_JOB);
 });
