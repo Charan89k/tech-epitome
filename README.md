@@ -335,7 +335,7 @@ next request rather than their next sign-in.
 | Live tracing | Pyodide in a Web Worker (Python), acorn instrumentation (JavaScript) |
 | AI | Provider abstraction — Ollama, Anthropic, deterministic mock |
 | Email | Provider abstraction — Resend, console (dev) |
-| Rate limiting | In-process by default; Redis store for multi-instance |
+| Rate limiting | Shared PostgreSQL counters in production; in-process for development; Redis store optional |
 | Validation | Zod, on every boundary |
 | Testing | Vitest (unit + integration), Playwright (E2E, desktop + mobile) |
 
@@ -477,7 +477,8 @@ explicitly.
 | `EMAIL_PROVIDER` | No | `console` (default, logs only, rejected in production) or `resend` |
 | `RESEND_API_KEY` / `EMAIL_FROM` | Conditional | Required when `EMAIL_PROVIDER=resend` |
 | `CRON_SECRET` | No | Authenticates the review-reminder job. Unset ⇒ the route refuses everything |
-| `REQUIRE_DISTRIBUTED_RATE_LIMIT` | No | `true` on multi-instance deployments |
+| `RATE_LIMIT_STORE` | No | `postgres` counts in the app database, shared by every instance — set it on Vercel. Unset keeps the in-process store |
+| `REQUIRE_DISTRIBUTED_RATE_LIMIT` | No | `true` on multi-instance deployments; refuses limited requests if no shared store is active |
 | `DATABASE_POOL_MAX` | No | Defaults to 10; set to `1` for the Prisma dev database |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | No | Seeded accounts — **change before deploying** |
 
@@ -541,9 +542,11 @@ Vercel Postgres all work.
 - **Review reminder emails.** Point a scheduler at
   `POST /api/cron/notifications` with `Authorization: Bearer $CRON_SECRET`.
   Without it no reminders are sent; nothing else is affected.
-- **More than one instance?** Set `REQUIRE_DISTRIBUTED_RATE_LIMIT=true` and
-  install a Redis store at startup, or rate-limited requests are refused rather
-  than silently admitted.
+- **More than one instance (or serverless)?** Set `RATE_LIMIT_STORE=postgres`
+  and `REQUIRE_DISTRIBUTED_RATE_LIMIT=true`. Counters then live in the
+  `rate_limit_buckets` table, so a limit holds across every instance instead of
+  per process. Apply migrations first: with the flag set and no table, limited
+  requests are refused rather than silently admitted.
 - **Change the seeded credentials** before exposing the deployment.
 
 ---
@@ -559,7 +562,7 @@ npm run test:e2e:prod # CSP, against a real production build
 
 | Suite | Count | Status |
 |---|---|---|
-| Unit + integration (Vitest) | 698 | ✅ passing |
+| Unit + integration (Vitest) | 1,085 (18 skip without optional services) | ✅ passing |
 | End-to-end (Playwright, 2 viewports) | 270 | ✅ passing |
 | Redis, against a real server | 16 | ✅ passing |
 | Production CSP | 1 | ✅ passing |
