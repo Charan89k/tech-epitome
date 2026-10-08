@@ -2,12 +2,14 @@ import "server-only";
 
 import { getEnv } from "@/lib/env";
 import { DockerExecutionAdapter } from "./docker-adapter";
-import { Judge0ExecutionAdapter } from "./judge0-adapter";
+import { Judge0ExecutionAdapter, parseJudge0LanguageIds } from "./judge0-adapter";
 import { LocalExecutionAdapter } from "./local-adapter";
 import type { CodeExecutionService } from "./types";
 
 export * from "./types";
 export * from "./signature";
+export * from "./limits";
+export * from "./custom-input";
 
 let cached: CodeExecutionService | null = null;
 
@@ -55,6 +57,9 @@ export async function getExecutionService(): Promise<CodeExecutionService> {
       cached = new Judge0ExecutionAdapter({
         url: env.CODE_EXECUTION_API_URL!,
         key: env.CODE_EXECUTION_API_KEY,
+        languageIds: env.JUDGE0_LANGUAGE_IDS
+          ? parseJudge0LanguageIds(env.JUDGE0_LANGUAGE_IDS)
+          : undefined,
       });
       return cached;
 

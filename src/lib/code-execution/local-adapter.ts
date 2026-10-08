@@ -6,8 +6,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type { Language } from "@/generated/prisma/enums";
+import { clampCpuSeconds, clampMemoryMb, EXECUTION_LIMITS, FILE_TOO_LARGE } from "./limits";
 import {
-  outputMatches,
+  judgeOutput,
   type CodeExecutionService,
   type ExecutionRequest,
   type ExecutionResult,
@@ -125,6 +126,8 @@ type RunOutcome = {
   code: number | null;
   signal: NodeJS.Signals | null;
   timedOut: boolean;
+  /** Killed for writing more than EXECUTION_LIMITS.maxCaptureBytes. */
+  outputLimited: boolean;
   durationMs: number;
 };
 
@@ -194,7 +197,7 @@ export class LocalExecutionAdapter implements CodeExecutionService {
         }
       }
 
-      const runStep = spec.run(dir, request.memoryLimitMb);
+      const runStep = spec.run(dir, clampMemoryMb(request.memoryLimitMb));
       const results: TestResult[] = [];
 
       for (const test of request.tests) {
@@ -203,9 +206,12 @@ export class LocalExecutionAdapter implements CodeExecutionService {
           runStep.args,
           test.input,
           {
-            timeoutMs: request.timeLimitMs,
-            memoryMb: request.memoryLimitMb,
-            cpuSeconds: Math.max(1, Math.ceil(request.timeLimitMs / 1000)),
+            timeoutMs: Math.min(
+              request.timeLimitMs,
+              EXECUTION_LIMITS.maxWallSeconds * 1000
+            ),
+            memoryMb: clampMemoryMb(request.memoryLimitMb),
+            cpuSeconds: Math.ceil(clampCpuSeconds(request.timeLimitMs)),
             limitAddressSpace: spec.memoryEnforcement === "rlimit",
           }
         );
@@ -254,7 +260,7 @@ export class LocalExecutionAdapter implements CodeExecutionService {
         ...(limits.limitAddressSpace && limits.memoryMb > 0
           ? [`--as=${limits.memoryMb * 1024 * 1024}`]
           : []),
-        `--fsize=${8 * 1024 * 1024}`,
+        `--fsize=${EXECUTION_LIMITS.maxOutputKb * 1024}`,
         `--nofile=256`,
         "--",
         command,
@@ -276,6 +282,7 @@ export class LocalExecutionAdapter implements CodeExecutionService {
       let stdout = "";
       let stderr = "";
       let timedOut = false;
+      let outputLimited = false;
       let settled = false;
 
       const timer = setTimeout(() => {
@@ -283,15 +290,25 @@ export class LocalExecutionAdapter implements CodeExecutionService {
         child.kill("SIGKILL");
       }, limits.timeoutMs);
 
-      // Cap captured output so a print loop cannot exhaust server memory
-      // before RLIMIT_FSIZE notices.
-      const MAX_CAPTURE = 256 * 1024;
-      child.stdout.on("data", (chunk: Buffer) => {
-        if (stdout.length < MAX_CAPTURE) stdout += chunk.toString("utf8");
-      });
-      child.stderr.on("data", (chunk: Buffer) => {
-        if (stderr.length < MAX_CAPTURE) stderr += chunk.toString("utf8");
-      });
+      // RLIMIT_FSIZE only governs regular files, and stdout here is a pipe,
+      // so the output ceiling is enforced on what is captured: past it the
+      // process is killed and the case reported as an output-limit failure.
+      const MAX_CAPTURE = EXECUTION_LIMITS.maxCaptureBytes;
+      let captured = 0;
+      const onData = (stream: "stdout" | "stderr") => (chunk: Buffer) => {
+        captured += chunk.length;
+        if (captured > MAX_CAPTURE) {
+          if (!outputLimited) {
+            outputLimited = true;
+            child.kill("SIGKILL");
+          }
+          return;
+        }
+        if (stream === "stdout") stdout += chunk.toString("utf8");
+        else stderr += chunk.toString("utf8");
+      };
+      child.stdout.on("data", onData("stdout"));
+      child.stderr.on("data", onData("stderr"));
 
       const finish = (code: number | null, signal: NodeJS.Signals | null) => {
         if (settled) return;
@@ -303,6 +320,7 @@ export class LocalExecutionAdapter implements CodeExecutionService {
           code,
           signal,
           timedOut,
+          outputLimited,
           durationMs: Date.now() - started,
         });
       };
@@ -337,12 +355,31 @@ function toTestResult(
   const visible = test.isSample
     ? {
         input: test.input,
-        expected: test.expected,
+        ...(test.expected !== null ? { expected: test.expected } : {}),
         actual: truncate(outcome.stdout, 4000),
       }
     : {};
 
-  if (outcome.timedOut) {
+  // SIGXFSZ is RLIMIT_FSIZE firing on a file the program wrote; runtimes
+  // that ignore the signal report EFBIG instead (see FILE_TOO_LARGE).
+  if (
+    outcome.outputLimited ||
+    outcome.signal === "SIGXFSZ" ||
+    (outcome.code !== 0 && FILE_TOO_LARGE.test(outcome.stderr))
+  ) {
+    return { ...base, ...visible, outcome: "OUTPUT_LIMIT" };
+  }
+
+  // RLIMIT_CPU: the CPU-time ceiling, which can fire before the wall clock
+  // when the request asked for more than EXECUTION_LIMITS allows. prlimit
+  // sets soft and hard alike, so the kernel delivers SIGKILL (or SIGXCPU).
+  // Nothing else here sends SIGKILL: the deadline timer sets timedOut and
+  // the output cap sets outputLimited, both handled before this point.
+  if (
+    outcome.timedOut ||
+    outcome.signal === "SIGXCPU" ||
+    outcome.signal === "SIGKILL"
+  ) {
     return { ...base, ...visible, outcome: "TIMEOUT" };
   }
 
@@ -371,11 +408,10 @@ function toTestResult(
     };
   }
 
-  const passed = outputMatches(outcome.stdout, test.expected);
   return {
     ...base,
     ...visible,
-    outcome: passed ? "PASSED" : "WRONG_ANSWER",
+    outcome: judgeOutput(outcome.stdout, test.expected),
   };
 }
 
@@ -385,7 +421,10 @@ export function summarise(
   elapsedMs: number
 ): ExecutionResult {
   const passed = results.filter((r) => r.outcome === "PASSED").length;
-  const firstFailure = results.find((r) => r.outcome !== "PASSED");
+  // COMPLETED is a custom input that ran cleanly: nothing to fail.
+  const firstFailure = results.find(
+    (r) => r.outcome !== "PASSED" && r.outcome !== "COMPLETED"
+  );
 
   const status = !firstFailure
     ? "ACCEPTED"
@@ -393,9 +432,11 @@ export function summarise(
       ? "TIME_LIMIT_EXCEEDED"
       : firstFailure.outcome === "MEMORY_LIMIT"
         ? "MEMORY_LIMIT_EXCEEDED"
-        : firstFailure.outcome === "RUNTIME_ERROR"
-          ? "RUNTIME_ERROR"
-          : "WRONG_ANSWER";
+        : firstFailure.outcome === "OUTPUT_LIMIT"
+          ? "OUTPUT_LIMIT_EXCEEDED"
+          : firstFailure.outcome === "RUNTIME_ERROR"
+            ? "RUNTIME_ERROR"
+            : "WRONG_ANSWER";
 
   return {
     status,

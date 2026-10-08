@@ -65,6 +65,12 @@ const serverSchema = z.object({
   CODE_EXECUTION_DRIVER: z.enum(["local", "docker", "remote"]).default("docker"),
   CODE_EXECUTION_API_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
   CODE_EXECUTION_API_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
+  /**
+   * Judge0 language ids, as "PYTHON:71,JAVASCRIPT:63,JAVA:62,CPP:54". They
+   * differ per Judge0 installation; unset means the public server's ids.
+   * Parsed (and refused if malformed) by the Judge0 adapter.
+   */
+  JUDGE0_LANGUAGE_IDS: z.preprocess(emptyToUndefined, z.string().optional()),
 
 
   /**

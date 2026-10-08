@@ -18,6 +18,9 @@ import { TestResults } from "@/components/problems/test-results";
 import { TutorLauncher } from "@/components/tutor/tutor-launcher";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -28,6 +31,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Language } from "@/generated/prisma/enums";
+import { describeWireFormat } from "@/lib/code-execution/custom-input";
+import { CUSTOM_INPUT_LIMITS } from "@/lib/code-execution/limits";
 import {
   LANGUAGE_LABEL,
   SUPPORTED_LANGUAGES,
@@ -36,7 +41,7 @@ import {
 import { isTraceable } from "@/lib/trace/types";
 import { cn } from "@/lib/utils";
 import type { TutorContextLabel, TutorQuickAction, TutorCodeState } from "@/lib/tutor/types";
-import type { RunOutcome } from "@/services/submissions";
+import type { SubmitOutcome, RunOutcome } from "@/services/submissions";
 
 /**
  * The coding workspace: editor, controls, and results.
@@ -131,10 +136,18 @@ export function ProblemWorkspace({
   const [language, setLanguage] = useState<Language>(initialLanguage);
   const [code, setCode] = useState(() => loadDraft(slug, initialLanguage, starterCode));
   const [loadedFor, setLoadedFor] = useState(initialLanguage);
-  const [outcome, setOutcome] = useState<RunOutcome | null>(null);
+  const [outcome, setOutcome] = useState<(RunOutcome & Partial<SubmitOutcome>) | null>(null);
   const [mode, setMode] = useState<"run" | "submit" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // Custom input: one test case the learner writes, in the same format as
+  // the samples, run through the problem's own harness. Seeded with the
+  // first sample so the format is shown by example, not just described.
+  const [useCustom, setUseCustom] = useState(false);
+  const [customInput, setCustomInput] = useState(() => samples[0]?.input ?? "");
+  const customAvailable = signature !== null;
+  const runsCustom = useCustom && customAvailable;
 
   // Live visualizer wiring: a token to request an auto-playing trace, the
   // line it is on (mirrored into the editor), and which pane is showing.
@@ -221,16 +234,24 @@ export function ProblemWorkspace({
 
   function execute(which: "run" | "submit") {
     // A run is also a trace: the picture should follow the code the
-    // learner just ran, without a second click.
-    if (which === "run" && traceable && signature) {
+    // learner just ran, without a second click. Not for a custom input:
+    // the visualizer traces a sample, which is not what they just ran.
+    if (which === "run" && !runsCustom && traceable && signature) {
       setRunToken((token) => token + 1);
       setLeftPane("visualize");
     }
     setError(null);
     setMode(which);
     startTransition(async () => {
-      const action = which === "run" ? runCodeAction : submitCodeAction;
-      const response = await action({ slug, language, code });
+      const response =
+        which === "submit"
+          ? await submitCodeAction({ slug, language, code })
+          : await runCodeAction({
+              slug,
+              language,
+              code,
+              ...(runsCustom ? { customInput } : {}),
+            });
       if (response.ok) {
         setOutcome(response.data);
       } else {
@@ -358,14 +379,46 @@ export function ProblemWorkspace({
 
   const resultsPane = (
     <div className="flex h-full flex-col">
-      <div className="border-border flex items-center gap-2 border-b px-3 py-2">
+      <div className="border-border flex flex-wrap items-center gap-2 border-b px-3 py-2">
         <h2 className="text-xs font-medium">Test results</h2>
         {!signedIn && (
-          <span className="text-muted-foreground ml-auto text-[0.68rem]">
+          <span className="text-muted-foreground text-[0.68rem]">
             Sign in to submit and record progress
           </span>
         )}
+        {customAvailable && (
+          <div className="ml-auto flex items-center gap-2">
+            <Switch
+              id={`custom-input-${slug}`}
+              checked={useCustom}
+              onCheckedChange={setUseCustom}
+              disabled={pending}
+            />
+            <Label htmlFor={`custom-input-${slug}`} className="text-[0.7rem] font-normal">
+              Run with custom input
+            </Label>
+          </div>
+        )}
       </div>
+      {runsCustom && signature && (
+        <div className="border-border space-y-2 border-b px-3 py-2.5">
+          <Textarea
+            value={customInput}
+            onChange={(event) => setCustomInput(event.target.value)}
+            maxLength={CUSTOM_INPUT_LIMITS.maxChars}
+            rows={4}
+            spellCheck={false}
+            aria-label="Custom input"
+            className="font-mono text-[0.72rem]"
+          />
+          <ul className="text-muted-foreground space-y-0.5 text-[0.65rem] leading-relaxed">
+            {describeWireFormat(signature).map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+            <li>Run shows what your function returns. Submit still runs every test.</li>
+          </ul>
+        </div>
+      )}
       <div className="min-h-0 flex-1">
         {error ? (
           <div className="p-4">
@@ -374,7 +427,12 @@ export function ProblemWorkspace({
             </Alert>
           </div>
         ) : (
-          <TestResults outcome={outcome} pending={pending} mode={mode} />
+          <TestResults
+            outcome={outcome}
+            pending={pending}
+            mode={mode}
+            custom={runsCustom}
+          />
         )}
       </div>
     </div>

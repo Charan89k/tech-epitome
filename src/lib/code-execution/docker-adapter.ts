@@ -6,9 +6,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type { Language } from "@/generated/prisma/enums";
+import { clampCpuSeconds, clampMemoryMb, EXECUTION_LIMITS, FILE_TOO_LARGE } from "./limits";
 import { summarise } from "./local-adapter";
 import {
-  outputMatches,
+  judgeOutput,
   type CodeExecutionService,
   type ExecutionRequest,
   type ExecutionResult,
@@ -120,7 +121,7 @@ export class DockerExecutionAdapter implements CodeExecutionService {
         "utf8"
       );
 
-      const timeoutSeconds = Math.max(1, Math.ceil(request.timeLimitMs / 1000));
+      const timeoutSeconds = Math.ceil(clampCpuSeconds(request.timeLimitMs));
       const results: TestResult[] = [];
 
       for (const test of request.tests) {
@@ -132,10 +133,11 @@ export class DockerExecutionAdapter implements CodeExecutionService {
             "--interactive",
             "--network=none",
             "--read-only",
-            `--memory=${request.memoryLimitMb}m`,
-            `--memory-swap=${request.memoryLimitMb}m`,
+            `--memory=${clampMemoryMb(request.memoryLimitMb)}m`,
+            `--memory-swap=${clampMemoryMb(request.memoryLimitMb)}m`,
             "--cpus=1",
-            "--pids-limit=64",
+            `--pids-limit=${EXECUTION_LIMITS.maxProcesses}`,
+            `--ulimit=fsize=${EXECUTION_LIMITS.maxOutputKb * 1024}`,
             "--cap-drop=ALL",
             "--security-opt=no-new-privileges",
             "--user=65534:65534",
@@ -177,7 +179,7 @@ export class DockerExecutionAdapter implements CodeExecutionService {
         const visible = test.isSample
           ? {
               input: test.input,
-              expected: test.expected,
+              ...(test.expected !== null ? { expected: test.expected } : {}),
               actual: outcome.stdout.slice(0, 4000),
             }
           : {};
@@ -194,15 +196,19 @@ export class DockerExecutionAdapter implements CodeExecutionService {
           isSample: test.isSample,
           runtimeMs: outcome.durationMs,
           ...visible,
-          outcome: killed
-            ? oom
-              ? "MEMORY_LIMIT"
-              : "TIMEOUT"
-            : outcome.code !== 0
-              ? "RUNTIME_ERROR"
-              : outputMatches(outcome.stdout, test.expected)
-                ? "PASSED"
-                : "WRONG_ANSWER",
+          // 153 is 128 + SIGXFSZ: the fsize ulimit fired on a file.
+          outcome:
+            outcome.outputLimited ||
+            outcome.code === 153 ||
+            (outcome.code !== 0 && FILE_TOO_LARGE.test(outcome.stderr))
+              ? "OUTPUT_LIMIT"
+              : killed
+                ? oom
+                  ? "MEMORY_LIMIT"
+                  : "TIMEOUT"
+                : outcome.code !== 0
+                  ? "RUNTIME_ERROR"
+                  : judgeOutput(outcome.stdout, test.expected),
           ...(outcome.code !== 0 ? { stderr: outcome.stderr.slice(0, 2000) } : {}),
         });
 
@@ -223,6 +229,7 @@ type RunOutcome = {
   stderr: string;
   code: number | null;
   signal: NodeJS.Signals | null;
+  outputLimited: boolean;
   durationMs: number;
 };
 
@@ -241,22 +248,33 @@ function run(
     let stdout = "";
     let stderr = "";
     let settled = false;
+    let outputLimited = false;
 
     const timer = setTimeout(() => child.kill("SIGKILL"), timeoutMs);
-    const MAX_CAPTURE = 256 * 1024;
-
-    child.stdout.on("data", (c: Buffer) => {
-      if (stdout.length < MAX_CAPTURE) stdout += c.toString("utf8");
-    });
-    child.stderr.on("data", (c: Buffer) => {
-      if (stderr.length < MAX_CAPTURE) stderr += c.toString("utf8");
-    });
+    // stdout is a pipe out of the container, which the fsize ulimit does
+    // not cover, so the output ceiling is enforced here as well.
+    const MAX_CAPTURE = EXECUTION_LIMITS.maxCaptureBytes;
+    let captured = 0;
+    const onData = (stream: "stdout" | "stderr") => (c: Buffer) => {
+      captured += c.length;
+      if (captured > MAX_CAPTURE) {
+        if (!outputLimited) {
+          outputLimited = true;
+          child.kill("SIGKILL");
+        }
+        return;
+      }
+      if (stream === "stdout") stdout += c.toString("utf8");
+      else stderr += c.toString("utf8");
+    };
+    child.stdout.on("data", onData("stdout"));
+    child.stderr.on("data", onData("stderr"));
 
     const finish = (code: number | null, signal: NodeJS.Signals | null) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      resolve({ stdout, stderr, code, signal, durationMs: Date.now() - started });
+      resolve({ stdout, stderr, code, signal, outputLimited, durationMs: Date.now() - started });
     };
 
     child.on("error", (error) => {
