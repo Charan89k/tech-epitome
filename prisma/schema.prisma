@@ -1641,3 +1641,15 @@ model PrepTrackSystemDesignTopic {
   @@index([systemDesignProblemId])
   @@map("prep_track_system_design_topics")
 }
+
+/// Fixed-window rate-limit counters (src/lib/rate-limit.ts), shared by
+/// every serverless instance. Written only through raw SQL; one row per
+/// limited key, reset in place when its window expires.
+model RateLimitBucket {
+  key     String   @id
+  count   Int
+  resetAt DateTime @db.Timestamptz(3)
+
+  @@index([resetAt])
+  @@map("rate_limit_buckets")
+}

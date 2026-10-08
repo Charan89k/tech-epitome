@@ -269,6 +269,13 @@ describe("provider failure", () => {
   });
 });
 
+/**
+ * The batch walks every opted-in learner in the shared dev database,
+ * which accumulates accounts from every e2e run, so it outgrows
+ * vitest's 5s default the same way the cron route's tests do.
+ */
+const RUNS_THE_REAL_BATCH = 60_000;
+
 describe("the batch", () => {
   it("counts every outcome and mails only the eligible", async () => {
     const outbox = new ConsoleEmailProvider();
@@ -297,7 +304,7 @@ describe("the batch", () => {
       where: { userId: eligible, status: "accepted" },
     });
     expect(sentTo).toBe(1);
-  });
+  }, RUNS_THE_REAL_BATCH);
 
   it("is safe to run twice back to back", async () => {
     const outbox = new ConsoleEmailProvider();
@@ -317,7 +324,7 @@ describe("the batch", () => {
     expect(second.sent).toBe(0);
     expect(second.alreadySent).toBeGreaterThanOrEqual(1);
     expect(outbox.outbox).toHaveLength(before);
-  });
+  }, RUNS_THE_REAL_BATCH);
 });
 
 describe("cascade", () => {

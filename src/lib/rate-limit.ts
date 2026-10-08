@@ -8,7 +8,8 @@ import "server-only";
  * serverless deployment - it is a real control for a single node and a
  * speed bump elsewhere.
  *
- * For more than one instance, wrap any Redis client in
+ * For more than one instance, set `RATE_LIMIT_STORE=postgres` to count in
+ * the application database, or wrap any Redis client in
  * `createRedisRateLimitStore` and hand it to `setRateLimitStore` at
  * startup. Set `REQUIRE_DISTRIBUTED_RATE_LIMIT=true` alongside it and the
  * process refuses to serve a limited request on the in-memory store, so a
@@ -109,8 +110,75 @@ export function createRedisRateLimitStore(
   };
 }
 
-let store: RateLimitStore = new MemoryRateLimitStore();
+/**
+ * A fixed-window counter in the application's own PostgreSQL database.
+ *
+ * Shared by every instance without adding a service: one upsert per hit,
+ * atomic under concurrency because the window reset and the increment
+ * happen in the same `ON CONFLICT` statement, with the database's clock
+ * deciding whether the window has expired. Same fixed-window semantics as
+ * the other two stores.
+ *
+ * Prisma is imported lazily so that importing the rate limiter — which
+ * unit tests do without a database — never constructs a client.
+ */
+export function createPostgresRateLimitStore(): RateLimitStore {
+  return {
+    async hit(key, windowMs) {
+      const { prisma } = await import("@/lib/db/prisma");
+      const [row] = await prisma.$queryRaw<{ count: number; resetAt: Date }[]>`
+        INSERT INTO rate_limit_buckets ("key", "count", "resetAt")
+        VALUES (${key}, 1, now() + ${windowMs}::int * interval '1 millisecond')
+        ON CONFLICT ("key") DO UPDATE SET
+          "count" = CASE WHEN rate_limit_buckets."resetAt" <= now()
+                         THEN 1 ELSE rate_limit_buckets."count" + 1 END,
+          "resetAt" = CASE WHEN rate_limit_buckets."resetAt" <= now()
+                           THEN EXCLUDED."resetAt" ELSE rate_limit_buckets."resetAt" END
+        RETURNING "count", "resetAt"
+      `;
+
+      // Expired rows are harmless (the next hit resets them in place) but
+      // would accumulate one per IP and address forever. Roughly one hit in
+      // two hundred sweeps them, off the request's critical path.
+      if (Math.random() < 0.005) {
+        prisma.$executeRaw`
+          DELETE FROM rate_limit_buckets WHERE "resetAt" < now() - interval '1 hour'
+        `.catch((error: unknown) => {
+          console.error("[rate-limit] sweep failed", error);
+        });
+      }
+
+      return { count: Number(row!.count), resetAt: row!.resetAt.getTime() };
+    },
+  };
+}
+
+/**
+ * The store a fresh process starts with.
+ *
+ * `RATE_LIMIT_STORE=postgres` selects the shared database store, and is
+ * what a serverless or multi-instance deployment sets. Anything else keeps
+ * the per-process default. Chosen once, on first use, so a test that
+ * replaces the store is never overridden.
+ */
+function initialStore(): { store: RateLimitStore; distributed: boolean } {
+  if (process.env.RATE_LIMIT_STORE === "postgres") {
+    return { store: createPostgresRateLimitStore(), distributed: true };
+  }
+  return { store: new MemoryRateLimitStore(), distributed: false };
+}
+
+let store: RateLimitStore | null = null;
 let storeIsDistributed = false;
+
+function activeStore(): RateLimitStore {
+  if (!store) {
+    const initial = initialStore();
+    store = initial.store;
+    storeIsDistributed = initial.distributed;
+  }
+  return store;
+}
 
 /**
  * Installs the store. Call once at startup, before serving.
@@ -174,6 +242,8 @@ export async function rateLimit(
   // it has; refusing the request is recoverable, silently admitting it is
   // not. The alternative — starting up and hoping — is exactly the
   // "silent fallback to insecure rate limiting" this exists to prevent.
+  const current = activeStore();
+
   if (requiresDistributed() && !storeIsDistributed) {
     console.error(
       "[rate-limit] REQUIRE_DISTRIBUTED_RATE_LIMIT is set but no distributed " +
@@ -182,7 +252,7 @@ export async function rateLimit(
     return { success: false, limit, remaining: 0, resetAt: Date.now() + windowMs };
   }
 
-  const { count, resetAt } = await store.hit(key, windowMs);
+  const { count, resetAt } = await current.hit(key, windowMs);
   return {
     success: count <= limit,
     limit,
