@@ -18,6 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { canAccess, FEATURES } from "@/lib/auth/access";
+import { clampCpuSeconds, clampMemoryMb, executionStatus } from "@/lib/code-execution";
 import { labelFor } from "@/lib/tutor/context";
 import {
   CODE_QUICK_ACTIONS,
@@ -334,6 +335,11 @@ export default async function ProblemPage({
         input: test.input,
         expected: test.expected,
       }))}
+      execution={{
+        ...executionStatus(),
+        timeLimitSeconds: clampCpuSeconds(problem.timeLimitMs),
+        memoryLimitMb: clampMemoryMb(problem.memoryLimitMb),
+      }}
       tutor={{
         label: tutorLabel,
         quickActions: [...PROBLEM_QUICK_ACTIONS, ...CODE_QUICK_ACTIONS],

@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 
 import type { Language } from "@/generated/prisma/enums";
+import { DockerExecutionAdapter } from "./docker-adapter";
 import { LocalExecutionAdapter } from "./local-adapter";
 import { buildHarness, spliceUserCode, type Signature } from "./signature";
 
@@ -36,7 +37,11 @@ const AVAILABLE: Record<string, boolean> = {
   CPP: hasToolchain("g++"),
 };
 
-const adapter = new LocalExecutionAdapter();
+// HARNESS_ADAPTER=docker reruns every case inside the hardened containers.
+const adapter =
+  process.env.HARNESS_ADAPTER === "docker"
+    ? new DockerExecutionAdapter()
+    : new LocalExecutionAdapter();
 
 async function runProgram(
   language: Language,
@@ -50,7 +55,7 @@ async function runProgram(
     program,
     tests,
     timeLimitMs: 10_000,
-    memoryLimitMb: 512,
+    memoryLimitMb: 256,
   });
 }
 

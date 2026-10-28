@@ -12,6 +12,7 @@ import { prisma } from "@/lib/db";
 import { CUSTOM_INPUT_LIMITS } from "@/lib/code-execution/limits";
 import { ANONYMOUS_SLOTS_PER_IP, withExecutionSlot } from "@/lib/execution-lock";
 import { RATE_LIMITS, rateLimit } from "@/lib/rate-limit";
+import { ExecutionUnavailableError } from "@/lib/code-execution";
 import { getClientIp } from "@/lib/request-context";
 import { touchStudyDay } from "@/services/study-days";
 import {
@@ -90,8 +91,9 @@ export async function runCodeAction(raw: unknown): Promise<ActionResult<RunOutco
     console.error("[run] execution failed", error);
     return {
       ok: false,
+      // Configuration details stay in the server log, never in the response.
       error:
-        error instanceof Error && error.message.includes("CODE_EXECUTION_DRIVER")
+        error instanceof ExecutionUnavailableError
           ? error.message
           : "Could not run your code. The execution service may be unavailable.",
     };
@@ -157,7 +159,7 @@ export async function submitCodeAction(
     return {
       ok: false,
       error:
-        error instanceof Error && error.message.includes("CODE_EXECUTION_DRIVER")
+        error instanceof ExecutionUnavailableError
           ? error.message
           : "Could not run your submission. The execution service may be unavailable.",
     };

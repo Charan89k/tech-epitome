@@ -55,7 +55,10 @@ test("runs the learner's function on their own input and shows its output", asyn
   await expect(page.getByText("Custom input", { exact: true })).toBeVisible();
   await expect(page.getByText("60", { exact: true })).toBeVisible();
   // No expected value exists for a custom input, and none is invented.
-  await expect(page.getByText("Expected", { exact: true })).toHaveCount(0);
+  // Scoped to the results: the visualizer's own sample check has an
+  // "Expected" label of its own, and may finish first.
+  const results = page.getByRole("region", { name: "Test results" });
+  await expect(results.getByText("Expected", { exact: true })).toHaveCount(0);
 });
 
 test("refuses input that does not match the problem's format", async ({ page }) => {

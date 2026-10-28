@@ -473,7 +473,8 @@ explicitly.
 | `AI_PROVIDER` | No | `ollama` (default), `anthropic`, or `mock` (rejected in production) |
 | `AI_API_KEY` | Conditional | Required when `AI_PROVIDER=anthropic` |
 | `OLLAMA_BASE_URL` / `OLLAMA_MODEL` | No | Local model configuration |
-| `CODE_EXECUTION_DRIVER` | No | `docker` (default), `local`, or `remote` (Judge0) |
+| `CODE_EXECUTION_DRIVER` | No | `docker` (default, development), `local` (development), `worker` or `remote` (Judge0). Production accepts only `worker` and `remote`; see [docs/EXECUTION.md](docs/EXECUTION.md) |
+| `CODE_EXECUTION_ENABLED` | Production | Must be `true` for code to run in production; unset means off |
 | `EMAIL_PROVIDER` | No | `console` (default, logs only, rejected in production) or `resend` |
 | `RESEND_API_KEY` / `EMAIL_FROM` | Conditional | Required when `EMAIL_PROVIDER=resend` |
 | `CRON_SECRET` | No | Authenticates the review-reminder job. Unset ⇒ the route refuses everything |
@@ -578,19 +579,18 @@ withholding, server-owned interview state, and the free-platform guarantee.
 
 Stated plainly, because a README that hides them is not documentation.
 
-- **Code runs on Judge0's public instance.** It is free and rate limited, so
-  heavy traffic will see "the code runner is busy" messages. Moving to a
-  RapidAPI plan or a self-hosted Judge0 is a change of two environment
-  variables.
+- **Code execution is off in production until switched on.** It needs
+  `CODE_EXECUTION_ENABLED=true` and an isolated service: the execution
+  worker on its own host, or Judge0. Requirements and the threat model are
+  in [docs/EXECUTION.md](docs/EXECUTION.md).
 - **Step-by-step tracing covers Python and JavaScript only.** Java and C++
   have no in-browser runtime, so they show the input picture and are judged
   normally, but are not replayed line by line.
 - **Google and GitHub sign-in are not yet switched on in production.** The
   code is complete and its redirects are tested; the live site needs its
   OAuth credentials before the buttons appear.
-- **Docker execution is not runtime-verified.** The container executor is
-  written and selectable, but no Docker daemon was available to run it
-  against. Production uses Judge0 instead.
+- **Container isolation is verified on a development machine only** (runc,
+  no gVisor). It must be re-verified on the worker host before launch.
 - **The Anthropic adapter and the Resend adapter** are tested against stubs,
   not their real services.
 - **Interview feedback is AI-generated** and labelled as such. It is a language

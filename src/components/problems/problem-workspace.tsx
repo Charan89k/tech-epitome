@@ -84,6 +84,13 @@ type Props = {
     quickActions: TutorQuickAction[];
     enabled: boolean;
   };
+  /** Whether this deployment runs code, and the limits each test runs under. */
+  execution: {
+    available: boolean;
+    reason?: string;
+    timeLimitSeconds: number;
+    memoryLimitMb: number;
+  };
 };
 
 function draftKey(slug: string, language: Language) {
@@ -120,6 +127,7 @@ export function ProblemWorkspace({
   signature,
   samples,
   tutor,
+  execution,
 }: Props) {
   // Only one layout is rendered at a time. Showing both and hiding one
   // with CSS would put two live Monaco instances on the page: double the
@@ -332,7 +340,7 @@ export function ProblemWorkspace({
           size="sm"
           className="h-8"
           onClick={() => execute("run")}
-          disabled={pending}
+          disabled={pending || !execution.available}
         >
           {pending && mode === "run" ? (
             <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
@@ -346,8 +354,14 @@ export function ProblemWorkspace({
           size="sm"
           className="h-8"
           onClick={() => execute("submit")}
-          disabled={pending || !signedIn}
-          title={signedIn ? undefined : "Sign in to submit"}
+          disabled={pending || !signedIn || !execution.available}
+          title={
+            !execution.available
+              ? execution.reason
+              : signedIn
+                ? undefined
+                : "Sign in to submit"
+          }
         >
           {pending && mode === "submit" ? (
             <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
@@ -363,6 +377,17 @@ export function ProblemWorkspace({
   const editorPane = (
     <div className="flex h-full flex-col">
       {controls}
+      {!execution.available ? (
+        <p role="status" className="border-border bg-muted/40 text-muted-foreground border-b px-3 py-2 text-xs">
+          {execution.reason} You can still read the problem, write code, use hints and
+          the visualizer.
+        </p>
+      ) : (
+        <p className="border-border text-muted-foreground border-b px-3 py-1.5 text-xs tabular-nums">
+          Limits per test: {execution.timeLimitSeconds} s CPU, {execution.memoryLimitMb} MB
+          memory, 1 MB output. No network access.
+        </p>
+      )}
       <div className="min-h-0 flex-1">
         <CodeEditor
           language={language}
@@ -378,9 +403,11 @@ export function ProblemWorkspace({
   );
 
   const resultsPane = (
-    <div className="flex h-full flex-col">
+    <section aria-labelledby="test-results-heading" className="flex h-full flex-col">
       <div className="border-border flex flex-wrap items-center gap-2 border-b px-3 py-2">
-        <h2 className="text-xs font-medium">Test results</h2>
+        <h2 id="test-results-heading" className="text-xs font-medium">
+          Test results
+        </h2>
         {!signedIn && (
           <span className="text-muted-foreground text-[0.68rem]">
             Sign in to submit and record progress
@@ -435,7 +462,7 @@ export function ProblemWorkspace({
           />
         )}
       </div>
-    </div>
+    </section>
   );
 
   const visualPane = signature ? (
