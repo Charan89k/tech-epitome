@@ -293,4 +293,8 @@ export const RATE_LIMITS = {
   EMAIL_VERIFICATION: { limit: 5, windowMs: 60 * 60_000 },
   /** Accepting invitations and domain enrolment, per account. */
   INSTITUTION_JOIN: { limit: 20, windowMs: 60 * 60_000 },
+  /** Exam autosaves, per student. One per answer change after a debounce. */
+  CAMPUS_ANSWER_SAVE: { limit: 120, windowMs: 60_000 },
+  /** Exam attempt starts and submissions, per student. */
+  CAMPUS_ATTEMPT: { limit: 30, windowMs: 60 * 60_000 },
 } as const;

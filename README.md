@@ -589,6 +589,12 @@ Stated plainly, because a README that hides them is not documentation.
 - **Google and GitHub sign-in are not yet switched on in production.** The
   code is complete and its redirects are tested; the live site needs its
   OAuth credentials before the buttons appear.
+- **College assessments enforce timing, attempts and answer secrecy, not
+  honesty.** There is no proctoring or plagiarism detection. Rules and the
+  authorization matrix are in [docs/CAMPUS.md](docs/CAMPUS.md).
+- **College assessments enforce timing, attempts and answer secrecy, not
+  honesty.** There is no proctoring or plagiarism detection. Rules and the
+  authorization matrix are in [docs/CAMPUS.md](docs/CAMPUS.md).
 - **Container isolation is verified on a development machine only** (runc,
   no gVisor). It must be re-verified on the worker host before launch.
 - **The Anthropic adapter and the Resend adapter** are tested against stubs,

@@ -1,4 +1,5 @@
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { messageForCode } from "@/lib/campus/messages";
 
 /**
  * Outcome messages for campus actions. The URL carries only a code from
@@ -49,6 +50,11 @@ const MESSAGES: Record<string, { text: string; tone: Tone }> = {
   invalid: { text: "That request was not valid.", tone: "destructive" },
   forbidden: { text: "You are not allowed to do that.", tone: "destructive" },
   not_found: { text: "That member or invitation was not found.", tone: "destructive" },
+  class_created: { text: "Class created.", tone: "success" },
+  assigned: { text: "Assigned to the class.", tone: "success" },
+  published: { text: "Published. The questions are now frozen.", tone: "success" },
+  submitted: { text: "Submitted. Your answers are final.", tone: "success" },
+  graded: { text: "Grade saved and recorded in the audit log.", tone: "success" },
   conflict: {
     text: "That change was refused. An institution keeps at least one active admin, and invitations are rate-limited.",
     tone: "warning",
@@ -56,7 +62,12 @@ const MESSAGES: Record<string, { text: string; tone: Tone }> = {
 };
 
 export function CampusNotice({ code }: { code: string | string[] | undefined }) {
-  const message = typeof code === "string" ? MESSAGES[code] : undefined;
+  const listed = typeof code === "string" ? messageForCode(code) : null;
+  const message =
+    typeof code === "string"
+      ? (MESSAGES[code] ??
+        (listed ? { text: listed, tone: "warning" as const } : undefined))
+      : undefined;
   if (!message) return null;
   return (
     <Alert variant={message.tone} role="status" className="mb-6">

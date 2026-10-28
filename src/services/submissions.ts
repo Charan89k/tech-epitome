@@ -119,6 +119,28 @@ export async function runAgainstSamples(
 }
 
 /**
+ * Runs against every test case, hidden ones included. Records nothing: the
+ * caller (campus exam grading) stores its own result.
+ */
+export async function runAgainstAllTests(
+  slug: string,
+  language: Language,
+  code: string,
+  actor: Actor
+): Promise<RunOutcome | null> {
+  const problem = await loadProblem(slug);
+  if (!problem) return null;
+
+  const tests = await prisma.testCase.findMany({
+    where: { problemId: problem.id },
+    orderBy: [{ isSample: "desc" }, { order: "asc" }],
+    select: { id: true, input: true, expected: true, isSample: true },
+  });
+
+  return execute(problem, language, code, tests, { mode: "submit", actor });
+}
+
+/**
  * Runs the learner's function on one input they wrote. Records nothing.
  *
  * The input is checked against this problem's signature first, so the only

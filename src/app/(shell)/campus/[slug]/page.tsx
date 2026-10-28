@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { requireMember } from "@/lib/tenancy/context";
 import { can, canInviteRole } from "@/lib/tenancy/permissions";
 import { route } from "@/lib/utils";
+import { listClasses } from "@/services/campus-classes";
 import {
   listMembers,
   listPendingInvitations,
@@ -23,6 +24,7 @@ import {
   revokeInvitationAction,
   setStatusAction,
 } from "../actions";
+import { createClassAction } from "../learning-actions";
 
 export const metadata: Metadata = { title: "College" };
 
@@ -47,9 +49,10 @@ export default async function InstitutionPage({
   const { msg } = await searchParams;
   const ctx = await requireMember(slug);
 
-  const [members, invitations] = await Promise.all([
+  const [members, invitations, classes] = await Promise.all([
     can(ctx, "members.list") ? listMembers(ctx) : Promise.resolve(null),
     can(ctx, "members.invite") ? listPendingInvitations(ctx) : Promise.resolve(null),
+    listClasses(ctx),
   ]);
   const invitableRoles = ROLES.filter((r) => canInviteRole(ctx, r.value));
   const manage = can(ctx, "members.manage");
@@ -72,6 +75,13 @@ export default async function InstitutionPage({
                 </a>
               </Button>
             )}
+            {can(ctx, "banks.manage") && (
+              <Button asChild variant="outline" size="sm">
+                <Link href={route(`/campus/${ctx.institution.slug}/banks`)}>
+                  Question banks
+                </Link>
+              </Button>
+            )}
             {can(ctx, "audit.view") && (
               <Button asChild variant="outline" size="sm">
                 <Link href={route(`/campus/${ctx.institution.slug}/audit`)}>
@@ -85,6 +95,67 @@ export default async function InstitutionPage({
       <div className="mt-6">
         <CampusNotice code={msg} />
       </div>
+
+      <section aria-labelledby="classes-heading" className="mb-8">
+        <h2 id="classes-heading" className="text-base font-semibold">
+          Classes
+        </h2>
+        {classes.length === 0 ? (
+          <p className="mt-2 text-sm text-muted-foreground">
+            {can(ctx, "classes.create")
+              ? "No classes yet. Create one to assign content and run assessments."
+              : "You are not in any class here yet. Your instructor adds you."}
+          </p>
+        ) : (
+          <ul className="mt-3 divide-y divide-border rounded-lg border border-border">
+            {classes.map((c) => (
+              <li
+                key={c.id}
+                className="flex items-center justify-between gap-3 px-4 py-3"
+              >
+                <div className="min-w-0">
+                  <Link
+                    href={route(`/campus/${ctx.institution.slug}/classes/${c.id}`)}
+                    className="font-medium hover:underline"
+                  >
+                    {c.name}
+                  </Link>
+                  {c.description && (
+                    <p className="truncate text-xs text-muted-foreground">
+                      {c.description}
+                    </p>
+                  )}
+                </div>
+                {c.teaching && (
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    Teaching · {c.students} {c.students === 1 ? "student" : "students"}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {can(ctx, "classes.create") && (
+          <form
+            action={createClassAction.bind(null, ctx.institution.slug)}
+            className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end"
+          >
+            <div className="flex-1">
+              <label htmlFor="class-name" className="text-sm font-medium">
+                New class name
+              </label>
+              <Input
+                id="class-name"
+                name="name"
+                required
+                maxLength={120}
+                className="mt-1"
+              />
+            </div>
+            <Button type="submit">Create class</Button>
+          </form>
+        )}
+      </section>
 
       {invitations && invitableRoles.length > 0 && (
         <section

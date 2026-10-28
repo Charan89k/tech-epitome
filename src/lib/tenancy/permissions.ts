@@ -27,6 +27,13 @@ export const INSTITUTION_PERMISSIONS = {
   "members.export": ["INSTITUTION_ADMIN"],
   /** Read the institution's audit log. */
   "audit.view": ["INSTITUTION_ADMIN"],
+  /**
+   * Create classes. Managing one afterwards needs more: being its
+   * instructor, or an institution admin (`teaches` in services/campus).
+   */
+  "classes.create": ["FACULTY", "INSTITUTION_ADMIN"],
+  /** Read and edit the institution's question banks (they hold answers). */
+  "banks.manage": ["FACULTY", "INSTITUTION_ADMIN"],
 } as const satisfies Record<string, readonly InstitutionRole[]>;
 
 export type InstitutionPermission = keyof typeof INSTITUTION_PERMISSIONS;
