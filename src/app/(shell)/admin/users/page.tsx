@@ -3,9 +3,12 @@ import type { Metadata } from "next";
 import { EmptyState } from "@/components/common/empty-state";
 import { Pagination } from "@/components/problems/pagination";
 import { RoleSelect } from "@/components/admin/role-select";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { requireAdmin } from "@/lib/auth/session";
 import { listUsers } from "@/services/admin";
+
+import { setUserSuspendedAction } from "../institutions/actions";
 import { Users } from "lucide-react";
 
 export const metadata: Metadata = { title: "Users" };
@@ -118,13 +121,32 @@ export default async function AdminUsersPage({
                       {row.interviews}
                     </td>
                     <td className="px-4 py-3">
-                      <RoleSelect
-                        userId={row.id}
-                        role={row.role}
-                        // An admin cannot demote themselves. Disabling the
-                        // control says so before the server has to refuse.
-                        self={row.id === admin.id}
-                      />
+                      <div className="flex items-center gap-2">
+                        <RoleSelect
+                          userId={row.id}
+                          role={row.role}
+                          // An admin cannot demote themselves. Disabling the
+                          // control says so before the server has to refuse.
+                          self={row.id === admin.id}
+                        />
+                        {row.id !== admin.id && (
+                          <form
+                            action={setUserSuspendedAction.bind(
+                              null,
+                              row.id,
+                              row.status === "ACTIVE"
+                            )}
+                          >
+                            <Button
+                              type="submit"
+                              size="xs"
+                              variant={row.status === "ACTIVE" ? "outline" : "secondary"}
+                            >
+                              {row.status === "ACTIVE" ? "Suspend" : "Reactivate"}
+                            </Button>
+                          </form>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

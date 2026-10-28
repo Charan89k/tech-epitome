@@ -1,5 +1,5 @@
 import { site } from "@/lib/site";
-import type { EmailMessage } from "./types";
+import { sanitiseHeaderValue, type EmailMessage } from "./types";
 
 /**
  * Email templates.
@@ -92,4 +92,57 @@ export function reviewReminderEmail(
     text,
     html,
   };
+}
+
+/**
+ * A college invitation. The link is the only copy of the token; it works
+ * once, expires, and only for an account signed in with this address.
+ */
+export function institutionInvitationEmail(
+  to: { email: string },
+  input: { institutionName: string; role: string; token: string; expiresAt: Date }
+): EmailMessage {
+  const url = absolute(`/campus/invite/${encodeURIComponent(input.token)}`);
+  const role = input.role.toLowerCase().replace("_", " ");
+  const expires = input.expiresAt.toUTCString();
+  const text = [
+    "Hi,",
+    "",
+    `You have been invited to join ${input.institutionName} on ${site.name} as ${role}.`,
+    "",
+    `Accept: ${url}`,
+    "",
+    `Sign in with ${to.email} to accept. The link works once and expires ${expires}.`,
+    "If you were not expecting this, ignore it; nothing happens unless you accept.",
+  ].join("\n");
+  const html = [
+    `<p>You have been invited to join <strong>${escapeHtml(input.institutionName)}</strong> on ${escapeHtml(site.name)} as ${escapeHtml(role)}.</p>`,
+    `<p><a href="${escapeHtml(url)}">Accept the invitation</a></p>`,
+    `<p>Sign in with ${escapeHtml(to.email)} to accept. The link works once and expires ${escapeHtml(expires)}.</p>`,
+    `<p>If you were not expecting this, ignore it; nothing happens unless you accept.</p>`,
+  ].join("");
+  return {
+    to,
+    subject: sanitiseHeaderValue(`Invitation to ${input.institutionName} on ${site.name}`),
+    text,
+    html,
+  };
+}
+
+/** Confirms the learner controls their account address. */
+export function emailVerificationEmail(to: { email: string }, input: { token: string }): EmailMessage {
+  const url = absolute(`/campus/verify-email/${encodeURIComponent(input.token)}`);
+  const text = [
+    "Hi,",
+    "",
+    `Confirm this address for your ${site.name} account: ${url}`,
+    "",
+    "The link expires in 24 hours. If you did not ask for it, ignore this email.",
+  ].join("\n");
+  const html = [
+    `<p>Confirm this address for your ${escapeHtml(site.name)} account.</p>`,
+    `<p><a href="${escapeHtml(url)}">Confirm my email</a></p>`,
+    `<p>The link expires in 24 hours. If you did not ask for it, ignore this email.</p>`,
+  ].join("");
+  return { to, subject: sanitiseHeaderValue(`Confirm your email for ${site.name}`), text, html };
 }

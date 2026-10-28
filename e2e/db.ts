@@ -170,6 +170,20 @@ export function dueAtMs(row: ReviewItemRow): number {
  * development default. Writing the role directly keeps the test honest
  * about what it is doing rather than hiding it behind a fixture login.
  */
+/**
+ * Runs one parameterised statement. For specs that need to put the
+ * database into a state no UI reaches directly - an account suspended by
+ * an operator, a membership revoked - so the spec can assert what the next
+ * request does.
+ */
+export async function execSql<T = Record<string, unknown>>(
+  text: string,
+  params: unknown[] = []
+): Promise<T[]> {
+  const result = await withRetry(() => pool().query(text, params));
+  return result.rows as T[];
+}
+
 export async function makeAdmin(email: string): Promise<void> {
   const userId = await userIdFor(email);
   await withRetry(() =>

@@ -42,6 +42,40 @@ enum Role {
   ADMIN
 }
 
+/// Platform-wide account state. SUSPENDED blocks every request, not just
+/// new sign-ins: `getCurrentUser` rejects it on each read.
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum InstitutionStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+/// A user's role inside one institution. Separate from the platform `Role`:
+/// being a college's admin grants nothing outside that college.
+enum InstitutionRole {
+  STUDENT
+  FACULTY
+  INSTITUTION_ADMIN
+}
+
+enum MembershipStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+/// How a membership came to exist. A verified email domain can only ever
+/// produce a STUDENT membership; every other role needs an invitation.
+enum MembershipSource {
+  INVITATION
+  EMAIL_DOMAIN
+  PLATFORM
+}
+
 enum Track {
   DSA
   SYSTEM_DESIGN
@@ -240,21 +274,28 @@ enum AchievementKind {
 // ===========================================================================
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
+  id             String     @id @default(cuid())
+  name           String?
+  email          String     @unique
+  emailVerified  DateTime?
+  image          String?
   /// Argon2id hash. Null for OAuth-only accounts.
-  passwordHash  String?
-  role          Role      @default(USER)
+  passwordHash   String?
+  role           Role       @default(USER)
+  status         UserStatus @default(ACTIVE)
+  suspendedAt    DateTime?
+  /// Stamped into the JWT at sign-in. Bumping it (suspension, sign out
+  /// everywhere) invalidates every token minted before.
+  sessionVersion Int        @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  accounts     Account[]
-  sessions     Session[]
-  profile      Profile?
+  memberships InstitutionMembership[]
+
+  accounts Account[]
+  sessions Session[]
+  profile  Profile?
 
   chapterProgress   UserChapterProgress[]
   problemProgress   UserProblemProgress[]
@@ -350,14 +391,14 @@ model Profile {
   // All optional. Onboarding is genuinely skippable, so every field here
   // must have a sensible absent state rather than a default that pretends
   // the learner answered.
-  experienceLevel   ExperienceLevel?
-  primaryGoal       LearningGoal?
-  targetInterview   InterviewType?
+  experienceLevel ExperienceLevel?
+  primaryGoal     LearningGoal?
+  targetInterview InterviewType?
   /// Chapters-or-problems the learner means to finish each week. Drives the
   /// dashboard's weekly target; null means they never set one and the
   /// dashboard shows no target rather than inventing one.
-  weeklyTarget      Int?
-  onboardedAt       DateTime?
+  weeklyTarget    Int?
+  onboardedAt     DateTime?
 
   // --- Notification preferences -------------------------------------------
   // Opt-out rather than opt-in for the two that are about the learner's own
@@ -371,7 +412,7 @@ model Profile {
   /// and a deployment switching on a provider must not immediately mail
   /// everyone who ever signed up. Off also means off when the in-app
   /// preference is on — they are two channels, not one.
-  emailReviewReminders  Boolean @default(false)
+  emailReviewReminders Boolean @default(false)
 
   lastActiveOn DateTime?
   createdAt    DateTime  @default(now())
@@ -1165,7 +1206,7 @@ model InterviewSession {
   endedAt         DateTime?
   durationSeconds Int       @default(0)
 
-  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// SetNull rather than Cascade: retiring a problem must not delete a
   /// candidate's interview history. The transcript stands on its own.
   problem             Problem?             @relation(fields: [problemId], references: [id], onDelete: SetNull)
@@ -1286,7 +1327,7 @@ model SystemDesignSubmission {
   problemId String
 
   /// Nodes and edges, validated by src/lib/diagram/schema.ts before write.
-  diagram Json @default("{\"nodes\":[],\"edges\":[]}")
+  diagram Json   @default("{\"nodes\":[],\"edges\":[]}")
   /// The learner's written reasoning: why these components, what they
   /// traded away. An architecture without its rationale is not a design.
   notes   String @default("") @db.Text
@@ -1501,14 +1542,14 @@ model EmailDelivery {
   userId String
 
   /// Which mail this was. One value today; a closed set by convention.
-  kind String
+  kind      String
   /// The period this send belongs to — a UTC date for a daily reminder.
   /// Together with `kind` and `userId` this is what makes a send unique.
   periodKey String
 
   /// `accepted`, `rejected` or `skipped`, mirroring SendResult.
-  status   String
-  provider String
+  status     String
+  provider   String
   /// The provider's id when it accepted. Null otherwise.
   providerId String?
   /// Why it was rejected or skipped. Never contains the payload or a key.
@@ -1654,4 +1695,118 @@ model RateLimitBucket {
 
   @@index([resetAt])
   @@map("rate_limit_buckets")
+}
+
+// ===========================================================================
+// INSTITUTIONS (TENANCY)
+//
+// A college is a workspace a user joins; the user and their personal
+// learning stay global and private. Every row below carries institutionId,
+// and the database enforces it: these tables have row-level security
+// policies for the least-privilege `te_tenant` role, which
+// src/lib/tenancy/scope.ts switches to (SET LOCAL ROLE) inside each tenant
+// transaction, with the institution stamped transaction-locally so a pooled
+// connection cannot carry it into the next request.
+// ===========================================================================
+
+model Institution {
+  id     String            @id @default(cuid())
+  slug   String            @unique
+  name   String
+  status InstitutionStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  domains     InstitutionDomain[]
+  memberships InstitutionMembership[]
+  invitations InstitutionInvitation[]
+  auditLogs   InstitutionAuditLog[]
+
+  @@map("institutions")
+}
+
+/// An email domain that proves a student belongs to the institution. Only
+/// a platform admin adds one, and it counts only once `verifiedAt` is set
+/// by the DNS TXT check.
+model InstitutionDomain {
+  id                String    @id @default(cuid())
+  institutionId     String
+  /// Lowercased, no leading "@". Globally unique: one domain, one college.
+  domain            String    @unique
+  verificationToken String
+  verifiedAt        DateTime?
+
+  createdAt DateTime @default(now())
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@index([institutionId])
+  @@map("institution_domains")
+}
+
+model InstitutionMembership {
+  id            String           @id @default(cuid())
+  institutionId String
+  userId        String
+  role          InstitutionRole
+  status        MembershipStatus @default(ACTIVE)
+  source        MembershipSource
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  revokedAt DateTime?
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([institutionId, userId])
+  @@index([userId])
+  @@index([institutionId, role, status])
+  @@map("institution_memberships")
+}
+
+/// A single-use invitation. Only the SHA-256 of the token is stored; the
+/// token itself exists in the emailed link and nowhere else.
+model InstitutionInvitation {
+  id            String          @id @default(cuid())
+  institutionId String
+  email         String
+  role          InstitutionRole
+  tokenHash     String          @unique
+  expiresAt     DateTime
+  invitedById   String
+
+  acceptedAt   DateTime?
+  acceptedById String?
+  revokedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@index([institutionId, email])
+  @@map("institution_invitations")
+}
+
+/// Append-only: a trigger rejects UPDATE and DELETE. Written in the same
+/// transaction as the change it records.
+model InstitutionAuditLog {
+  id            String  @id @default(cuid())
+  institutionId String
+  actorId       String
+  /// Copied, so the record survives the actor's account being deleted.
+  actorEmail    String
+  action        String
+  targetType    String
+  targetId      String?
+  summary       String  @db.Text
+  metadata      Json?
+
+  createdAt DateTime @default(now())
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+
+  @@index([institutionId, createdAt])
+  @@map("institution_audit_logs")
 }

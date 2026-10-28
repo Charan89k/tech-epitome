@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Blocks,
   Bookmark,
+  Building2,
   Boxes,
   Compass,
   FileText,
@@ -66,6 +67,12 @@ export const primaryNav: NavGroup[] = [
         href: "/review",
         icon: Repeat2,
         description: "Recall what you have learned, before you forget it",
+      },
+      {
+        title: "Campus",
+        href: "/campus",
+        icon: Building2,
+        description: "Colleges you belong to, and joining one",
       },
     ],
   },

@@ -77,6 +77,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             name: true,
             image: true,
             role: true,
+            status: true,
+            sessionVersion: true,
             passwordHash: true,
           },
         });
@@ -90,7 +92,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           password
         );
 
-        if (!user || !ok) return null;
+        // A suspended account fails exactly like a wrong password, after the
+        // same hashing work, so the response does not reveal the suspension.
+        if (!user || !ok || user.status !== "ACTIVE") return null;
 
         return {
           id: user.id,
@@ -98,10 +102,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           image: user.image,
           role: user.role,
+          sessionVersion: user.sessionVersion,
         };
       },
     }),
   ],
+
+  callbacks: {
+    ...authConfig.callbacks,
+    /**
+     * OAuth sign-in for an existing account: `user` is the adapter's row,
+     * so a suspended account is refused here without another query. New
+     * accounts have no status yet and are created ACTIVE.
+     */
+    signIn(params) {
+      if (params.user?.status === "SUSPENDED") return false;
+      return authConfig.callbacks.signIn(params);
+    },
+  },
 
   events: {
     /**

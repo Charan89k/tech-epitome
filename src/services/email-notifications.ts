@@ -121,11 +121,15 @@ export async function sendReviewReminder(params: {
     select: {
       email: true,
       name: true,
+      status: true,
       profile: { select: { emailReviewReminders: true } },
     },
   });
 
   if (!user?.email) return "no-address";
+
+  // A suspended account gets no mail from background jobs either.
+  if (user.status !== "ACTIVE") return "opted-out";
 
   // Opt-in, and checked before anything is written. A learner who never
   // asked for mail leaves no delivery row at all.

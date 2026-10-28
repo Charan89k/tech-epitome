@@ -33,6 +33,7 @@ const PROTECTED_PREFIXES = [
   "/onboarding",
   "/ai-tutor",
   "/admin",
+  "/campus",
 ];
 
 /** Paths a signed-in user should be bounced away from. */
@@ -55,7 +56,11 @@ export default auth((request) => {
     return NextResponse.redirect(url);
   }
 
-  if (signedIn && AUTH_PAGES.includes(pathname)) {
+  // `ended=1` comes from requireUser when the server has rejected a token
+  // the proxy still sees as valid; showing the login page is the only way
+  // out of that state, so it must not bounce back to the dashboard.
+  const sessionEnded = request.nextUrl.searchParams.get("ended") === "1";
+  if (signedIn && !sessionEnded && AUTH_PAGES.includes(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     url.search = "";

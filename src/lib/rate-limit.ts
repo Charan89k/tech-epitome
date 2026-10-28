@@ -285,4 +285,12 @@ export const RATE_LIMITS = {
    * only governs a well-behaved browser.
    */
   SEARCH: { limit: 60, windowMs: 60_000 },
+  /** Institution invitations sent, per inviter. Each one is an email. */
+  INSTITUTION_INVITE: { limit: 30, windowMs: 60 * 60_000 },
+  /** Invitations per institution, across all its inviters. */
+  INSTITUTION_INVITE_ORG: { limit: 300, windowMs: 60 * 60_000 },
+  /** Verification emails, per account. */
+  EMAIL_VERIFICATION: { limit: 5, windowMs: 60 * 60_000 },
+  /** Accepting invitations and domain enrolment, per account. */
+  INSTITUTION_JOIN: { limit: 20, windowMs: 60 * 60_000 },
 } as const;
