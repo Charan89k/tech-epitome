@@ -20,7 +20,7 @@ import { route } from "@/lib/utils";
  */
 export function SiteHeader({ signedIn }: { signedIn: boolean }) {
   return (
-    <header className="bg-background/85 border-border sticky top-0 z-40 border-b backdrop-blur-md">
+    <header className="bg-background border-border sticky top-0 z-40 border-b">
       <div className="flex h-14 items-center gap-2 px-3 sm:px-4">
         {/* Mobile nav */}
         <Sheet>

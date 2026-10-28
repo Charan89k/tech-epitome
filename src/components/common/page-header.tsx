@@ -26,7 +26,7 @@ export function PageHeader({
     >
       <div className="min-w-0 space-y-1.5">
         {eyebrow}
-        <h1 className="tracking-headline truncate text-2xl font-bold sm:text-3xl">
+        <h1 className="display text-3xl sm:text-4xl">
           {title}
         </h1>
         {description && (

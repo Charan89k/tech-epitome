@@ -24,7 +24,7 @@ export default async function ShellLayout({ children }: LayoutProps<"/">) {
     : [0, 0];
 
   return (
-    <CommandPaletteProvider>
+    <CommandPaletteProvider viewer={user ? { role: user.role } : null}>
       <SiteHeader
         user={
           user

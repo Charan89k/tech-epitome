@@ -1,22 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  ArrowRight,
-  Braces,
-  GitBranch,
-  MousePointer2,
-  Play,
-  Repeat2,
-  Sparkles,
-  Target,
-  TerminalSquare,
-  Zap,
-} from "lucide-react";
 
 import { CodeReplayDemo } from "@/components/marketing/code-replay-demo";
 import { CourseCards } from "@/components/marketing/course-cards";
 import { Button } from "@/components/ui/button";
 import { site } from "@/lib/site";
+import { route } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: `${site.name} — ${site.tagline}`,
@@ -24,221 +13,332 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-/** The learning loop the whole product is organised around. */
+/**
+ * The landing page is laid out like the contents page of a book: a title
+ * spread, then one ruled section per product area. Every link goes to a
+ * route that exists today; Campus is described honestly as unbuilt and has
+ * no call to action.
+ */
+
+type Entry = { title: string; href: string; note: string };
+
+const CONTENTS: { area: string; entries: Entry[] }[] = [
+  {
+    area: "Learn",
+    entries: [
+      { title: "Data Structures & Algorithms", href: "/learn/dsa", note: "Course" },
+      { title: "System Design", href: "/learn/system-design", note: "Course" },
+      { title: "Low-Level Design", href: "/learn/lld", note: "Course" },
+    ],
+  },
+  {
+    area: "Code",
+    entries: [
+      { title: "Problems", href: "/problems", note: "Editor and tests" },
+      { title: "Visualize", href: "/visualize", note: "Step-through" },
+    ],
+  },
+  {
+    area: "Career",
+    entries: [
+      { title: "Interview preparation", href: "/prepare", note: "Tracks" },
+      { title: "Roadmaps", href: "/roadmaps", note: "Study plans" },
+    ],
+  },
+];
+
+/** The learning loop every chapter runs. A real sequence, so it is numbered. */
 const LOOP = [
-  { label: "See", detail: "A worked example, stepped one frame at a time" },
-  { label: "Recognise", detail: "The clues that tell you which pattern applies" },
-  { label: "Attempt", detail: "A guided problem, then one with no scaffolding" },
-  { label: "Explain", detail: "Say why it works, and what it costs" },
-  { label: "Recall", detail: "Spaced revision, timed to just before you forget" },
+  { label: "See", detail: "A worked example, stepped one frame at a time." },
+  { label: "Recognise", detail: "The clues that tell you which pattern applies." },
+  { label: "Attempt", detail: "A guided problem, then one with no scaffolding." },
+  { label: "Explain", detail: "Say why it works, and what it costs." },
+  { label: "Recall", detail: "Spaced revision, timed to just before you forget." },
 ] as const;
 
-const VISUALIZER_POINTS = [
+const CODE_POINTS = [
   {
-    icon: MousePointer2,
     title: "Every problem draws its input",
-    body: "Open a problem and the sample is already on screen — the array, the list, the grid — before you write a line.",
+    body: "The array, list or grid from the sample is on screen before you write a line.",
   },
   {
-    icon: Play,
-    title: "Your code, replayed line by line",
-    body: "Run Python or JavaScript and the picture steps through your own solution, with the current line highlighted.",
+    title: "Your own solution, replayed",
+    body: "Run Python or JavaScript and the picture steps through your code with the current line marked.",
   },
   {
-    icon: Zap,
-    title: "Pointers move, changed cells flash",
-    body: "You see exactly which index moved and which value was written, so an off-by-one shows up as a picture, not a failed test.",
+    title: "Real tests in a sandbox",
+    body: "Python, JavaScript, Java and C++ run against the problem's tests in isolation. A failure shows the case that broke.",
+  },
+  {
+    title: "A tutor that asks, not tells",
+    body: "It reads the chapter and the code in your editor, and walks you toward the answer instead of handing it over.",
   },
 ] as const;
 
-const PILLARS = [
+const CAREER_ITEMS = [
   {
-    icon: Target,
-    title: "Pattern recognition first",
-    body: "Every pattern page opens with the clues that identify it — contiguous range, monotonic order, k-th largest — and the look-alikes that do not.",
+    title: "Interview preparation",
+    href: "/prepare",
+    body: "Track-by-track preparation that ties each topic back to the chapters and problems behind it.",
   },
   {
-    icon: TerminalSquare,
-    title: "Write and run real code",
-    body: "Python, JavaScript, Java and C++ in an editor, with your tests running in an isolated sandbox. Failures show the case that broke.",
+    title: "Roadmaps",
+    href: "/roadmaps",
+    body: "Ordered study plans, so you always know what to work on next and why.",
   },
   {
-    icon: Braces,
-    title: "Solutions that teach",
-    body: "Brute force, then the observation that improves it, then the optimal approach — with the complexity argument and the edge cases.",
-  },
-  {
-    icon: Repeat2,
-    title: "Revision that holds",
-    body: "Solved problems return on a widening schedule, and how well you recall them sets the next interval.",
-  },
-  {
-    icon: Sparkles,
-    title: "A tutor that makes you think",
-    body: "It knows the chapter you are reading and the code in your editor, and walks you toward the answer instead of handing it over.",
-  },
-  {
-    icon: GitBranch,
-    title: "Progress you can trust",
-    body: "Mastery is computed from attempts, hints opened and recall quality — your own history, not a streak counter.",
+    title: "Mock interviews",
+    href: "/interviews",
+    body: "Practise talking through a problem with an AI interviewer. Its feedback is a practice signal, not a hiring assessment.",
   },
 ] as const;
 
 export default function LandingPage() {
   return (
     <>
-      {/* ---- Hero -------------------------------------------------------- */}
-      <section className="bg-hero-haze relative overflow-hidden">
-        <div className="mx-auto max-w-5xl px-4 pt-16 pb-12 text-center sm:px-6 sm:pt-24 sm:pb-16">
-          <p className="border-ember-500/25 bg-ember-500/8 text-ember-300 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium">
-            <span className="bg-ember-500 size-1.5 rounded-full" aria-hidden="true" />
-            Completely free · DSA · System Design · Interviews
-          </p>
+      <Hero />
 
-          <h1 className="tracking-display mt-6 text-5xl leading-[1.02] font-bold text-balance sm:text-6xl lg:text-7xl">
-            Master Technology.
-            <br />
-            Build with <span className="text-gradient-ember">Confidence.</span>
-          </h1>
+      <Section id="learn" label="Learn" title="Three courses, written to be understood">
+        <p className="max-w-2xl text-base leading-relaxed text-pretty text-muted-foreground">
+          Each course runs in dependency order and draws what it explains. Solved
+          problems come back on a widening schedule, and how well you recall them sets
+          the next interval.
+        </p>
+        <CourseCards className="mt-10" />
+        <p className="mt-8 text-sm text-muted-foreground">
+          Prefer to start from a pattern?{" "}
+          <TextLink href="/patterns">Browse the algorithm patterns</TextLink>.
+        </p>
+      </Section>
 
-          <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-pretty sm:text-xl">
-            The interactive way to learn{" "}
-            <strong className="text-foreground font-semibold">DSA, system design and coding patterns</strong>{" "}
-            — with <strong className="text-foreground font-semibold">visuals that replay your own code</strong>.
-          </p>
-
-          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button asChild className="h-12 w-full rounded-full px-7 text-base sm:w-auto">
-              <Link href="/signup">
-                Start learning
-                <ArrowRight className="size-4" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="h-12 w-full rounded-full px-7 text-base sm:w-auto">
-              <Link href="/learn/dsa">Explore DSA</Link>
-            </Button>
-          </div>
-
-          <p className="text-muted-foreground mt-4 text-xs">
-            Free. Every track, every exercise, both AI features. No card.
-          </p>
-        </div>
-
-        {/* ---- Courses --------------------------------------------------- */}
-        <div className="mx-auto max-w-5xl px-4 pb-16 sm:px-6 sm:pb-20">
-          <h2 className="sr-only">Courses</h2>
-          <CourseCards />
-        </div>
-      </section>
-
-      {/* ---- Live visualizer --------------------------------------------- */}
-      <section aria-labelledby="visualizer-heading" className="border-border border-t">
-        <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20">
-          <div className="max-w-2xl">
-            <span className="bg-ember-500/15 text-ember-300 rounded-full px-2.5 py-0.5 text-xs font-semibold">
-              New
-            </span>
-            <h2
-              id="visualizer-heading"
-              className="tracking-headline mt-4 text-3xl font-bold text-balance sm:text-4xl"
+      <Section id="code" label="Code" title="Watch your code run, line by line">
+        <p className="max-w-2xl text-base leading-relaxed text-pretty text-muted-foreground">
+          The visualizer is built into every problem. Write a solution, press Run, and
+          see what it actually does to the data.
+        </p>
+        <CodeReplayDemo className="mt-10" />
+        <dl className="mt-10 grid border-t border-border sm:grid-cols-2">
+          {CODE_POINTS.map((point) => (
+            <div
+              key={point.title}
+              className="border-b border-border py-5 sm:odd:pr-8 sm:even:border-l sm:even:pl-8"
             >
-              Watch your code <span className="text-gradient-ember">run</span>, line by line
-            </h2>
-            <p className="text-muted-foreground mt-4 text-base leading-relaxed text-pretty sm:text-lg">
-              The live code visualizer is built into every problem. Write a solution, press Run, and
-              see what it actually does to the data.
-            </p>
-          </div>
+              <dt className="text-sm font-semibold">{point.title}</dt>
+              <dd className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                {point.body}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-8 text-sm">
+          <TextLink href="/problems">Open the problem set</TextLink>
+        </p>
+      </Section>
 
-          <CodeReplayDemo className="mt-10" />
-
-          <ul className="mt-10 grid gap-6 md:grid-cols-3">
-            {VISUALIZER_POINTS.map((point) => (
-              <li key={point.title}>
-                <span className="border-border bg-muted/40 text-ember-400 flex size-9 items-center justify-center rounded-xl border">
-                  <point.icon className="size-4" aria-hidden="true" />
+      <Section
+        id="career"
+        label="Career"
+        title="Walk into the interview asking “what shape is this?”"
+      >
+        <p className="max-w-2xl text-base leading-relaxed text-pretty text-muted-foreground">
+          Not “have I seen this exact problem before?” Preparation here is built on the
+          same chapters and problems you learn from.
+        </p>
+        <ul className="mt-10 border-t border-border">
+          {CAREER_ITEMS.map((item) => (
+            <li key={item.href} className="border-b border-border">
+              <Link
+                href={route(item.href)}
+                className="group grid gap-1 rounded-sm px-1 py-5 transition-colors outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50 sm:grid-cols-[14rem_1fr] sm:gap-8"
+              >
+                <span className="font-display text-xl transition-colors group-hover:text-primary">
+                  {item.title}
                 </span>
-                <h3 className="mt-3 text-base font-semibold">{point.title}</h3>
-                <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">{point.body}</p>
-              </li>
-            ))}
-          </ul>
+                <span className="text-sm leading-relaxed text-muted-foreground">
+                  {item.body}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </Section>
 
-          <Link
-            href="/problems"
-            className="text-ember-300 hover:text-ember-200 mt-8 inline-flex items-center gap-1 text-sm font-medium"
-          >
-            Try it on a problem
-            <ArrowRight className="size-3.5" aria-hidden="true" />
-          </Link>
+      <Section id="campus" label="Campus" title="For colleges, later">
+        <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-start">
+          <p className="max-w-2xl text-base leading-relaxed text-pretty text-muted-foreground">
+            We are designing tools for colleges: a shared view of a cohort&rsquo;s
+            progress for faculty and placement cells. None of it is available yet, so
+            there is nothing to sign up for. Everything an individual learner gets today
+            stays free.
+          </p>
+          <p className="w-fit rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground">
+            In development
+          </p>
         </div>
-      </section>
+      </Section>
 
-      {/* ---- The loop ---------------------------------------------------- */}
-      <section aria-labelledby="loop-heading" className="border-border border-t">
-        <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20">
-          <h2 id="loop-heading" className="tracking-headline text-2xl font-bold sm:text-3xl">
+      <section aria-labelledby="loop-heading" className="border-t border-border">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+          <h2 id="loop-heading" className="display text-3xl sm:text-4xl">
             The loop every chapter runs you through
           </h2>
-          <p className="text-muted-foreground mt-3 max-w-2xl text-base leading-relaxed">
-            Reading an explanation is not learning. The product is built around the sequence that
-            actually moves something into long-term memory.
-          </p>
-
-          <ol className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <ol className="mt-10 grid border-t border-border sm:grid-cols-5">
             {LOOP.map((step, index) => (
-              <li key={step.label} className="bg-card border-border rounded-2xl border p-5">
-                <span className="text-ember-400 font-mono text-xs tabular-nums">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <h3 className="mt-2 text-base font-semibold">{step.label}</h3>
-                <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">{step.detail}</p>
+              <li
+                key={step.label}
+                className="border-b border-border py-5 sm:border-b-0 sm:px-4 sm:first:pl-0 sm:[&+li]:border-l"
+              >
+                <span className="text-sm text-primary tabular-nums">{index + 1}</span>
+                <h3 className="mt-1 text-base font-semibold">{step.label}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  {step.detail}
+                </p>
               </li>
             ))}
           </ol>
         </div>
       </section>
 
-      {/* ---- Pillars ----------------------------------------------------- */}
-      <section aria-labelledby="pillars-heading" className="border-border border-t">
-        <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20">
-          <h2 id="pillars-heading" className="tracking-headline text-2xl font-bold sm:text-3xl">
-            What makes it different
+      <section className="border-t border-border">
+        <div className="mx-auto flex max-w-6xl flex-col items-start gap-6 px-4 py-16 sm:px-6 sm:py-20 md:flex-row md:items-end md:justify-between">
+          <h2 className="display max-w-xl text-3xl sm:text-4xl">
+            Every track, every exercise, both AI features. Free.
           </h2>
-
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {PILLARS.map((pillar) => (
-              <article key={pillar.title} className="bg-card border-border rounded-2xl border p-5">
-                <span className="border-border bg-muted/40 text-ember-400 flex size-9 items-center justify-center rounded-xl border">
-                  <pillar.icon className="size-4" aria-hidden="true" />
-                </span>
-                <h3 className="mt-4 text-base font-semibold">{pillar.title}</h3>
-                <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">{pillar.body}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ---- Closing ----------------------------------------------------- */}
-      <section className="bg-hero-haze border-border border-t">
-        <div className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
-          <h2 className="tracking-headline text-3xl font-bold text-balance sm:text-4xl">
-            Walk into the interview asking{" "}
-            <span className="text-gradient-ember">&ldquo;what shape is this?&rdquo;</span>
-          </h2>
-          <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-base text-pretty">
-            Not &ldquo;have I seen this exact problem before?&rdquo; That is the difference between
-            preparing and hoping.
-          </p>
-          <Button asChild className="mt-8 h-12 rounded-full px-7 text-base">
-            <Link href="/signup">
-              Create your account
-              <ArrowRight className="size-4" />
-            </Link>
+          <Button asChild className="h-11 rounded-full px-6 text-base">
+            <Link href="/signup">Create your account</Link>
           </Button>
         </div>
       </section>
     </>
+  );
+}
+
+function Hero() {
+  return (
+    <section aria-labelledby="hero-heading">
+      <div className="mx-auto grid max-w-6xl gap-12 px-4 pt-14 pb-16 sm:px-6 sm:pt-20 sm:pb-20 lg:grid-cols-[1.7fr_1fr] lg:gap-16">
+        <div>
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="size-1.5 rounded-full bg-primary" aria-hidden="true" />
+            Free for every learner. No paid tier.
+          </p>
+          <h1
+            id="hero-heading"
+            className="display mt-6 text-5xl sm:text-6xl lg:text-7xl"
+          >
+            Master technology.
+            <br />
+            Build with confidence.
+          </h1>
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground">
+            Learn data structures, algorithms and system design from explanations that
+            draw what they describe, then practise in an editor that replays your own
+            code.
+          </p>
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Button asChild className="h-11 rounded-full px-6 text-base">
+              <Link href="/signup">Start learning</Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="h-11 rounded-full px-6 text-base"
+            >
+              <Link href="/learn/dsa">Browse the DSA course</Link>
+            </Button>
+          </div>
+        </div>
+
+        <nav aria-label="Contents" className="lg:pt-2">
+          <p className="border-b border-border pb-3 text-sm text-muted-foreground">
+            Contents
+          </p>
+          {CONTENTS.map((group) => (
+            <div key={group.area} className="border-b border-border py-3">
+              <p className="font-display text-lg">
+                <a
+                  href={`#${group.area.toLowerCase()}`}
+                  className="rounded-sm transition-colors hover:text-primary"
+                >
+                  {group.area}
+                </a>
+              </p>
+              <ul className="mt-1.5 space-y-1">
+                {group.entries.map((entry) => (
+                  <li key={entry.href}>
+                    <Link
+                      href={route(entry.href)}
+                      className="group flex items-baseline gap-3 rounded-sm text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      <span className="group-hover:underline group-hover:underline-offset-4">
+                        {entry.title}
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className="mb-1 flex-1 border-b border-dotted border-border"
+                      />
+                      <span className="text-xs">{entry.note}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          <div className="py-3">
+            <p className="font-display text-lg">
+              <a
+                href="#campus"
+                className="rounded-sm transition-colors hover:text-primary"
+              >
+                Campus
+              </a>
+            </p>
+            <p className="mt-1.5 text-sm text-muted-foreground">In development</p>
+          </div>
+        </nav>
+      </div>
+    </section>
+  );
+}
+
+function Section({
+  id,
+  label,
+  title,
+  children,
+}: {
+  id: string;
+  label: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  const headingId = `${id}-heading`;
+  return (
+    <section
+      id={id}
+      aria-labelledby={headingId}
+      className="scroll-mt-20 border-t border-border"
+    >
+      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[10rem_1fr] lg:gap-12">
+        <p className="text-sm font-medium text-primary lg:pt-3">{label}</p>
+        <div className="min-w-0">
+          <h2 id={headingId} className="display text-3xl sm:text-4xl">
+            {title}
+          </h2>
+          <div className="mt-5">{children}</div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TextLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={route(href)}
+      className="rounded-sm font-medium text-foreground underline decoration-primary/60 underline-offset-4 transition-colors hover:decoration-primary"
+    >
+      {children}
+    </Link>
   );
 }

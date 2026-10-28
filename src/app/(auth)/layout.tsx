@@ -7,7 +7,7 @@ import { AuthAside } from "@/components/auth/auth-aside";
 // segment and its generated props key is "/".
 export default function AuthLayout({ children }: LayoutProps<"/">) {
   return (
-    <div className="bg-hero-haze flex min-h-dvh flex-col">
+    <div className="flex min-h-dvh flex-col">
       <header className="flex h-14 shrink-0 items-center px-3 sm:px-4">
         <Link href="/" className="flex items-center rounded-md px-1 py-1">
           <Logo idSuffix="auth-header" wordmarkClassName="text-[1.05rem]" />

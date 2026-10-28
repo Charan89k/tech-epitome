@@ -33,7 +33,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { primaryNav } from "@/lib/navigation";
+import { navForViewer } from "@/lib/navigation";
 import { route } from "@/lib/utils";
 
 /**
@@ -86,7 +86,14 @@ export function useCommandPalette(): CommandPaletteContextValue {
   return ctx;
 }
 
-export function CommandPaletteProvider({ children }: { children: ReactNode }) {
+export function CommandPaletteProvider({
+  children,
+  viewer,
+}: {
+  children: ReactNode;
+  /** Decides which navigation groups are listed; staff links are admin-only. */
+  viewer: { role: "USER" | "ADMIN" } | null;
+}) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -216,7 +223,7 @@ export function CommandPaletteProvider({ children }: { children: ReactNode }) {
             );
           })}
 
-          {primaryNav.map((group) => (
+          {navForViewer(viewer).map((group) => (
             <CommandGroup key={group.label} heading={group.label}>
               {group.items.map((item) => (
                 <CommandItem

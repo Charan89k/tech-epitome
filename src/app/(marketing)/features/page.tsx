@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Check, MessagesSquare, Sparkles } from "lucide-react";
+import { Check, MessagesSquare, Sparkles } from "lucide-react";
 
 import { MiniDiagram } from "@/components/marketing/mini-diagrams";
 import { Button } from "@/components/ui/button";
@@ -91,15 +91,15 @@ export default function FeaturesPage() {
   return (
     <>
       {/* ---- Header ------------------------------------------------------ */}
-      <section className="bg-hero-haze">
+      <section>
         <div className="mx-auto max-w-4xl px-4 pt-16 pb-12 text-center sm:px-6 sm:pt-24 sm:pb-16">
-          <p className="border-ember-500/25 bg-ember-500/8 text-ember-300 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium">
-            <span className="bg-ember-500 size-1.5 rounded-full" aria-hidden="true" />
+          <p className="text-muted-foreground inline-flex items-center gap-2 text-sm">
+            <span className="bg-primary size-1.5 rounded-full" aria-hidden="true" />
             Free · No plans · No card
           </p>
-          <h1 className="tracking-display mt-6 text-4xl leading-[1.05] font-bold text-balance sm:text-5xl lg:text-6xl">
+          <h1 className="display mt-6 text-4xl sm:text-5xl lg:text-6xl">
             Everything in <span className="whitespace-nowrap">{site.name}</span>,{" "}
-            <span className="text-gradient-ember">for everyone</span>
+            for everyone
           </h1>
           <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-pretty">
             There is no pricing page because{" "}
@@ -109,10 +109,7 @@ export default function FeaturesPage() {
           </p>
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild className="h-12 w-full rounded-full px-7 text-base sm:w-auto">
-              <Link href="/signup">
-                Create your account
-                <ArrowRight className="size-4" />
-              </Link>
+              <Link href="/signup">Create your account</Link>
             </Button>
             <Button asChild variant="outline" className="h-12 w-full rounded-full px-7 text-base sm:w-auto">
               <Link href="/learn/dsa">Look around first</Link>
@@ -124,7 +121,7 @@ export default function FeaturesPage() {
       {/* ---- Tracks ------------------------------------------------------ */}
       <section aria-labelledby="tracks-heading">
         <div className="mx-auto max-w-5xl px-4 pt-4 pb-16 sm:px-6 sm:pb-20">
-          <h2 id="tracks-heading" className="tracking-headline text-2xl font-bold sm:text-3xl">
+          <h2 id="tracks-heading" className="display text-3xl sm:text-4xl">
             What you can work through
           </h2>
 
@@ -132,7 +129,7 @@ export default function FeaturesPage() {
             {TRACKS.map((track) => (
               <article
                 key={track.title}
-                className="bg-card border-border flex flex-col overflow-hidden rounded-2xl border"
+                className="bg-card border-border flex flex-col overflow-hidden rounded-lg border"
               >
                 <MiniDiagram kind={track.diagram} className="border-border h-36 border-b p-3" />
                 <div className="flex flex-1 flex-col p-5">
@@ -142,10 +139,9 @@ export default function FeaturesPage() {
                   </p>
                   <Link
                     href={track.href}
-                    className="text-ember-300 hover:text-ember-200 mt-4 inline-flex items-center gap-1 text-sm font-medium"
+                    className="text-foreground decoration-primary/60 hover:decoration-primary mt-4 w-fit rounded-sm text-sm font-medium underline underline-offset-4"
                   >
                     {track.linkLabel}
-                    <ArrowRight className="size-3.5" aria-hidden="true" />
                   </Link>
                 </div>
               </article>
@@ -157,7 +153,7 @@ export default function FeaturesPage() {
       {/* ---- AI ---------------------------------------------------------- */}
       <section aria-labelledby="ai-heading" className="border-border border-t">
         <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20">
-          <h2 id="ai-heading" className="tracking-headline text-2xl font-bold sm:text-3xl">
+          <h2 id="ai-heading" className="display text-3xl sm:text-4xl">
             The AI features, and their one rule
           </h2>
           <p className="text-muted-foreground mt-3 max-w-2xl text-base leading-relaxed">
@@ -168,7 +164,7 @@ export default function FeaturesPage() {
 
           <div className="mt-10 grid gap-6 sm:grid-cols-2">
             {AI.map((feature) => (
-              <article key={feature.title} className="bg-card border-border rounded-2xl border p-6">
+              <article key={feature.title} className="bg-card border-border rounded-lg border p-6">
                 <span className="border-border bg-muted/40 text-ember-400 flex size-9 items-center justify-center rounded-xl border">
                   <feature.icon className="size-4" aria-hidden="true" />
                 </span>
@@ -183,10 +179,10 @@ export default function FeaturesPage() {
       </section>
 
       {/* ---- The free claim, stated plainly ------------------------------ */}
-      <section aria-labelledby="free-heading" className="bg-hero-haze border-border border-t">
+      <section aria-labelledby="free-heading" className="border-border border-t">
         <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20">
-          <div className="bg-card border-border rounded-2xl border p-6 sm:p-8">
-            <h2 id="free-heading" className="tracking-headline text-2xl font-bold sm:text-3xl">
+          <div className="bg-card border-border rounded-lg border p-6 sm:p-8">
+            <h2 id="free-heading" className="display text-3xl sm:text-4xl">
               What &ldquo;free&rdquo; means here
             </h2>
             <ul className="mt-6 space-y-3.5">
@@ -208,10 +204,7 @@ export default function FeaturesPage() {
             </p>
 
             <Button asChild className="mt-6 h-11 rounded-full px-6 text-base">
-              <Link href="/signup">
-                Start learning
-                <ArrowRight className="size-4" />
-              </Link>
+              <Link href="/signup">Start learning</Link>
             </Button>
           </div>
         </div>

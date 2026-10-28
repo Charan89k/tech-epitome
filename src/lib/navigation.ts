@@ -19,7 +19,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { FEATURES, type Feature } from "@/lib/auth/access";
+import { canAccess, FEATURES, type Feature } from "@/lib/auth/access";
 
 /**
  * Application navigation, defined once as data.
@@ -200,6 +200,23 @@ export const primaryNav: NavGroup[] = [
     ],
   },
 ];
+
+/**
+ * The groups a given viewer should see: staff-only items are dropped for
+ * everyone but admins. Other gated items stay visible (signed-out visitors
+ * are sent to sign in), matching the existing rail behaviour. This only
+ * hides links; every admin page still enforces `requireAdmin` itself.
+ */
+export function navForViewer(viewer: { role: "USER" | "ADMIN" } | null): NavGroup[] {
+  return primaryNav
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) => item.feature !== FEATURES.ADMIN || canAccess(viewer, item.feature)
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
+}
 
 /** Flat list, for the command palette and active-route resolution. */
 export const allNavItems: NavItem[] = primaryNav.flatMap((g) => g.items);

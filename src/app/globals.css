@@ -17,6 +17,8 @@
   --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-inter);
+  /* Display serif for page titles and marketing headlines only. */
+  --font-display: var(--font-source-serif), Georgia, serif;
 
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
@@ -121,10 +123,10 @@
   --accent: oklch(0.282 0.008 265);
   --accent-foreground: oklch(0.958 0.003 265);
 
-  --destructive: oklch(0.645 0.201 18);
+  --destructive: oklch(0.68 0.19 18);
   --destructive-foreground: oklch(0.98 0.01 18);
 
-  --border: oklch(1 0 0 / 9%);
+  --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 13%);
   --ring: oklch(0.769 0.155 62 / 65%);
 
@@ -190,9 +192,9 @@
   --muted-foreground: oklch(0.687 0.012 265);
   --accent: oklch(0.282 0.008 265);
   --accent-foreground: oklch(0.958 0.003 265);
-  --destructive: oklch(0.645 0.201 18);
+  --destructive: oklch(0.68 0.19 18);
   --destructive-foreground: oklch(0.98 0.01 18);
-  --border: oklch(1 0 0 / 9%);
+  --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 13%);
   --ring: oklch(0.769 0.155 62 / 65%);
   --sidebar: oklch(0.184 0.005 265);
@@ -214,7 +216,8 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.212 0.008 265);
 
-  --primary: oklch(0.592 0.143 50);
+  /* Darker than the dark-theme ember so white text clears 4.5:1 (5.0:1). */
+  --primary: oklch(0.55 0.138 47);
   --primary-foreground: oklch(0.995 0.005 60);
 
   --secondary: oklch(0.962 0.003 265);
@@ -231,20 +234,24 @@
 
   --border: oklch(0.898 0.004 265);
   --input: oklch(0.878 0.005 265);
-  --ring: oklch(0.592 0.143 50 / 55%);
+  --ring: oklch(0.55 0.138 47 / 60%);
 
+  /* Components are written dark-first and use ember-100..400 as accent
+     TEXT on translucent ember fills. On a light surface those steps must be
+     dark to stay readable, so 100-400 run from darkest to lightest text-safe
+     shade (all >= 4.5:1 on white) rather than mirroring the dark ramp. */
   --ember-50: oklch(0.975 0.015 68);
-  --ember-100: oklch(0.938 0.042 68);
-  --ember-200: oklch(0.878 0.078 66);
-  --ember-300: oklch(0.798 0.115 60);
-  --ember-400: oklch(0.692 0.146 55);
-  --ember-500: oklch(0.592 0.143 50);
-  --ember-600: oklch(0.512 0.126 46);
-  --ember-700: oklch(0.432 0.104 42);
+  --ember-100: oklch(0.42 0.1 44);
+  --ember-200: oklch(0.45 0.11 45);
+  --ember-300: oklch(0.49 0.125 46);
+  --ember-400: oklch(0.52 0.135 47);
+  --ember-500: oklch(0.55 0.138 47);
+  --ember-600: oklch(0.48 0.12 45);
+  --ember-700: oklch(0.42 0.1 42);
 
-  --success: oklch(0.542 0.128 163);
+  --success: oklch(0.5 0.118 163);
   --success-foreground: oklch(0.99 0.01 163);
-  --warning: oklch(0.638 0.138 78);
+  --warning: oklch(0.53 0.12 75);
   --warning-foreground: oklch(0.99 0.01 78);
   --info: oklch(0.548 0.152 250);
   --info-foreground: oklch(0.99 0.01 250);
@@ -255,21 +262,21 @@
 
   --sidebar: oklch(0.975 0.002 265);
   --sidebar-foreground: oklch(0.262 0.008 265);
-  --sidebar-primary: oklch(0.592 0.143 50);
+  --sidebar-primary: oklch(0.55 0.138 47);
   --sidebar-primary-foreground: oklch(0.995 0.005 60);
   --sidebar-accent: oklch(0.938 0.004 265);
   --sidebar-accent-foreground: oklch(0.262 0.008 265);
   --sidebar-border: oklch(0.898 0.004 265);
-  --sidebar-ring: oklch(0.592 0.143 50 / 55%);
+  --sidebar-ring: oklch(0.55 0.138 47 / 60%);
 
   --viz-idle: oklch(0.858 0.005 265);
-  --viz-active: oklch(0.592 0.143 50);
+  --viz-active: oklch(0.55 0.138 47);
   --viz-compare: oklch(0.538 0.148 250);
   --viz-visited: oklch(0.548 0.128 295);
   --viz-done: oklch(0.542 0.128 163);
   --viz-pivot: oklch(0.552 0.192 12);
 
-  --chart-1: oklch(0.592 0.143 50);
+  --chart-1: oklch(0.55 0.138 47);
   --chart-2: oklch(0.538 0.148 250);
   --chart-3: oklch(0.542 0.128 163);
   --chart-4: oklch(0.552 0.192 12);
@@ -343,15 +350,6 @@
   .text-pretty {
     text-wrap: pretty;
   }
-
-  /* Faint grid used behind the hero and empty states. */
-  .grid-backdrop {
-    background-image:
-      linear-gradient(to right, var(--border) 1px, transparent 1px),
-      linear-gradient(to bottom, var(--border) 1px, transparent 1px);
-    background-size: 56px 56px;
-    mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, #000 20%, transparent 78%);
-  }
 }
 
 /* Honour the OS setting globally. Visualizations additionally read this via
@@ -407,30 +405,20 @@ body[data-reduced-motion="true"] *::after {
    Redesign utilities.
 
    Layout language: a full-width top bar, a floating icon rail, flat surfaces
-   separated by hairlines and small tonal steps. The one expressive move is
-   an ember gradient on a single headline phrase.
+   separated by hairlines and small tonal steps. Expression comes from the
+   serif display face and the ruled section rhythm, not from gradients or
+   glows (Tasteful: GoShuin type and rules, Stash ruled cards).
    ========================================================================== */
 @layer utilities {
-  /* One phrase per headline, never body copy. */
-  .text-gradient-ember {
-    background-image: linear-gradient(
-      120deg,
-      var(--ember-200) 0%,
-      var(--ember-500) 45%,
-      var(--ember-700) 100%
-    );
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-  }
-
-  /* The faint warm haze behind a hero. */
-  .bg-hero-haze {
-    background-image: radial-gradient(
-      ellipse 60% 50% at 50% 0%,
-      color-mix(in oklch, var(--ember-500) 13%, transparent),
-      transparent 70%
-    );
+  /* Page titles and marketing headlines. Regular weight: the serif carries
+     the hierarchy, so it never needs bold. */
+  .display {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
   }
 
   /* Diagrams and live visuals sit on a darker panel than the chrome, so the

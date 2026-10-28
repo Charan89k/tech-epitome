@@ -32,8 +32,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { canAccess, FEATURES } from "@/lib/auth/access";
-import { isNavItemActive, primaryNav, type NavGroup } from "@/lib/navigation";
+import { isNavItemActive, navForViewer, primaryNav, type NavGroup } from "@/lib/navigation";
 import { cn, route } from "@/lib/utils";
 
 /**
@@ -67,7 +66,7 @@ export function SiteHeader({ user, streak, unreadNotifications }: Props) {
   const groups = primaryNav.filter((group) => HEADER_GROUPS.includes(group.label));
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/85 px-3 backdrop-blur-md sm:px-4">
+    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-3 sm:px-4">
       <MobileNav user={user} pathname={pathname} />
 
       <Link
@@ -124,7 +123,7 @@ function SectionMenu({ group, pathname }: { group: NavGroup; pathname: string })
           active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
         )}
       >
-        <Icon className={cn("size-4", active && "text-ember-400")} aria-hidden="true" />
+        <Icon className={cn("size-4", active && "text-primary")} aria-hidden="true" />
         {group.label}
         <ChevronDown className="size-3.5 opacity-60" aria-hidden="true" />
       </DropdownMenuTrigger>
@@ -137,12 +136,12 @@ function SectionMenu({ group, pathname }: { group: NavGroup; pathname: string })
               asChild
               className="items-start gap-3 rounded-lg p-2.5"
             >
-              <Link href={route(item.href)}>
+              <Link href={route(item.href)} aria-current={itemActive ? "page" : undefined}>
                 <span
                   className={cn(
                     "flex size-9 shrink-0 items-center justify-center rounded-xl border",
                     itemActive
-                      ? "border-ember-500/40 bg-ember-500/12 text-ember-300"
+                      ? "border-primary/40 bg-primary/10 text-primary"
                       : "border-border bg-muted/50 text-muted-foreground"
                   )}
                 >
@@ -193,15 +192,11 @@ function MobileNav({
           </SheetTitle>
         </SheetHeader>
         <nav aria-label="All sections" className="space-y-5 px-4 pb-8">
-          {primaryNav.map((group) => {
-            const items = group.items.filter(
-              (item) => item.feature !== FEATURES.ADMIN || canAccess(user, item.feature)
-            );
-            if (items.length === 0) return null;
+          {navForViewer(user).map(({ label, items }) => {
             return (
-              <div key={group.label}>
-                <p className="mb-1.5 px-2 text-[0.68rem] font-medium tracking-wider text-muted-foreground/70 uppercase">
-                  {group.label}
+              <div key={label}>
+                <p className="mb-1.5 px-2 text-xs font-medium text-muted-foreground">
+                  {label}
                 </p>
                 <ul className="space-y-0.5">
                   {items.map((item) => {
@@ -210,6 +205,7 @@ function MobileNav({
                       <li key={item.href}>
                         <Link
                           href={route(item.href)}
+                          aria-current={active ? "page" : undefined}
                           className={cn(
                             "flex items-center gap-2.5 rounded-md px-2 py-2 text-sm transition-colors",
                             active
@@ -218,7 +214,7 @@ function MobileNav({
                           )}
                         >
                           <item.icon
-                            className={cn("size-4", active && "text-ember-400")}
+                            className={cn("size-4", active && "text-primary")}
                             aria-hidden="true"
                           />
                           {item.title}

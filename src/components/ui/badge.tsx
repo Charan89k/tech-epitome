@@ -18,6 +18,11 @@ const badgeVariants = cva(
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
+        // Status, kept apart from the ember brand accent so a state is never
+        // mistaken for a call to action.
+        success: "border-success/30 bg-success/10 text-success",
+        warning: "border-warning/30 bg-warning/10 text-warning",
+        info: "border-info/30 bg-info/10 text-info",
       },
     },
     defaultVariants: {

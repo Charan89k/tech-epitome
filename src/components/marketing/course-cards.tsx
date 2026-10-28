@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-
 import {
   MiniDiagram,
   type MiniDiagramKind,
 } from "@/components/marketing/mini-diagrams";
+import { cn } from "@/lib/utils";
 
 /**
  * The three reader courses as cards, each topped by line art of what the
@@ -48,29 +47,25 @@ const COURSES: Course[] = [
   },
 ];
 
-export function CourseCards() {
+export function CourseCards({ className }: { className?: string }) {
   return (
-    <ul className="grid gap-6 md:grid-cols-3">
+    <ul className={cn("grid gap-6 md:grid-cols-3", className)}>
       {COURSES.map((course) => (
         <li key={course.href}>
           <Link
             href={course.href}
-            className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card transition-colors outline-none hover:border-ember-500/40 focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="group flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card transition-colors outline-none hover:border-foreground/25 focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             <CourseThumb panels={course.panels} />
             <div className="flex flex-1 flex-col p-5">
-              <h3 className="text-base font-semibold transition-colors group-hover:text-ember-200">
+              <h3 className="font-display text-xl transition-colors group-hover:text-primary">
                 {course.title}
               </h3>
               <p className="mt-1.5 flex-1 text-sm leading-relaxed text-muted-foreground">
                 {course.description}
               </p>
-              <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-ember-300">
+              <span className="mt-4 text-sm font-medium text-foreground underline decoration-primary/60 underline-offset-4 group-hover:decoration-primary">
                 Start the course
-                <ArrowRight
-                  className="size-3.5 transition-transform group-hover:translate-x-0.5"
-                  aria-hidden="true"
-                />
               </span>
             </div>
           </Link>
