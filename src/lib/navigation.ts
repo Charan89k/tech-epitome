@@ -8,6 +8,7 @@ import {
   FileText,
   GraduationCap,
   Highlighter,
+  Library,
   LayoutDashboard,
   ListChecks,
   MessagesSquare,
@@ -79,6 +80,13 @@ export const primaryNav: NavGroup[] = [
   {
     label: "Learn",
     items: [
+      {
+        title: "All courses",
+        href: "/learn",
+        icon: Library,
+        description: "Search every course and chapter, with your progress",
+        matchNested: false,
+      },
       {
         title: "DSA",
         href: "/learn/dsa",
@@ -230,7 +238,7 @@ export const allNavItems: NavItem[] = primaryNav.flatMap((g) => g.items);
 
 /** Public marketing navigation. */
 export const marketingNav = [
-  { title: "Learn", href: "/learn/dsa" },
+  { title: "Learn", href: "/learn" },
   { title: "Patterns", href: "/patterns" },
   { title: "Problems", href: "/problems" },
   { title: "Features", href: "/features" },

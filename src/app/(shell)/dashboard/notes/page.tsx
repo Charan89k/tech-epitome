@@ -8,8 +8,9 @@ import { PageHeader } from "@/components/common/page-header";
 import { LibraryTabs } from "@/components/dashboard/library-tabs";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth/session";
+import { route } from "@/lib/utils";
 
-import { listNotes } from "@/services/library";
+import { listNotes, NOTES_PER_PAGE } from "@/services/library";
 
 export const metadata: Metadata = {
   title: "Notes",
@@ -23,7 +24,22 @@ export default async function NotesPage({
   const params = await searchParams;
   const query = Array.isArray(params.q) ? params.q[0] : params.q;
 
-  const notes = await listNotes(user.id, query);
+  const rawPage = Number.parseInt(
+    (Array.isArray(params.page) ? params.page[0] : params.page) ?? "1",
+    10
+  );
+  const page = Number.isFinite(rawPage) && rawPage > 0 ? Math.min(rawPage, 1000) : 1;
+
+  const rows = await listNotes(user.id, query, page);
+  const hasMore = rows.length > NOTES_PER_PAGE;
+  const notes = rows.slice(0, NOTES_PER_PAGE);
+  const pageHref = (target: number) => {
+    const next = new URLSearchParams();
+    if (query) next.set("q", query);
+    if (target > 1) next.set("page", String(target));
+    const qs = next.toString();
+    return route(qs ? `/dashboard/notes?${qs}` : "/dashboard/notes");
+  };
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
@@ -67,7 +83,7 @@ export default async function NotesPage({
         <div className="mt-4 rounded-xl border border-border bg-card">
           <EmptyState
             icon={FileText}
-            title={query ? "No notes match that search" : "No notes yet"}
+            title={query ? "No notes match that search" : page > 1 ? "No more notes" : "No notes yet"}
             description={
               query
                 ? "Try a shorter phrase, or clear the search."
@@ -76,7 +92,7 @@ export default async function NotesPage({
             action={
               !query ? (
                 <Button asChild size="sm" variant="outline">
-                  <Link href="/learn/dsa">Start a chapter</Link>
+                  <Link href="/learn">Start a chapter</Link>
                 </Button>
               ) : (
                 <Button asChild size="sm" variant="outline">
@@ -102,6 +118,23 @@ export default async function NotesPage({
             />
           ))}
         </ul>
+      )}
+
+      {(page > 1 || hasMore) && (
+        <nav aria-label="Notes pages" className="mt-4 flex justify-between gap-2">
+          {page > 1 ? (
+            <Button asChild variant="outline" size="sm">
+              <Link href={pageHref(page - 1)}>Newer notes</Link>
+            </Button>
+          ) : (
+            <span />
+          )}
+          {hasMore && (
+            <Button asChild variant="outline" size="sm">
+              <Link href={pageHref(page + 1)}>Older notes</Link>
+            </Button>
+          )}
+        </nav>
       )}
     </div>
   );

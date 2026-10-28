@@ -112,6 +112,8 @@ export type QuizResult = {
   maxScore: number;
   percent: number;
   passed: boolean;
+  /** True only for the learner's first passing attempt at this quiz. */
+  firstPass: boolean;
   graded: GradedQuestion[];
 };
 
@@ -169,18 +171,31 @@ export async function gradeQuiz(
 
   const percent = scorePercent(score, maxScore);
   const passed = percent >= quiz.passScore;
+  // Store only answers to this quiz's questions, never arbitrary client keys.
+  const answers = Object.fromEntries(
+    graded.filter((g) => g.submitted !== null).map((g) => [g.questionId, g.submitted])
+  );
 
-  await prisma.quizAttempt.create({
-    data: {
-      userId,
-      quizId: quiz.id,
-      answers: submitted as object,
-      score,
-      maxScore,
-      passed,
-      completedAt: new Date(),
-    },
+  // Locking the user's row serialises their concurrent submissions, so
+  // exactly one attempt can be the first pass (the only one that earns XP).
+  const firstPass = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM users WHERE id = ${userId} FOR UPDATE`;
+    const earlierPasses = passed
+      ? await tx.quizAttempt.count({ where: { userId, quizId: quiz.id, passed: true } })
+      : 1;
+    await tx.quizAttempt.create({
+      data: {
+        userId,
+        quizId: quiz.id,
+        answers,
+        score,
+        maxScore,
+        passed,
+        completedAt: new Date(),
+      },
+    });
+    return earlierPasses === 0;
   });
 
-  return { score, maxScore, percent, passed, graded };
+  return { score, maxScore, percent, passed, firstPass, graded };
 }
