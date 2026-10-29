@@ -608,6 +608,9 @@ Stated plainly, because a README that hides them is not documentation.
   model reading a transcript, not an assessment, and no guarantee of placement or
   hiring. Quotations in it are checked against the transcript; the judgements
   themselves are the model's.
+- **Large college operations are synchronous.** Roster imports (200 rows) and
+  class exports (5,000 rows) run in the request; there is no job queue or
+  alerting yet. See [docs/ADMIN.md](docs/ADMIN.md).
 - **No aptitude practice for individual learners.** The platform has no aptitude
   question content of its own to grade against; colleges can add aptitude
   questions to their own question banks (docs/CAMPUS.md).

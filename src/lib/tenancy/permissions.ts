@@ -34,6 +34,11 @@ export const INSTITUTION_PERMISSIONS = {
   "classes.create": ["FACULTY", "INSTITUTION_ADMIN"],
   /** Read and edit the institution's question banks (they hold answers). */
   "banks.manage": ["FACULTY", "INSTITUTION_ADMIN"],
+  /**
+   * Learning analytics. Faculty see only classes they teach; admins see
+   * the whole institution, including enrolment by role.
+   */
+  "analytics.view": ["FACULTY", "INSTITUTION_ADMIN"],
 } as const satisfies Record<string, readonly InstitutionRole[]>;
 
 export type InstitutionPermission = keyof typeof INSTITUTION_PERMISSIONS;

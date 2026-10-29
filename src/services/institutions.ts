@@ -220,8 +220,10 @@ export async function exportMembersCsv(ctx: MemberContext): Promise<string> {
 
 export async function inviteMember(
   ctx: MemberContext,
-  input: { email: string; role: InstitutionRole }
-): Promise<{ invitationId: string }> {
+  input: { email: string; role: InstitutionRole },
+  /** Roster import: the per-institution limit still applies, the per-inviter one does not. */
+  options: { bulk?: boolean } = {}
+): Promise<{ invitationId: string; emailStatus: string }> {
   assertCan(ctx, "members.invite");
   if (!canInviteRole(ctx, input.role)) {
     throw new InstitutionError("forbidden", "You cannot invite someone to that role.");
@@ -236,7 +238,7 @@ export async function inviteMember(
     `institution-invite-org:${ctx.institution.id}`,
     RATE_LIMITS.INSTITUTION_INVITE_ORG
   );
-  if (!limited.success || !institutionLimited.success) {
+  if ((!options.bulk && !limited.success) || !institutionLimited.success) {
     throw new InstitutionError("conflict", "Too many invitations. Try again later.");
   }
 
@@ -294,13 +296,26 @@ export async function inviteMember(
     return invitation.id;
   });
 
-  await getEmailProvider().send(
-    institutionInvitationEmail(
-      { email },
-      { institutionName: ctx.institution.name, role: input.role, token, expiresAt }
+  const sent = await getEmailProvider()
+    .send(
+      institutionInvitationEmail(
+        { email },
+        { institutionName: ctx.institution.name, role: input.role, token, expiresAt }
+      )
     )
+    .catch(() => ({ status: "rejected" as const, reason: "The email provider failed." }));
+  // Recorded so staff can see an invitation that never arrived and resend
+  // it. The reason is the provider's status text, never the message.
+  await withTenantScope(scopeOf(ctx), (tx) =>
+    tx.institutionInvitation.update({
+      where: { id: invitationId },
+      data: {
+        emailStatus: sent.status,
+        emailReason: sent.status === "accepted" ? null : sent.reason,
+      },
+    })
   );
-  return { invitationId };
+  return { invitationId, emailStatus: sent.status };
 }
 
 export async function revokeInvitation(
@@ -715,7 +730,7 @@ export async function listPendingInvitations(ctx: MemberContext) {
         revokedAt: null,
         expiresAt: { gt: new Date() },
       },
-      select: { id: true, email: true, role: true, expiresAt: true },
+      select: { id: true, email: true, role: true, expiresAt: true, emailStatus: true },
       orderBy: { createdAt: "desc" },
     })
   );

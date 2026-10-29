@@ -1567,6 +1567,10 @@ model EmailDelivery {
   providerId String?
   /// Why it was rejected or skipped. Never contains the payload or a key.
   reason     String?
+  /// Sends tried for this slot. A retryable rejection is tried again by a
+  /// later run, up to 3 attempts; anything else is final.
+  attempts   Int     @default(1)
+  retryable  Boolean @default(false)
 
   createdAt DateTime @default(now())
 
@@ -1795,6 +1799,10 @@ model InstitutionInvitation {
   acceptedAt   DateTime?
   acceptedById String?
   revokedAt    DateTime?
+  /// What the email provider said: accepted, rejected or skipped. Null
+  /// before the send. Lets staff see an invitation that never arrived.
+  emailStatus  String?
+  emailReason  String?
 
   createdAt DateTime @default(now())
 
@@ -2161,4 +2169,27 @@ model ShareLink {
 
   @@index([userId])
   @@map("share_links")
+}
+
+// ===========================================================================
+// OPERATIONS
+// ===========================================================================
+
+/// One run of a scheduled job. A partial unique index (migration
+/// 20261029004451_admin_ops) allows one RUNNING row per job, so two
+/// schedulers firing at once cannot both do the work. Summaries hold counts
+/// only, never addresses or other personal data.
+model JobRun {
+  id         String    @id @default(cuid())
+  job        String
+  /// RUNNING, SUCCEEDED, FAILED or STALE (a run that never finished).
+  status     String
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  summary    Json?
+  /// Error class and message, truncated. No stack, no payload.
+  error      String?
+
+  @@index([job, startedAt])
+  @@map("job_runs")
 }

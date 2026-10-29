@@ -75,6 +75,20 @@ export default async function InstitutionPage({
                 </a>
               </Button>
             )}
+            {can(ctx, "analytics.view") && (
+              <Button asChild variant="outline" size="sm">
+                <Link href={route(`/campus/${ctx.institution.slug}/analytics`)}>
+                  Analytics
+                </Link>
+              </Button>
+            )}
+            {can(ctx, "members.invite") && (
+              <Button asChild variant="outline" size="sm">
+                <Link href={route(`/campus/${ctx.institution.slug}/import`)}>
+                  Import roster
+                </Link>
+              </Button>
+            )}
             {can(ctx, "banks.manage") && (
               <Button asChild variant="outline" size="sm">
                 <Link href={route(`/campus/${ctx.institution.slug}/banks`)}>
@@ -213,6 +227,11 @@ export default async function InstitutionPage({
                     <span className="text-muted-foreground">
                       ({roleLabel(inv.role)})
                     </span>
+                    {inv.emailStatus && inv.emailStatus !== "accepted" && (
+                      <Badge variant="warning" className="ml-2">
+                        Email not delivered: invite again to resend
+                      </Badge>
+                    )}
                   </span>
                   {canInviteRole(ctx, inv.role) && (
                     <form
@@ -239,6 +258,29 @@ export default async function InstitutionPage({
           <h2 id="members-heading" className="text-base font-semibold">
             Members
           </h2>
+          {manage && (
+            <details className="mt-2 text-xs text-muted-foreground">
+              <summary className="cursor-pointer">
+                What suspending and revoking do
+              </summary>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                <li>
+                  <strong>Suspend</strong>: access to this college ends on their next
+                  request, and their pending invitations are cancelled. Class places,
+                  attempts and grades are kept. Reactivate restores everything.
+                </li>
+                <li>
+                  <strong>Revoke</strong>: the same, and final. Only a new invitation
+                  from an admin brings them back. Their own learning outside this
+                  college is never touched.
+                </li>
+                <li>
+                  An institution always keeps one active admin, and every change is in
+                  the audit log.
+                </li>
+              </ul>
+            </details>
+          )}
           <div className="mt-3 overflow-x-auto rounded-lg border border-border">
             <table className="w-full min-w-[40rem] text-sm">
               <caption className="sr-only">Members of {ctx.institution.name}</caption>
@@ -366,11 +408,25 @@ function MemberTableRow({
                   {member.status === "ACTIVE" ? "Suspend" : "Reactivate"}
                 </Button>
               </form>
-              <form action={setStatusAction.bind(null, slug, member.id, "REVOKED")}>
-                <Button type="submit" variant="destructive" size="xs">
-                  Revoke
-                </Button>
-              </form>
+              <details className="relative">
+                <summary className="cursor-pointer list-none rounded-md border border-destructive/40 px-2 py-0.5 text-xs text-destructive">
+                  Revoke…
+                </summary>
+                <form
+                  action={setStatusAction.bind(null, slug, member.id, "REVOKED")}
+                  className="absolute right-0 z-10 mt-1 w-56 rounded-md border border-border bg-popover p-2 text-left text-xs shadow"
+                >
+                  <p>Final: only a new invitation brings {member.user.email} back.</p>
+                  <Button
+                    type="submit"
+                    variant="destructive"
+                    size="xs"
+                    className="mt-2"
+                  >
+                    Revoke membership
+                  </Button>
+                </form>
+              </details>
             </div>
           )}
         </td>

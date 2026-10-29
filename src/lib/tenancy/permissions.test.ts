@@ -23,6 +23,7 @@ describe("institution permissions", () => {
     ["audit.view", [false, false, true, true, false]],
     ["classes.create", [false, true, true, true, false]],
     ["banks.manage", [false, true, true, true, false]],
+    ["analytics.view", [false, true, true, true, false]],
   ] as const)(
     "%s: student, faculty, inst admin, platform, outsider",
     (permission, expected) => {
@@ -34,6 +35,7 @@ describe("institution permissions", () => {
 
   it("covers every permission in the table", () => {
     expect(Object.keys(INSTITUTION_PERMISSIONS).sort()).toEqual([
+      "analytics.view",
       "audit.view",
       "banks.manage",
       "classes.create",

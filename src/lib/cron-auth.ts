@@ -33,3 +33,23 @@ export function refuseCron(request: NextRequest): NextResponse | null {
   }
   return null;
 }
+
+/** A job outcome as the scheduler sees it: 200, 409 if already running, 500. */
+export function jobResponse(
+  outcome:
+    | { status: "succeeded"; summary: unknown }
+    | { status: "failed" }
+    | { status: "already-running" }
+): NextResponse {
+  if (outcome.status === "already-running") {
+    return NextResponse.json(
+      { error: "This job is already running." },
+      { status: 409 }
+    );
+  }
+  if (outcome.status === "failed") {
+    // The detail is in the job_runs row; the response says only that it failed.
+    return NextResponse.json({ error: "The job failed." }, { status: 500 });
+  }
+  return NextResponse.json(outcome.summary);
+}

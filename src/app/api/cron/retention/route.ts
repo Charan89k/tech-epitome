@@ -1,6 +1,7 @@
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 
-import { refuseCron } from "@/lib/cron-auth";
+import { jobResponse, refuseCron } from "@/lib/cron-auth";
+import { runJob } from "@/services/jobs";
 import { getEnv } from "@/lib/env";
 import { purgeExpiredTranscripts } from "@/services/interview";
 
@@ -19,6 +20,10 @@ export async function POST(request: NextRequest) {
   if (refused) return refused;
 
   const days = getEnv().INTERVIEW_TRANSCRIPT_RETENTION_DAYS;
-  const transcriptsDeleted = await purgeExpiredTranscripts(days);
-  return NextResponse.json({ retentionDays: days, transcriptsDeleted });
+  return jobResponse(
+    await runJob("transcript-retention", async () => ({
+      retentionDays: days,
+      transcriptsDeleted: await purgeExpiredTranscripts(days),
+    }))
+  );
 }

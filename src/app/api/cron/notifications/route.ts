@@ -1,7 +1,8 @@
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 
 import { prisma } from "@/lib/db";
-import { refuseCron } from "@/lib/cron-auth";
+import { jobResponse, refuseCron } from "@/lib/cron-auth";
+import { runJob } from "@/services/jobs";
 import { runReviewReminders } from "@/services/email-notifications";
 import { notifyReviewsDue } from "@/services/notifications";
 
@@ -34,7 +35,11 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   const refused = refuseCron(request);
   if (refused) return refused;
+  // Recorded in job_runs; a second concurrent call gets 409 and does nothing.
+  return jobResponse(await runJob("review-reminders", sendReminders));
+}
 
+async function sendReminders() {
   const now = new Date();
   // One reminder per learner per day, however often the scheduler runs.
   const since = new Date(now.getTime() - 20 * 60 * 60 * 1000);
@@ -66,11 +71,11 @@ export async function POST(request: NextRequest) {
   // concurrently.
   const email = await runReviewReminders({ now });
 
-  return NextResponse.json({
+  return {
     learnersWithWork: due.length,
     // In-app notifications written this run.
     notified,
     // What the email pipeline actually did, including the declines.
     email,
-  });
+  };
 }

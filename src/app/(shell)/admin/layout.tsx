@@ -32,6 +32,7 @@ const TABS = [
   { href: "/admin/content", label: "Content" },
   { href: "/admin/ai", label: "AI usage" },
   { href: "/admin/audit", label: "Audit log" },
+  { href: "/admin/operations", label: "Operations" },
 ] as const;
 
 export default async function AdminLayout({

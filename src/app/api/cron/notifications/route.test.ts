@@ -61,9 +61,7 @@ describe("without a configured secret", () => {
     delete process.env.CRON_SECRET;
     resetEnvForTests();
 
-    const response = await POST(
-      request({ authorization: "Bearer anything" }) as never
-    );
+    const response = await POST(request({ authorization: "Bearer anything" }) as never);
     expect(response.status).toBe(503);
   });
 });
@@ -103,25 +101,33 @@ describe("with a configured secret", () => {
     expect(response.status).toBe(401);
   });
 
-  it("accepts the right secret and reports what it did", async () => {
-    const response = await POST(
-      request({ authorization: `Bearer ${SECRET}` }) as never
-    );
-    expect(response.status).toBe(200);
+  it(
+    "accepts the right secret and reports what it did",
+    async () => {
+      const response = await POST(
+        request({ authorization: `Bearer ${SECRET}` }) as never
+      );
+      expect(response.status).toBe(200);
 
-    const body = await response.json();
-    // Real counts over real rows, and the email summary alongside.
-    expect(typeof body.learnersWithWork).toBe("number");
-    expect(typeof body.notified).toBe("number");
-    expect(body.email).toBeDefined();
-    expect(typeof body.email.considered).toBe("number");
-    expect(typeof body.email.sent).toBe("number");
-  }, RUNS_THE_REAL_JOB);
+      const body = await response.json();
+      // Real counts over real rows, and the email summary alongside.
+      expect(typeof body.learnersWithWork).toBe("number");
+      expect(typeof body.notified).toBe("number");
+      expect(body.email).toBeDefined();
+      expect(typeof body.email.considered).toBe("number");
+      expect(typeof body.email.sent).toBe("number");
+    },
+    RUNS_THE_REAL_JOB
+  );
 
-  it("never echoes the secret back", async () => {
-    const response = await POST(
-      request({ authorization: `Bearer ${SECRET}` }) as never
-    );
-    expect(JSON.stringify(await response.json())).not.toContain(SECRET);
-  }, RUNS_THE_REAL_JOB);
+  it(
+    "never echoes the secret back",
+    async () => {
+      const response = await POST(
+        request({ authorization: `Bearer ${SECRET}` }) as never
+      );
+      expect(JSON.stringify(await response.json())).not.toContain(SECRET);
+    },
+    RUNS_THE_REAL_JOB
+  );
 });
