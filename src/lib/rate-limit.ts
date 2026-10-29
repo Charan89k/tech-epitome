@@ -297,4 +297,6 @@ export const RATE_LIMITS = {
   CAMPUS_ANSWER_SAVE: { limit: 120, windowMs: 60_000 },
   /** Exam attempt starts and submissions, per student. */
   CAMPUS_ATTEMPT: { limit: 30, windowMs: 60 * 60_000 },
+  /** New public share links, per learner. */
+  SHARE_LINK: { limit: 10, windowMs: 60 * 60_000 },
 } as const;

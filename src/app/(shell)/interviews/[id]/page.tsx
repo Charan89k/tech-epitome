@@ -12,7 +12,12 @@ import {
   type EvaluationDimension,
   type RatingBand,
 } from "@/lib/interview/types";
+import { Button } from "@/components/ui/button";
+import { SELF_CHECK } from "@/lib/interview/feedback";
+import { dimensionsFor } from "@/lib/interview/types";
 import { getInterview } from "@/services/interview";
+
+import { deleteInterviewAction } from "../actions";
 
 export const metadata: Metadata = {
   title: "Interview",
@@ -59,6 +64,13 @@ export default async function InterviewPage({ params }: PageProps<"/interviews/[
         </span>
       </div>
 
+      {session.transcriptDeletedAt && (
+        <p className="mt-4 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+          This transcript and your code were deleted under the retention policy. The
+          written feedback below is kept.
+        </p>
+      )}
+
       <div className="mt-5">
         <InterviewRoom
           sessionId={session.id}
@@ -99,8 +111,10 @@ export default async function InterviewPage({ params }: PageProps<"/interviews/[
                   AI-generated feedback.
                 </strong>{" "}
                 Written by a language model reading your transcript. Each judgement
-                cites what it is based on, so you can disagree with it. There is no
-                overall score, and this is not equivalent to a real company interview.
+                cites what it is based on, and quotations are checked against what you
+                actually said, so you can disagree with it. There is no overall score.
+                It is advisory: it is not a real company interview and does not
+                predict or guarantee placement or hiring.
               </p>
             </div>
 
@@ -171,6 +185,45 @@ export default async function InterviewPage({ params }: PageProps<"/interviews/[
           </section>
         </>
       )}
+      {session.stage === "ENDED" && !session.feedback && session.transcript.length > 0 && (
+        <section
+          aria-labelledby="self-review"
+          className="mt-8 rounded-xl border border-border bg-card p-4 sm:p-6"
+        >
+          <h2 id="self-review" className="tracking-headline text-lg font-semibold">
+            Self-review
+          </h2>
+          <p className="mt-2 text-xs text-muted-foreground">
+            The rubric written feedback uses. Read your transcript above against each
+            question. Useful when AI feedback is unavailable, and on its own.
+          </p>
+          <ul className="mt-4 space-y-2 text-sm">
+            {dimensionsFor(session.type).map((d) => (
+              <li key={d}>
+                <span className="font-medium">{DIMENSION_LABELS[d]}:</span>{" "}
+                <span className="text-muted-foreground">{SELF_CHECK[d]}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <form
+        action={deleteInterviewAction.bind(null, session.id)}
+        className="mt-10 border-t border-border pt-6"
+      >
+        <p className="mb-2 text-xs text-muted-foreground">
+          Your transcripts are private to you. Deleting removes this interview, its
+          transcript, code and feedback permanently.
+        </p>
+        <label className="mb-2 flex items-center gap-2 text-xs">
+          <input type="checkbox" name="confirm" required />
+          I understand this cannot be undone.
+        </label>
+        <Button type="submit" variant="destructive" size="sm">
+          Delete this interview
+        </Button>
+      </form>
     </div>
   );
 }

@@ -313,6 +313,17 @@ export function boundTranscript(turns: TranscriptTurn[]): TranscriptTurn[] {
   return kept;
 }
 
+/**
+ * Whether `message` is a resend of the candidate's last turn, which the
+ * interviewer never answered (the provider failed or the connection
+ * dropped). The turn was saved before the model was called, so saving it
+ * again would put it in the transcript twice.
+ */
+export function isUnansweredRepeat(turns: TranscriptTurn[], message: string): boolean {
+  const last = turns.at(-1);
+  return last?.role === "USER" && last.content.trim() === message.trim();
+}
+
 export type InterviewContextInput = {
   type: InterviewKind;
   difficulty: string;

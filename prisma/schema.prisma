@@ -294,6 +294,7 @@ model User {
   memberships        InstitutionMembership[]
   cohortMemberships  CohortMember[]
   assessmentAttempts AssessmentAttempt[]
+  shareLinks         ShareLink[]
 
   accounts Account[]
   sessions Session[]
@@ -1211,9 +1212,12 @@ model InterviewSession {
   language Language @default(PYTHON)
   code     String?  @db.Text
 
-  startedAt       DateTime  @default(now())
-  endedAt         DateTime?
-  durationSeconds Int       @default(0)
+  startedAt           DateTime  @default(now())
+  endedAt             DateTime?
+  durationSeconds     Int       @default(0)
+  /// Set when the retention job deleted the transcript and code
+  /// (INTERVIEW_TRANSCRIPT_RETENTION_DAYS). The feedback is kept.
+  transcriptDeletedAt DateTime?
 
   user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// SetNull rather than Cascade: retiring a problem must not delete a
@@ -2111,7 +2115,7 @@ model AssessmentAttempt {
 }
 
 model AttemptAnswer {
-  id            String @id @default(cuid())
+  id            String   @id @default(cuid())
   institutionId String
   attemptId     String
   questionKey   String
@@ -2135,4 +2139,26 @@ model AttemptAnswer {
 
   @@unique([attemptId, questionKey])
   @@map("attempt_answers")
+}
+
+// ===========================================================================
+// SHARING
+// ===========================================================================
+
+/// A revocable public link to a learner's achievement summary. Only the
+/// SHA-256 of the token is stored. The summary shows achievements and
+/// activity counts, never scores, feedback, transcripts, notes or email.
+model ShareLink {
+  id          String    @id @default(cuid())
+  userId      String
+  tokenHash   String    @unique
+  /// What the page calls the learner. Chosen by them; never their account name by default.
+  displayName String?
+  createdAt   DateTime  @default(now())
+  revokedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("share_links")
 }

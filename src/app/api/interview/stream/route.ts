@@ -8,6 +8,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import {
   boundTranscript,
   buildInterviewSystemPrompt,
+  isUnansweredRepeat,
   renderInterviewContext,
 } from "@/lib/interview/policy";
 import {
@@ -119,12 +120,14 @@ export async function POST(request: NextRequest) {
 
   // Persist what the candidate said before calling the model, so a
   // provider failure leaves a transcript that still reads correctly.
-  if (input.message?.trim()) {
+  const message = input.message?.trim() ?? "";
+  const repeat = message !== "" && isUnansweredRepeat(context.transcript, message);
+  if (message && !repeat) {
     await appendTranscript({
       sessionId: input.sessionId,
       userId: user.id,
       role: "USER",
-      content: input.message.trim(),
+      content: message,
     });
   }
 
@@ -150,8 +153,8 @@ export async function POST(request: NextRequest) {
   });
 
   const transcript = boundTranscript(
-    input.message?.trim()
-      ? [...context.transcript, { role: "USER" as const, content: input.message.trim() }]
+    message && !repeat
+      ? [...context.transcript, { role: "USER" as const, content: message }]
       : context.transcript
   );
 

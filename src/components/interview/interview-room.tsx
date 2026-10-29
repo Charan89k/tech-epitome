@@ -246,6 +246,18 @@ export function InterviewRoom({
     void turn({ message: text });
   }
 
+  /**
+   * Resends the candidate's last message after a failed or dropped turn.
+   * The server recognises an unanswered repeat and does not save it twice;
+   * if the first attempt never reached it, this saves it now.
+   */
+  function retryLast() {
+    const last = turns.at(-1);
+    if (streaming || last?.role !== "USER") return;
+    setTurns((prev) => prev.slice(0, -1));
+    void turn({ message: last.content });
+  }
+
   function finish() {
     if (streaming) return;
     void turn({ end: true }).then(async () => {
@@ -380,6 +392,16 @@ export function InterviewRoom({
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+      )}
+      {!ended && !streaming && turns.at(-1)?.role === "USER" && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted-foreground">
+            The interviewer has not answered your last message. It is saved.
+          </span>
+          <Button size="sm" variant="outline" onClick={retryLast}>
+            Try again
+          </Button>
+        </div>
       )}
 
       {ended ? (

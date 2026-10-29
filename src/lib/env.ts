@@ -113,6 +113,11 @@ const serverSchema = z.object({
     .default("false"),
 
   CRON_SECRET: z.preprocess(emptyToUndefined, z.string().min(24).optional()),
+  /**
+   * Days after an interview ends before the retention job (POST
+   * /api/cron/retention) deletes its transcript and code. Feedback stays.
+   */
+  INTERVIEW_TRANSCRIPT_RETENTION_DAYS: z.coerce.number().int().min(7).max(3650).default(180),
 
   SEED_ADMIN_EMAIL: z.string().email().default("admin@techepitome.local"),
   SEED_ADMIN_PASSWORD: z.string().min(8).default("forge-admin-dev"),

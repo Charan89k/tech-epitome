@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+
+import { nextSteps } from "@/lib/career/next-steps";
 import {
   CheckCircle2,
   ChevronLeft,
@@ -347,6 +349,27 @@ export default async function PrepTrackPage({
                 of {track.progress.total} recommended problems solved.
               </p>
             </div>
+          )}
+
+          {track.progress && nextSteps(track).length > 0 && (
+            <section
+              aria-labelledby="next-steps"
+              className="bg-card border-border rounded-xl border p-4"
+            >
+              <h2 id="next-steps" className="text-sm font-semibold">
+                Next steps
+              </h2>
+              <ol className="mt-3 space-y-3">
+                {nextSteps(track).map((step) => (
+                  <li key={step.href} className="text-sm">
+                    <Link href={route(step.href)} className="font-medium hover:underline">
+                      {step.label}
+                    </Link>
+                    <p className="text-muted-foreground text-xs">{step.why}</p>
+                  </li>
+                ))}
+              </ol>
+            </section>
           )}
 
           {track.focusAreas.length > 0 && (

@@ -543,6 +543,11 @@ Vercel Postgres all work.
 - **Review reminder emails.** Point a scheduler at
   `POST /api/cron/notifications` with `Authorization: Bearer $CRON_SECRET`.
   Without it no reminders are sent; nothing else is affected.
+- **Interview transcript retention.** Point a daily scheduler at
+  `POST /api/cron/retention` (same secret). It deletes transcripts and code
+  `INTERVIEW_TRANSCRIPT_RETENTION_DAYS` (default 180) after an interview ends;
+  feedback is kept. **If nothing calls it, nothing is deleted** (learners can
+  still delete any interview themselves). See [docs/CAREER.md](docs/CAREER.md).
 - **More than one instance (or serverless)?** Set `RATE_LIMIT_STORE=postgres`
   and `REQUIRE_DISTRIBUTED_RATE_LIMIT=true`. Counters then live in the
   `rate_limit_buckets` table, so a limit holds across every instance instead of
@@ -600,7 +605,12 @@ Stated plainly, because a README that hides them is not documentation.
 - **The Anthropic adapter and the Resend adapter** are tested against stubs,
   not their real services.
 - **Interview feedback is AI-generated** and labelled as such. It is a language
-  model reading a transcript, not an assessment.
+  model reading a transcript, not an assessment, and no guarantee of placement or
+  hiring. Quotations in it are checked against the transcript; the judgements
+  themselves are the model's.
+- **No aptitude practice for individual learners.** The platform has no aptitude
+  question content of its own to grade against; colleges can add aptitude
+  questions to their own question banks (docs/CAMPUS.md).
 
 The [engineering reference](docs/ENGINEERING.md) has the complete list.
 

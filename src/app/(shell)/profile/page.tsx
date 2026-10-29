@@ -18,7 +18,9 @@ import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/dashboard/panel";
 import { describeEvent } from "@/lib/analytics";
 import { requireUser } from "@/lib/auth/session";
+import { SharePanel } from "@/components/profile/share-panel";
 import { listAchievements } from "@/services/achievements";
+import { getActiveShareLink } from "@/services/sharing";
 import { prisma } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { getProgressSummary } from "@/services/progress";
@@ -54,6 +56,7 @@ export default async function ProfilePage() {
     select: { id: true, name: true, createdAt: true },
   });
   const achievements = await listAchievements(user.id);
+  const shareLink = await getActiveShareLink(user.id);
 
   const totalSolved = summary.problemsSolved;
   const unlockedCount = achievements.filter((a) => a.unlockedAt !== null).length;
@@ -303,6 +306,21 @@ export default async function ProfilePage() {
             )}
           </Panel>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <Panel title="Share your achievements" bodyClassName="p-4 sm:p-5">
+          <SharePanel
+            active={
+              shareLink
+                ? {
+                    createdAt: shareLink.createdAt.toISOString(),
+                    displayName: shareLink.displayName,
+                  }
+                : null
+            }
+          />
+        </Panel>
       </div>
     </div>
   );
