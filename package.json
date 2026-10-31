@@ -28,6 +28,7 @@
     "content:sync:dry": "tsx scripts/chapter-content-sync.ts --dry-run",
     "content:sync:prod": "NODE_ENV=production tsx scripts/chapter-content-sync.ts",
     "content:sync:prod:dry": "NODE_ENV=production tsx scripts/chapter-content-sync.ts --dry-run",
+    "problems:import": "tsx scripts/import-problems.ts",
     "problems:verify": "tsx --conditions=react-server scripts/verify-problems.ts",
     "problems:sync:dry": "tsx scripts/problem-sync.ts --dry-run",
     "problems:sync:prod:dry": "NODE_ENV=production tsx scripts/problem-sync.ts --dry-run",

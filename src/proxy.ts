@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import NextAuth from "next-auth";
 
 import { authConfig } from "@/lib/auth/config";
+import { isPortalLoginPath, loginPathFor } from "@/lib/auth/login-path";
 
 /**
  * Edge proxy (what earlier Next.js versions called middleware).
@@ -34,12 +35,15 @@ const PROTECTED_PREFIXES = [
   "/ai-tutor",
   "/admin",
   "/campus",
+  "/prepare",
+  "/roadmaps",
 ];
 
 /** Paths a signed-in user should be bounced away from. */
 const AUTH_PAGES = ["/login", "/signup"];
 
 function isProtected(pathname: string): boolean {
+  if (isPortalLoginPath(pathname)) return false;
   return PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
@@ -51,7 +55,7 @@ export default auth((request) => {
 
   if (!signedIn && isProtected(pathname)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = loginPathFor(pathname);
     url.search = `?next=${encodeURIComponent(pathname + search)}`;
     return NextResponse.redirect(url);
   }

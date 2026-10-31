@@ -16,6 +16,7 @@ import {
   listInstitutions,
 } from "@/services/institutions-platform";
 
+import { InviteForm } from "@/components/campus/invite-form";
 import {
   addDomainAction,
   createInstitutionAction,
@@ -191,18 +192,23 @@ export default async function AdminInstitutionsPage({
                 </div>
                 <div>
                   <h3 className="text-sm font-medium">Invite an institution admin</h3>
-                  <form
-                    action={inviteAdminAction.bind(null, inst.id)}
-                    className="mt-2 flex gap-2"
-                  >
-                    <label htmlFor={`admin-${inst.id}`} className="sr-only">
-                      Admin email for {inst.name}
-                    </label>
-                    <Input id={`admin-${inst.id}`} name="email" type="email" required />
-                    <Button type="submit" variant="outline" size="sm">
-                      Invite
-                    </Button>
-                  </form>
+                  <div className="mt-2">
+                    <InviteForm
+                      action={inviteAdminAction.bind(null, inst.id)}
+                      className="flex gap-2"
+                      submitLabel="Invite"
+                    >
+                      <label htmlFor={`admin-${inst.id}`} className="sr-only">
+                        Admin email for {inst.name}
+                      </label>
+                      <Input
+                        id={`admin-${inst.id}`}
+                        name="email"
+                        type="email"
+                        required
+                      />
+                    </InviteForm>
+                  </div>
                 </div>
               </div>
             </li>

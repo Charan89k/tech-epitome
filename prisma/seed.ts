@@ -417,7 +417,7 @@ async function main() {
   console.log("Seeding Tech Epitome…");
 
   // The admin and demo accounts have public default passwords, so they never
-  // reach production; the first admin is promoted by hand (docs/DEPLOY.md).
+  // reach production; the first admin is promoted by hand.
   if (process.env.NODE_ENV === "production") {
     console.log("  users          skipped (production)");
   } else {

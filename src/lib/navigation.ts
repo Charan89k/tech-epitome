@@ -4,6 +4,10 @@ import {
   Bookmark,
   Building2,
   Boxes,
+  Calculator,
+  CalendarCheck,
+  ChartColumn,
+  ClipboardList,
   Compass,
   FileText,
   GraduationCap,
@@ -11,6 +15,7 @@ import {
   Library,
   LayoutDashboard,
   ListChecks,
+  Medal,
   MessagesSquare,
   Network,
   PlayCircle,
@@ -19,6 +24,8 @@ import {
   Shapes,
   ShieldCheck,
   Sparkles,
+  Trophy,
+  Upload,
 } from "lucide-react";
 
 import { canAccess, FEATURES, type Feature } from "@/lib/auth/access";
@@ -45,8 +52,6 @@ export type NavItem = {
   description?: string;
   /** Match child routes for active state. Defaults to true. */
   matchNested?: boolean;
-  /** Part of the college offering: shown only to Campus members. */
-  campusOnly?: boolean;
 };
 
 export type NavGroup = {
@@ -70,6 +75,42 @@ export const primaryNav: NavGroup[] = [
         href: "/review",
         icon: Repeat2,
         description: "Recall what you have learned, before you forget it",
+      },
+    ],
+  },
+  {
+    label: "Practice",
+    items: [
+      {
+        title: "Problems",
+        href: "/problems",
+        icon: ListChecks,
+        description: "Search and filter the catalogue, solve, track attempts",
+      },
+      {
+        title: "Daily Challenge",
+        href: "/daily",
+        icon: CalendarCheck,
+        description: "One problem a day, the same for everyone",
+      },
+      {
+        title: "Contests",
+        href: "/contests",
+        icon: Trophy,
+        description: "Timed problem sets with live standings",
+      },
+      {
+        title: "Leaderboard",
+        href: "/leaderboard",
+        icon: Medal,
+        description: "Learners who chose to be listed, ranked by problems solved",
+      },
+      {
+        title: "Live Visualizer",
+        href: "/visualize",
+        icon: PlayCircle,
+        feature: FEATURES.VISUALIZE,
+        description: "Step through algorithms frame by frame, or your own code",
       },
     ],
   },
@@ -110,19 +151,6 @@ export const primaryNav: NavGroup[] = [
         description: "Recognise the shape of a problem",
       },
       {
-        title: "Problems",
-        href: "/problems",
-        icon: ListChecks,
-        description: "Solve, run tests, track attempts",
-      },
-      {
-        title: "Visualize",
-        href: "/visualize",
-        icon: PlayCircle,
-        feature: FEATURES.VISUALIZE,
-        description: "Step through algorithms frame by frame",
-      },
-      {
         title: "Design Exercises",
         href: "/system-design",
         icon: Boxes,
@@ -141,42 +169,6 @@ export const primaryNav: NavGroup[] = [
         feature: FEATURES.AI_TUTOR,
         description:
           "Work through what you are stuck on, without being handed the answer",
-      },
-    ],
-  },
-  {
-    // The college offering. Everyone sees the workspace link (to join or
-    // accept an invitation); the rest only for members, who are also the
-    // only ones the server lets in (src/lib/campus-access.ts).
-    label: "Campus",
-    items: [
-      {
-        title: "Campus",
-        href: "/campus",
-        icon: Building2,
-        description: "Your college: classes, assignments and exams",
-      },
-      {
-        title: "Mock Interviews",
-        href: "/interviews",
-        icon: MessagesSquare,
-        feature: FEATURES.AI_MOCK_INTERVIEW,
-        campusOnly: true,
-        description: "Practise an interview, then read feedback with evidence",
-      },
-      {
-        title: "Interview Prep",
-        href: "/prepare",
-        icon: Compass,
-        campusOnly: true,
-        description: "Plans for the shapes interview loops come in",
-      },
-      {
-        title: "Roadmaps",
-        href: "/roadmaps",
-        icon: Route,
-        campusOnly: true,
-        description: "What to learn, in what order, and where to practise it",
       },
     ],
   },
@@ -221,21 +213,153 @@ export const primaryNav: NavGroup[] = [
 ];
 
 /**
- * The groups a given viewer should see: staff items only for admins, Campus
- * items only for members of a college (and admins). This only hides links;
- * admin pages call `requireAdmin` and Campus pages `requireCampusUser`.
+ * The two products. Learn is public; Campus belongs to a college. The path
+ * decides which navigation shows, so each reads as its own product.
  */
-export type NavViewer = { role: "USER" | "ADMIN"; campusMember?: boolean } | null;
+export type Product = "learn" | "campus";
 
-export function navForViewer(viewer: NavViewer): NavGroup[] {
-  const campus = viewer?.role === "ADMIN" || Boolean(viewer?.campusMember);
+const CAMPUS_PATHS = ["/campus", "/interviews", "/prepare", "/roadmaps"];
+
+export function productForPath(pathname: string): Product {
+  return CAMPUS_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+    ? "campus"
+    : "learn";
+}
+
+/** The viewer's college, if any: the one faculty work happens in comes first. */
+export type NavCampus = {
+  slug: string;
+  role: "STUDENT" | "FACULTY" | "INSTITUTION_ADMIN";
+};
+
+/**
+ * What a given viewer should see. This only hides links; admin pages call
+ * `requireAdmin` and Campus pages `requireCampusUser` or `requireMember`.
+ */
+export type NavViewer = {
+  role: "USER" | "ADMIN";
+  campusMember?: boolean;
+  campus?: NavCampus | null;
+} | null;
+
+function campusNav(viewer: NavViewer): NavGroup[] {
+  const member = viewer?.role === "ADMIN" || Boolean(viewer?.campusMember);
+  const college = viewer?.campus ?? null;
+  const groups: NavGroup[] = [
+    {
+      label: "Campus",
+      items: [
+        {
+          title: college ? "My College" : "Campus",
+          href: college ? `/campus/${college.slug}` : "/campus",
+          icon: Building2,
+          description: "Your college: classes, assignments and exams",
+        },
+      ],
+    },
+  ];
+  if (!member) return groups;
+
+  if (college && college.role !== "STUDENT") {
+    groups.push({
+      label: "Teaching",
+      items: [
+        {
+          title: "Question Banks",
+          href: `/campus/${college.slug}/banks`,
+          icon: Library,
+          description: "Multiple-choice and coding questions for your exams",
+        },
+        {
+          title: "Analytics",
+          href: `/campus/${college.slug}/analytics`,
+          icon: ChartColumn,
+          description: "Participation and scores by class",
+        },
+        {
+          title: "Import Roster",
+          href: `/campus/${college.slug}/import`,
+          icon: Upload,
+          description: "Invite a class from a CSV",
+        },
+      ],
+    });
+  }
+
+  groups.push(
+    {
+      label: "Practice",
+      items: [
+        {
+          title: "Exams",
+          href: "/campus/exams",
+          icon: ClipboardList,
+          description: "Upcoming and past exams across your classes",
+        },
+        {
+          title: "DSA Practice",
+          href: "/campus/practice",
+          icon: ListChecks,
+          description: "Patterns and problems, with your progress",
+        },
+        {
+          title: "Aptitude",
+          href: "/campus/aptitude",
+          icon: Calculator,
+          description: "Quantitative, logical and verbal practice sets",
+        },
+      ],
+    },
+    {
+      label: "Placement",
+      items: [
+        {
+          title: "Mock Interviews",
+          href: "/interviews",
+          icon: MessagesSquare,
+          feature: FEATURES.AI_MOCK_INTERVIEW,
+          description: "Practise an interview, then read feedback with evidence",
+        },
+        {
+          title: "Interview Prep",
+          href: "/prepare",
+          icon: Compass,
+          description: "Plans for the shapes interview loops come in",
+        },
+        {
+          title: "Roadmaps",
+          href: "/roadmaps",
+          icon: Route,
+          description: "What to learn, in what order, and where to practise it",
+        },
+      ],
+    },
+    {
+      label: "Library",
+      items: [
+        {
+          title: "Notes and Highlights",
+          href: "/campus/library",
+          icon: FileText,
+          description:
+            "Your notes, highlights and bookmarks. Your college cannot read them",
+        },
+      ],
+    }
+  );
+  return groups;
+}
+
+export function navForViewer(
+  viewer: NavViewer,
+  product: Product = "learn"
+): NavGroup[] {
+  if (product === "campus") return campusNav(viewer);
   return primaryNav
     .map((group) => ({
       ...group,
       items: group.items.filter(
-        (item) =>
-          (item.feature !== FEATURES.ADMIN || canAccess(viewer, item.feature)) &&
-          (!item.campusOnly || campus)
+        (item) => item.feature !== FEATURES.ADMIN || canAccess(viewer, item.feature)
       ),
     }))
     .filter((group) => group.items.length > 0);
@@ -245,12 +369,12 @@ export function navForViewer(viewer: NavViewer): NavGroup[] {
 export const allNavItems: NavItem[] = primaryNav.flatMap((g) => g.items);
 
 /** Public marketing navigation. */
-/** Campus needs a college account, so a visitor gets the explanation instead. */
 export const marketingNav = [
-  { title: "Learn", href: "/learn" },
-  { title: "Patterns", href: "/patterns" },
   { title: "Problems", href: "/problems" },
-  { title: "Campus", href: "/#campus" },
+  { title: "Courses", href: "/learn" },
+  { title: "Visualizer", href: "/visualize" },
+  { title: "Contests", href: "/contests" },
+  { title: "Campus", href: "/campus/login" },
 ] as const;
 
 /**

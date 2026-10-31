@@ -28,6 +28,9 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       googleEnabled={isGoogleAuthEnabled()}
       githubEnabled={isGitHubAuthEnabled()}
       notice={authErrorMessage(params.error)}
+      success={
+        params.reset === "1" ? "Password changed. Sign in with the new one." : null
+      }
     />
   );
 }

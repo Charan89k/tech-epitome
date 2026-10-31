@@ -263,20 +263,19 @@ function Hero() {
             <span className="text-brand-300">Build with confidence.</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground">
-            Learn data structures, algorithms and system design from explanations that
-            draw what they describe, then practise in an editor that replays your own
-            code. Colleges get Campus: exams, assignments and interview preparation on
-            top.
+            Two products, one standard. Learn is open to everyone: problems, contests
+            and a live visualizer. Campus is your college&apos;s workspace: classes,
+            exams and placement preparation.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Button asChild size="lg" className="h-11 px-5 text-base">
-              <Link href="/signup">
-                Start learning
+              <Link href="/explore">
+                Explore Learn
                 <ArrowRight className="size-4" aria-hidden="true" />
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="h-11 px-5 text-base">
-              <Link href="/learn">Explore the courses</Link>
+              <Link href="/campus/login">Enter Campus</Link>
             </Button>
           </div>
           <dl className="mt-10 grid max-w-md grid-cols-4 gap-4 border-t border-border pt-6">

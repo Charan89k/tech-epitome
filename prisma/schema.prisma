@@ -107,6 +107,90 @@ enum ProblemStatus {
   SOLVED
 }
 
+enum ProblemSourceType {
+  ORIGINAL
+  LICENSED
+}
+
+/// One problem per UTC day. Fixed when first requested, so adding problems to
+/// the catalogue never changes a past day's challenge.
+model DailyChallenge {
+  date      DateTime @id @db.Date
+  problemId String
+  createdAt DateTime @default(now())
+
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@index([problemId])
+  @@map("daily_challenges")
+}
+
+model Contest {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  title          String
+  description    String   @db.Text
+  startsAt       DateTime
+  endsAt         DateTime
+  /// Minutes added to the score tie-break for each failed attempt on a
+  /// problem the entrant later solved.
+  penaltyMinutes Int      @default(5)
+  createdById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  createdBy User             @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  problems  ContestProblem[]
+  entries   ContestEntry[]
+
+  @@index([startsAt])
+  @@map("contests")
+}
+
+model ContestProblem {
+  contestId String
+  problemId String
+  order     Int
+  points    Int    @default(100)
+
+  contest Contest @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Restrict)
+
+  @@id([contestId, problemId])
+  @@unique([contestId, order])
+  @@index([problemId])
+  @@map("contest_problems")
+}
+
+model ContestEntry {
+  contestId String
+  userId    String
+  joinedAt  DateTime @default(now())
+
+  contest Contest @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([contestId, userId])
+  @@index([userId])
+  @@map("contest_entries")
+}
+
+/// A completed aptitude practice set. Personal learning: no institution can
+/// read it.
+model AptitudeAttempt {
+  id        String   @id @default(cuid())
+  userId    String
+  topic     String
+  correct   Int
+  total     Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("aptitude_attempts")
+}
+
 enum SubmissionStatus {
   QUEUED
   RUNNING
@@ -304,6 +388,9 @@ model User {
   problemProgress   UserProblemProgress[]
   patternMastery    UserPatternMastery[]
   submissions       Submission[]
+  contestEntries    ContestEntry[]
+  contestsCreated   Contest[]
+  aptitudeAttempts  AptitudeAttempt[]
   quizAttempts      QuizAttempt[]
   bookmarks         Bookmark[]
   notes             Note[]
@@ -389,6 +476,9 @@ model Profile {
 
   preferredLanguage Language @default(PYTHON)
   reducedMotion     Boolean  @default(false)
+  /// Opt-in: only then does this learner appear on leaderboards and at
+  /// /u/<username>. Off by default, so nobody is listed without choosing to.
+  publicProfile     Boolean  @default(false)
 
   // --- Onboarding ---------------------------------------------------------
   // All optional. Onboarding is genuinely skippable, so every field here
@@ -636,21 +726,31 @@ model Problem {
   expectedTime  String?
   expectedSpace String?
 
+  /// Where this problem came from. A non-original problem must name its
+  /// licence and attribution; the import command refuses it otherwise.
+  sourceType  ProblemSourceType @default(ORIGINAL)
+  sourceName  String?
+  sourceUrl   String?
+  license     String?
+  attribution String?           @db.Text
+
   searchVector Unsupported("tsvector")?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  testCases   TestCase[]
-  hints       Hint[]
-  solutions   Solution[]
-  patterns    ProblemPattern[]
-  topics      ProblemTopic[]
-  tags        ProblemTag[]
-  prepTracks  PrepTrackProblem[]
-  submissions Submission[]
-  progress    UserProblemProgress[]
-  chapters    ChapterProblem[]
+  testCases       TestCase[]
+  hints           Hint[]
+  solutions       Solution[]
+  patterns        ProblemPattern[]
+  topics          ProblemTopic[]
+  tags            ProblemTag[]
+  prepTracks      PrepTrackProblem[]
+  submissions     Submission[]
+  progress        UserProblemProgress[]
+  chapters        ChapterProblem[]
+  dailyChallenges DailyChallenge[]
+  contests        ContestProblem[]
 
   interviews InterviewSession[]
 

@@ -1,16 +1,30 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { requireUserOrThrow } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
 import { profileSettingsSchema } from "@/lib/validation/settings";
+import { publicProfileSchema, savePublicProfile } from "@/services/leaderboard";
 
 export type SettingsFormState = {
   status: "idle" | "saved" | "error";
   message?: string;
   fieldErrors?: Record<string, string>;
 };
+
+export async function savePublicProfileAction(form: FormData): Promise<void> {
+  const user = await requireUserOrThrow();
+  const parsed = publicProfileSchema.safeParse({
+    username: form.get("username"),
+    publicProfile: form.get("publicProfile") === "on",
+  });
+  if (!parsed.success) redirect("/settings?profile=invalid");
+  const result = await savePublicProfile(user.id, parsed.data);
+  revalidatePath("/leaderboard");
+  redirect(`/settings?profile=${result}`);
+}
 
 export async function updateSettingsAction(
   _prev: SettingsFormState,

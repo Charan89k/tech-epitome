@@ -29,6 +29,17 @@ function assertPlatformAdmin(actor: PlatformAdmin): void {
 }
 
 const SLUG = /^[a-z0-9](?:[a-z0-9-]{1,46}[a-z0-9])$/;
+/** Paths under /campus that a college's slug must not shadow. */
+const RESERVED_SLUGS = new Set([
+  "aptitude",
+  "enter",
+  "exams",
+  "invite",
+  "library",
+  "login",
+  "practice",
+  "verify-email",
+]);
 // A registrable hostname: labels of letters, digits and hyphens.
 const DOMAIN = /^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
 /** Where the institution publishes its proof of control. */
@@ -92,6 +103,8 @@ export async function createInstitution(
       "invalid",
       "Slug: 3-48 lowercase letters, digits and hyphens."
     );
+  if (RESERVED_SLUGS.has(slug))
+    throw new InstitutionError("invalid", "That slug is reserved.");
 
   return withTenantScope(
     { institutionId: null, userId: actor.id, platformAdmin: true },

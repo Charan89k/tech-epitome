@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import type { OneTimeLinkState } from "@/components/campus/invite-form";
 import { InstitutionRole, MembershipStatus } from "@/generated/prisma/enums";
 import { requireUserOrThrow } from "@/lib/auth/session";
+import { site } from "@/lib/site";
 import { InstitutionError, requireMemberOrThrow } from "@/lib/tenancy/context";
 import { route } from "@/lib/utils";
 import {
@@ -94,7 +96,11 @@ const inviteSchema = z.object({
   role: z.nativeEnum(InstitutionRole),
 });
 
-export async function inviteAction(slug: string, form: FormData): Promise<void> {
+export async function inviteAction(
+  slug: string,
+  _state: OneTimeLinkState,
+  form: FormData
+): Promise<OneTimeLinkState> {
   const safeSlug = slugSchema.parse(slug);
   const ctx = await requireMemberOrThrow(safeSlug, "members.invite");
   const parsed = inviteSchema.safeParse({
@@ -102,13 +108,18 @@ export async function inviteAction(slug: string, form: FormData): Promise<void> 
     role: form.get("role"),
   });
   if (!parsed.success) back(`/campus/${safeSlug}`, "invalid");
+  let undelivered: string | undefined;
   try {
-    await inviteMember(ctx, parsed.data);
+    ({ undeliveredToken: undelivered } = await inviteMember(ctx, parsed.data));
   } catch (error) {
     back(`/campus/${safeSlug}`, codeFor(error));
   }
   revalidatePath(`/campus/${safeSlug}`);
-  back(`/campus/${safeSlug}`, "invited");
+  if (!undelivered) back(`/campus/${safeSlug}`, "invited");
+  return {
+    link: new URL(`/campus/invite/${undelivered}`, site.url).toString(),
+    label: `Invitation for ${parsed.data.email}. It works only for that address.`,
+  };
 }
 
 export async function revokeInvitationAction(

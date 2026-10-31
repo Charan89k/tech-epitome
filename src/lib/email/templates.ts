@@ -46,8 +46,7 @@ export function reviewReminderEmail(
   input: ReviewReminderInput
 ): EmailMessage {
   const greeting = input.name?.trim() ? `Hi ${input.name.trim()}` : "Hi";
-  const count =
-    input.dueCount === 1 ? "1 item is" : `${input.dueCount} items are`;
+  const count = input.dueCount === 1 ? "1 item is" : `${input.dueCount} items are`;
 
   const reviewUrl = absolute("/review");
   const settingsUrl = absolute("/settings");
@@ -123,14 +122,45 @@ export function institutionInvitationEmail(
   ].join("");
   return {
     to,
-    subject: sanitiseHeaderValue(`Invitation to ${input.institutionName} on ${site.name}`),
+    subject: sanitiseHeaderValue(
+      `Invitation to ${input.institutionName} on ${site.name}`
+    ),
+    text,
+    html,
+  };
+}
+
+/** A one-time link to choose a new password. */
+export function passwordResetEmail(
+  to: { email: string },
+  input: { token: string }
+): EmailMessage {
+  const url = absolute(`/reset-password/${encodeURIComponent(input.token)}`);
+  const text = [
+    "Hi,",
+    "",
+    `Choose a new password for your ${site.name} account: ${url}`,
+    "",
+    "The link works once and expires in 1 hour. If you did not ask for it, ignore this email; your password has not changed.",
+  ].join("\n");
+  const html = [
+    `<p>Choose a new password for your ${escapeHtml(site.name)} account.</p>`,
+    `<p><a href="${escapeHtml(url)}">Reset my password</a></p>`,
+    `<p>The link works once and expires in 1 hour. If you did not ask for it, ignore this email; your password has not changed.</p>`,
+  ].join("");
+  return {
+    to,
+    subject: sanitiseHeaderValue(`Reset your ${site.name} password`),
     text,
     html,
   };
 }
 
 /** Confirms the learner controls their account address. */
-export function emailVerificationEmail(to: { email: string }, input: { token: string }): EmailMessage {
+export function emailVerificationEmail(
+  to: { email: string },
+  input: { token: string }
+): EmailMessage {
   const url = absolute(`/campus/verify-email/${encodeURIComponent(input.token)}`);
   const text = [
     "Hi,",
@@ -144,5 +174,10 @@ export function emailVerificationEmail(to: { email: string }, input: { token: st
     `<p><a href="${escapeHtml(url)}">Confirm my email</a></p>`,
     `<p>The link expires in 24 hours. If you did not ask for it, ignore this email.</p>`,
   ].join("");
-  return { to, subject: sanitiseHeaderValue(`Confirm your email for ${site.name}`), text, html };
+  return {
+    to,
+    subject: sanitiseHeaderValue(`Confirm your email for ${site.name}`),
+    text,
+    html,
+  };
 }

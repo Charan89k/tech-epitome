@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { requireAdmin } from "@/lib/auth/session";
 import { listUsers } from "@/services/admin";
 
-import { setUserSuspendedAction } from "../institutions/actions";
+import { OneTimeLinkButton } from "@/components/campus/invite-form";
+
+import { issueResetLinkAction, setUserSuspendedAction } from "../institutions/actions";
 import { Search, Users } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -153,6 +155,12 @@ export default async function AdminUsersPage({
                               {row.status === "ACTIVE" ? "Suspend" : "Reactivate"}
                             </Button>
                           </form>
+                        )}
+                        {row.status === "ACTIVE" && (
+                          <OneTimeLinkButton
+                            action={issueResetLinkAction.bind(null, row.id)}
+                            label="Reset link"
+                          />
                         )}
                       </div>
                     </td>

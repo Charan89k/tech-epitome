@@ -29,14 +29,14 @@ export type AccountSpec = {
 export const ACCOUNTS: readonly AccountSpec[] = [
   {
     key: "admin",
-    email: "admin@cloude5.tech",
+    email: process.env.PROVISION_ADMIN_EMAIL ?? "admin@techepitome.test",
     name: "Platform Admin",
     role: "ADMIN",
     passwordEnv: "PROVISION_ADMIN_PASSWORD",
   },
   {
     key: "student",
-    email: "student@cloude5.tech",
+    email: process.env.PROVISION_STUDENT_EMAIL ?? "student@techepitome.test",
     name: "Test Student",
     role: "USER",
     passwordEnv: "PROVISION_STUDENT_PASSWORD",

@@ -3,6 +3,8 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/common/page-header";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { savePublicProfileAction } from "./actions";
 import { SettingsForm } from "@/components/settings/settings-form";
 import { requireUser } from "@/lib/auth/session";
 import { emailIsConfigured } from "@/lib/email";
@@ -13,8 +15,15 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function SettingsPage() {
+const PROFILE_MESSAGES: Record<string, string> = {
+  saved: "Public profile saved.",
+  invalid: "A username is 3-30 lowercase letters, digits, hyphens or underscores.",
+  username_taken: "That username is taken.",
+};
+
+export default async function SettingsPage({ searchParams }: PageProps<"/settings">) {
   const user = await requireUser("/settings");
+  const { profile: profileMessage } = await searchParams;
 
   const profile = await prisma.profile.findUnique({
     where: { userId: user.id },
@@ -27,6 +36,8 @@ export default async function SettingsPage() {
       notifyInterviewGraded: true,
       notifyMilestones: true,
       emailReviewReminders: true,
+      username: true,
+      publicProfile: true,
     },
   });
 
@@ -59,6 +70,49 @@ export default async function SettingsPage() {
       {/* Onboarding is reachable afterwards on purpose: somebody who
           skipped should be able to come back, and somebody who answered
           should be able to change their mind. */}
+      <section className="mt-8 grid gap-3 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
+        <div className="lg:pt-4">
+          <h2 className="text-base font-semibold">Public profile</h2>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Off by default. Turn it on to appear on the leaderboard.
+          </p>
+        </div>
+        <form
+          action={savePublicProfileAction}
+          className="space-y-3 rounded-xl border border-border bg-card p-4"
+        >
+          {PROFILE_MESSAGES[String(profileMessage)] && (
+            <p role="status" className="text-sm">
+              {PROFILE_MESSAGES[String(profileMessage)]}
+            </p>
+          )}
+          <div>
+            <label htmlFor="username" className="text-sm font-medium">
+              Username
+            </label>
+            <Input
+              id="username"
+              name="username"
+              required
+              maxLength={30}
+              defaultValue={profile?.username ?? ""}
+              className="mt-1 max-w-xs"
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="publicProfile"
+              defaultChecked={profile?.publicProfile ?? false}
+            />
+            List me on the leaderboard and show my solved counts at /u/my-username
+          </label>
+          <Button type="submit" size="sm" variant="outline">
+            Update public profile
+          </Button>
+        </form>
+      </section>
+
       <section className="mt-8 grid gap-3 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
         <div className="lg:pt-4">
           <h2 className="text-base font-semibold">Getting started</h2>

@@ -7,7 +7,7 @@
 # GPG public key before it touches disk (no plaintext copy is ever
 # written; the private key is NOT on this server), plus a
 # checksum. Keeps BACKUP_KEEP_DAYS (default 14). Optional off-host copy with
-# rclone to RCLONE_REMOTE. Never shares a directory, key or remote with DPDP.
+# rclone to RCLONE_REMOTE. Never shares a directory, key or remote with another application.
 set -euo pipefail
 
 : "${BACKUP_DIR:?set BACKUP_DIR}"

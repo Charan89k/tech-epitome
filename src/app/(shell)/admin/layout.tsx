@@ -30,19 +30,18 @@ const TABS = [
   { href: "/admin/users", label: "Users" },
   { href: "/admin/institutions", label: "Institutions" },
   { href: "/admin/content", label: "Content" },
+  { href: "/admin/contests", label: "Contests" },
   { href: "/admin/ai", label: "AI usage" },
   { href: "/admin/audit", label: "Audit log" },
   { href: "/admin/operations", label: "Operations" },
 ] as const;
 
-export default async function AdminLayout({
-  children,
-}: LayoutProps<"/admin">) {
+export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   await requireAdmin();
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-      <p className="label-mono flex items-center gap-2 uppercase tracking-wider">
+      <p className="flex items-center gap-2 label-mono tracking-wider uppercase">
         <span className="size-1.5 bg-primary" aria-hidden="true" />
         Staff only
       </p>

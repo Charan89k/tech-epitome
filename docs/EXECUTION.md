@@ -17,7 +17,7 @@ for custom Run, one input validated against the problem signature.
 | Goal | Control |
 | --- | --- |
 | Read app secrets or the database | Code never runs in the web process. The worker host holds no app secrets and refuses to start if `DATABASE_URL`, `AUTH_SECRET` or other app keys are in its environment. Containers get no environment from the host. |
-| Reach internal services, cloud metadata, the DPDP app | `--network=none` (tested: a public IP, `169.254.169.254` and the Docker host gateway are all blocked). The worker host must also have no route to the DPDP system. |
+| Reach internal services, cloud metadata, other co-hosted applications | `--network=none` (tested: a public IP, `169.254.169.254` and the Docker host gateway are all blocked). The worker host must also have no route to the DPDP system. |
 | Read or change host files | No host mounts: the source arrives on stdin. Read-only root filesystem; only size-capped tmpfs at `/work` and `/tmp`. |
 | Escalate inside the container | uid/gid 65534, all capabilities dropped, `no-new-privileges`, Docker's default seccomp profile (tested: `CapEff=0`, `Seccomp=2`, `NoNewPrivs=1`). |
 | Escape the container | Plain runc shares the host kernel, so a kernel bug is an escape. Mitigations: a dedicated worker host with nothing of value on it, and gVisor via `EXECUTION_DOCKER_RUNTIME=runsc`. **This is the residual risk.** |
@@ -89,16 +89,15 @@ bet sensitive data on.
 
 ## Deployment prerequisites (none done)
 
-1. **A separate host for the worker, not the VPS that runs the DPDP
-   application.** That VPS holds compliance data and a Docker socket is
-   root-equivalent. Without a separate host, leave `CODE_EXECUTION_ENABLED`
+1. **A separate host for the worker, not a server that runs other
+   applications.** A Docker socket is root-equivalent on its host. Without a separate host, leave `CODE_EXECUTION_ENABLED`
    unset and execution stays off.
 2. On that host: Docker with cgroup v2; gVisor registered and
    `EXECUTION_DOCKER_RUNTIME=runsc`; AppArmor or SELinux enabled for the
    daemon; images pre-pulled (`python:3.13-alpine`, `node:22-alpine`,
    `eclipse-temurin:21-jdk-alpine`, `gcc:14`).
 3. Firewall: inbound only from the web app (private network or tunnel),
-   no route to the DPDP host or any database.
+   no route to other applications or any database.
 4. Run `npm run worker` as a non-root user in the `docker` group, with only
    `EXECUTION_WORKER_TOKEN` (32+ random characters) and the
    `EXECUTION_WORKER_*` settings in its environment, under a supervisor.
@@ -109,7 +108,7 @@ bet sensitive data on.
    `CODE_EXECUTION_ENABLED=true`.
 
 Production today (Vercel plus the public Judge0 CE) sends code to a third
-party that runs it outside every Tech-Epitome and DPDP boundary. After this
+party that runs it outside every Tech Epitome boundary. After this
 change it keeps working only if `CODE_EXECUTION_ENABLED=true` is set on the
 next deploy: a deliberate decision for the operator, not a default.
 

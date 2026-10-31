@@ -7,7 +7,12 @@ import { ChevronLeft, ChevronRight, LogIn } from "lucide-react";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { canAccess } from "@/lib/auth/access";
-import { isNavItemActive, navForViewer, type NavViewer } from "@/lib/navigation";
+import {
+  isNavItemActive,
+  navForViewer,
+  productForPath,
+  type NavViewer,
+} from "@/lib/navigation";
 import { cn, route } from "@/lib/utils";
 
 /**
@@ -76,79 +81,81 @@ export function AppRail({ user }: { user: NavViewer }) {
           )}
         </button>
 
-        {navForViewer(user).map(({ label, items }, groupIndex) => {
-          return (
-            <div
-              key={label}
-              className={cn(
-                groupIndex > 0 && "mt-1.5 border-t border-border/60 pt-1.5"
-              )}
-            >
-              {expanded && (
-                <p className="label-mono px-2.5 pt-1 pb-1 uppercase tracking-wider">
-                  {label}
-                </p>
-              )}
-              <ul className="space-y-0.5">
-                {items.map((item) => {
-                  const active = isNavItemActive(item, pathname);
-                  const needsAccount = item.feature
-                    ? !canAccess(user, item.feature)
-                    : false;
-                  const link = (
-                    <Link
-                      href={route(item.href)}
-                      aria-current={active ? "page" : undefined}
-                      className={cn(
-                        "relative flex h-9 items-center gap-2.5 rounded-md text-sm transition-colors",
-                        expanded ? "px-2.5" : "w-9 justify-center",
-                        active
-                          ? "bg-accent font-medium text-foreground before:absolute before:inset-y-2 before:-left-1.5 before:w-0.5 before:rounded-full before:bg-primary"
-                          : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                      )}
-                    >
-                      <item.icon
+        {navForViewer(user, productForPath(pathname)).map(
+          ({ label, items }, groupIndex) => {
+            return (
+              <div
+                key={label}
+                className={cn(
+                  groupIndex > 0 && "mt-1.5 border-t border-border/60 pt-1.5"
+                )}
+              >
+                {expanded && (
+                  <p className="px-2.5 pt-1 pb-1 label-mono tracking-wider uppercase">
+                    {label}
+                  </p>
+                )}
+                <ul className="space-y-0.5">
+                  {items.map((item) => {
+                    const active = isNavItemActive(item, pathname);
+                    const needsAccount = item.feature
+                      ? !canAccess(user, item.feature)
+                      : false;
+                    const link = (
+                      <Link
+                        href={route(item.href)}
+                        aria-current={active ? "page" : undefined}
                         className={cn(
-                          "size-[1.05rem] shrink-0",
-                          active && "text-primary"
+                          "relative flex h-9 items-center gap-2.5 rounded-md text-sm transition-colors",
+                          expanded ? "px-2.5" : "w-9 justify-center",
+                          active
+                            ? "bg-accent font-medium text-foreground before:absolute before:inset-y-2 before:-left-1.5 before:w-0.5 before:rounded-full before:bg-primary"
+                            : "text-muted-foreground hover:bg-accent hover:text-foreground"
                         )}
-                        aria-hidden="true"
-                      />
-                      {expanded ? (
-                        <>
-                          <span className="truncate">{item.title}</span>
-                          {needsAccount && (
-                            <LogIn
-                              className="ml-auto size-3 shrink-0 text-muted-foreground/50"
-                              aria-label="Sign in required"
-                            />
+                      >
+                        <item.icon
+                          className={cn(
+                            "size-[1.05rem] shrink-0",
+                            active && "text-primary"
                           )}
-                        </>
-                      ) : (
-                        <span className="sr-only">{item.title}</span>
-                      )}
-                    </Link>
-                  );
-                  return (
-                    <li key={item.href}>
-                      {expanded ? (
-                        link
-                      ) : (
-                        <Tooltip>
-                          <TooltipTrigger asChild>{link}</TooltipTrigger>
-                          <TooltipContent side="right">
-                            {item.title}
-                            {needsAccount && " · sign in to use — it is free"}
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          );
-        })}
+                          aria-hidden="true"
+                        />
+                        {expanded ? (
+                          <>
+                            <span className="truncate">{item.title}</span>
+                            {needsAccount && (
+                              <LogIn
+                                className="ml-auto size-3 shrink-0 text-muted-foreground/50"
+                                aria-label="Sign in required"
+                              />
+                            )}
+                          </>
+                        ) : (
+                          <span className="sr-only">{item.title}</span>
+                        )}
+                      </Link>
+                    );
+                    return (
+                      <li key={item.href}>
+                        {expanded ? (
+                          link
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>{link}</TooltipTrigger>
+                            <TooltipContent side="right">
+                              {item.title}
+                              {needsAccount && " · sign in to use — it is free"}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          }
+        )}
       </nav>
     </aside>
   );

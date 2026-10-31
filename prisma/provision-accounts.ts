@@ -15,8 +15,8 @@ import {
 } from "../src/lib/provisioning";
 
 /**
- * Provisions the two test accounts: admin@cloude5.tech (platform ADMIN) and
- * student@cloude5.tech (USER). Idempotent; see src/lib/provisioning.ts.
+ * Provisions two test accounts, a platform ADMIN and a USER, at the addresses in
+ * PROVISION_ADMIN_EMAIL and PROVISION_STUDENT_EMAIL. Idempotent; see src/lib/provisioning.ts.
  *
  *   npm run accounts:provision                  # both, prompts for passwords
  *   npm run accounts:provision -- --only student
@@ -25,7 +25,7 @@ import {
  * or, when unset and a terminal is attached, a prompt that does not echo.
  * Nothing prints a password. A non-local database is refused unless
  * `--allow-production` is passed and PROVISION_CONFIRM_DATABASE names it
- * (production use needs the owner's approval; see docs/DEPLOY.md).
+ * (production use needs the owner's approval).
  */
 
 loadEnv();

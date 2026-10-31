@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { VISUALIZATIONS } from "../registry";
+import { balancedBracketsViz } from "./balanced-brackets";
+import { bstInsertViz } from "./bst-insert";
+import { dijkstraViz } from "./dijkstra";
+import { insertionSortViz } from "./insertion-sort";
+import { lcsViz } from "./longest-common-subsequence";
+import { minHeapViz } from "./min-heap";
+import { nQueensViz } from "./n-queens";
 import { binarySearchViz } from "./binary-search";
 import { breadthFirstViz } from "./breadth-first";
 import { depthFirstViz } from "./depth-first";
@@ -15,6 +22,67 @@ import { writePointerViz } from "./write-pointer";
  * that: they check the traces against independently-computed answers, so a
  * visualization that merely looks plausible fails.
  */
+
+describe("the algorithm traces reach the right answers", () => {
+  const last = <T>(frames: T[]) => frames[frames.length - 1]!;
+
+  it("insertion sort sorts", () => {
+    const input = [9, 1, 8, 2, 7, 3, 3, -4];
+    expect(last(insertionSortViz.buildFrames(input)).state.values).toEqual(
+      [...input].sort((a, b) => a - b)
+    );
+  });
+
+  it("the bracket stack accepts and refuses correctly", () => {
+    for (const [text, expected] of [
+      ["{[()]()}", true],
+      ["([)]", false],
+      ["((", false],
+      ["())", false],
+    ] as const) {
+      expect(last(balancedBracketsViz.buildFrames(text)).state.result, text).toBe(
+        expected
+      );
+    }
+  });
+
+  it("the BST holds every distinct value, in sorted drawing order", () => {
+    const { nodes } = last(bstInsertViz.buildFrames([5, 3, 8, 3, 1, 9])).state;
+    const left = [...nodes].sort((a, b) => a.x - b.x).map((n) => Number(n.label));
+    expect(left).toEqual([1, 3, 5, 8, 9]);
+  });
+
+  it("the heap pops values in ascending order", () => {
+    const frames = minHeapViz.buildFrames([9, 4, 7, 1, 8, 2]);
+    expect(last(frames).variables.popped).toBe("1 2 4 7 8 9");
+  });
+
+  it("Dijkstra finds the shortest distances", () => {
+    const { dist } = last(dijkstraViz.buildFrames(dijkstraViz.defaultInput)).state;
+    expect(dist).toEqual({ A: 0, B: 3, C: 1, D: 8, E: 11 });
+  });
+
+  it("N-Queens ends on a valid board, for every offered size", () => {
+    for (const n of [4, 5, 6]) {
+      const { queens, solved } = last(nQueensViz.buildFrames(n)).state;
+      expect(solved).toBe(true);
+      expect(queens).toHaveLength(n);
+      queens.forEach((a, i) =>
+        queens.forEach((b, j) => {
+          if (i < j) {
+            expect(a).not.toBe(b);
+            expect(Math.abs(a - b)).not.toBe(j - i);
+          }
+        })
+      );
+    }
+  });
+
+  it("LCS finds the known length", () => {
+    const { table } = last(lcsViz.buildFrames({ a: "ABCBDAB", b: "BDCABA" })).state;
+    expect(table[7]![6]).toBe(4);
+  });
+});
 
 describe("the registry", () => {
   it("registers every visualization under its own key", () => {
@@ -36,7 +104,9 @@ describe("the registry", () => {
   it("produces frames whose highlighted line exists in the pseudocode", () => {
     for (const visualization of Object.values(VISUALIZATIONS)) {
       const frames = visualization.buildFrames(visualization.defaultInput);
-      expect(frames.length, `${visualization.key} produced no frames`).toBeGreaterThan(0);
+      expect(frames.length, `${visualization.key} produced no frames`).toBeGreaterThan(
+        0
+      );
 
       for (const frame of frames) {
         expect(
@@ -253,7 +323,12 @@ describe("write pointer", () => {
   });
 
   it("ends with the write pointer at the number of kept values", () => {
-    for (const input of [[0, 1, 0, 3, 12], [1, 2, 3], [0, 0, 0], [0, 0, 1]]) {
+    for (const input of [
+      [0, 1, 0, 3, 12],
+      [1, 2, 3],
+      [0, 0, 0],
+      [0, 0, 1],
+    ]) {
       const expected = input.filter((value) => value !== 0).length;
       expect(finalOf(input).state.write, `for [${input}]`).toBe(expected);
     }

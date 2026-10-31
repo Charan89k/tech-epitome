@@ -4,6 +4,7 @@ import { cache } from "react";
 import { forbidden, redirect, unauthorized } from "next/navigation";
 
 import { auth } from "@/lib/auth";
+import { loginPathFor } from "@/lib/auth/login-path";
 import { prisma } from "@/lib/db";
 import { route } from "@/lib/utils";
 import type { Role } from "@/generated/prisma/enums";
@@ -99,7 +100,8 @@ export async function requireUser(returnTo?: string): Promise<CurrentUser> {
     if (returnTo) params.set("next", returnTo);
     if (ended) params.set("ended", "1");
     const query = params.toString();
-    redirect(route(query ? `/login?${query}` : "/login"));
+    const login = loginPathFor(returnTo ?? "/");
+    redirect(route(query ? `${login}?${query}` : login));
   }
   return user;
 }
@@ -117,7 +119,7 @@ export async function requireUserOrThrow(): Promise<CurrentUser> {
 
 export async function requireAdmin(): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=%2Fadmin");
+  if (!user) redirect("/admin/login?next=%2Fadmin");
   if (user.role !== "ADMIN") forbidden();
   return user;
 }
@@ -148,14 +150,16 @@ export async function requireAdminOrThrow(): Promise<CurrentUser> {
  * for a signed-out visitor — the OS media query still applies to them,
  * and it applies to everyone.
  */
-export const getMotionPreference = cache(async function getMotionPreference(): Promise<boolean> {
-  const session = await auth();
-  const id = session?.user?.id;
-  if (!id) return false;
+export const getMotionPreference = cache(
+  async function getMotionPreference(): Promise<boolean> {
+    const session = await auth();
+    const id = session?.user?.id;
+    if (!id) return false;
 
-  const profile = await prisma.profile.findUnique({
-    where: { userId: id },
-    select: { reducedMotion: true },
-  });
-  return profile?.reducedMotion ?? false;
-});
+    const profile = await prisma.profile.findUnique({
+      where: { userId: id },
+      select: { reducedMotion: true },
+    });
+    return profile?.reducedMotion ?? false;
+  }
+);

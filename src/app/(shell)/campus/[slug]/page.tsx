@@ -14,6 +14,7 @@ import { CampusTrail } from "@/components/campus/campus-trail";
 import { PageHeader } from "@/components/common/page-header";
 import { SectionHeading } from "@/components/common/section-heading";
 import { Badge } from "@/components/ui/badge";
+import { InviteForm } from "@/components/campus/invite-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -227,39 +228,40 @@ export default async function InstitutionPage({
                 title="Invite someone"
                 description="They join with the role you choose."
               />
-              <form
-                action={inviteAction.bind(null, ctx.institution.slug)}
-                className="mt-3 space-y-3"
-              >
-                <div>
-                  <label htmlFor="invite-email" className="text-sm font-medium">
-                    Email
-                  </label>
-                  <Input
-                    id="invite-email"
-                    name="email"
-                    type="email"
-                    required
-                    maxLength={254}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="invite-role" className="text-sm font-medium">
-                    Role
-                  </label>
-                  <NativeSelect id="invite-role" name="role" className="mt-1 w-full">
-                    {invitableRoles.map((r) => (
-                      <option key={r.value} value={r.value}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                </div>
-                <Button type="submit" className="w-full">
-                  Send invitation
-                </Button>
-              </form>
+              <div className="mt-3">
+                <InviteForm
+                  action={inviteAction.bind(null, ctx.institution.slug)}
+                  className="space-y-3"
+                  submitLabel="Send invitation"
+                  submitClassName="w-full"
+                >
+                  <div>
+                    <label htmlFor="invite-email" className="text-sm font-medium">
+                      Email
+                    </label>
+                    <Input
+                      id="invite-email"
+                      name="email"
+                      type="email"
+                      required
+                      maxLength={254}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="invite-role" className="text-sm font-medium">
+                      Role
+                    </label>
+                    <NativeSelect id="invite-role" name="role" className="mt-1 w-full">
+                      {invitableRoles.map((r) => (
+                        <option key={r.value} value={r.value}>
+                          {r.label}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  </div>
+                </InviteForm>
+              </div>
 
               {invitations.length > 0 && (
                 <>

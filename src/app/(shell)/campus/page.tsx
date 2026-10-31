@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/db";
-import { allNavItems } from "@/lib/navigation";
+import { navForViewer } from "@/lib/navigation";
 import { route } from "@/lib/utils";
 import { listMyMemberships } from "@/services/institutions";
 
@@ -20,7 +20,10 @@ import { joinByDomainAction, requestVerificationAction } from "./actions";
 export const metadata: Metadata = { title: "Campus" };
 
 /** Placement preparation comes with a membership; same items as the nav. */
-const PREPARATION = allNavItems.filter((item) => item.campusOnly);
+const PREPARATION =
+  navForViewer({ role: "USER", campusMember: true }, "campus").find(
+    (group) => group.label === "Placement"
+  )?.items ?? [];
 
 const ROLE_LABEL = {
   STUDENT: "Student",
@@ -55,8 +58,9 @@ export default async function CampusPage({ searchParams }: PageProps<"/campus">)
             <AlertTitle>That is part of Campus</AlertTitle>
             <AlertDescription>
               Mock interviews, interview preparation and roadmaps come with your
-              college&apos;s Campus workspace. Join with an invitation or a verified college
-              email below; courses, patterns and problems stay open to you either way.
+              college&apos;s Campus workspace. Join with an invitation or a verified
+              college email below; courses, patterns and problems stay open to you
+              either way.
             </AlertDescription>
           </Alert>
         )}
@@ -134,10 +138,7 @@ export default async function CampusPage({ searchParams }: PageProps<"/campus">)
         </section>
       )}
 
-      <section
-        aria-labelledby="join-heading"
-        className="mt-10"
-      >
+      <section aria-labelledby="join-heading" className="mt-10">
         <SectionHeading id="join-heading" title="Join with your college email" />
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
           If your college has verified its email domain, a verified address at that

@@ -2,9 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
-import type {Difficulty,
-  Language,
-  ProblemStatus} from "@/generated/prisma/enums";
+import type { Difficulty, Language, ProblemStatus } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import type { Signature } from "@/lib/code-execution/signature";
@@ -233,6 +231,13 @@ export type ProblemDetail = {
   number: number;
   slug: string;
   title: string;
+  provenance: {
+    sourceType: "ORIGINAL" | "LICENSED";
+    sourceName: string | null;
+    sourceUrl: string | null;
+    license: string | null;
+    attribution: string | null;
+  };
   statement: unknown;
   learningObjective: string | null;
   constraints: string[];
@@ -251,7 +256,12 @@ export type ProblemDetail = {
   patterns: { slug: string; name: string; tagline: string }[];
   topics: { slug: string; name: string }[];
   /** Sample cases only. Hidden cases never leave the server. */
-  sampleTests: { id: string; input: string; expected: string; explanation: string | null }[];
+  sampleTests: {
+    id: string;
+    input: string;
+    expected: string;
+    explanation: string | null;
+  }[];
   hintCount: number;
   solutionCount: number;
   progress: {
@@ -270,6 +280,11 @@ export const getProblem = cache(
       select: {
         id: true,
         number: true,
+        sourceType: true,
+        sourceName: true,
+        sourceUrl: true,
+        license: true,
+        attribution: true,
         slug: true,
         title: true,
         statement: true,
@@ -330,12 +345,20 @@ export const getProblem = cache(
       number: problem.number,
       slug: problem.slug,
       title: problem.title,
+      provenance: {
+        sourceType: problem.sourceType,
+        sourceName: problem.sourceName,
+        sourceUrl: problem.sourceUrl,
+        license: problem.license,
+        attribution: problem.attribution,
+      },
       statement: problem.statement,
       learningObjective: problem.learningObjective,
       constraints: problem.constraints,
       difficulty: problem.difficulty,
       starterCode: (problem.starterCode ?? {}) as Record<string, string>,
-      signature: (problem.harnessCode as { signature?: Signature } | null)?.signature ?? null,
+      signature:
+        (problem.harnessCode as { signature?: Signature } | null)?.signature ?? null,
       timeLimitMs: problem.timeLimitMs,
       memoryLimitMb: problem.memoryLimitMb,
       expectedTime: problem.expectedTime,
@@ -376,7 +399,8 @@ export const LANGUAGE_LABELS: Record<Language, string> = {
 };
 
 /** What the live visualizer will draw for a problem, from its first input. */
-export type InputShape = "array" | "string" | "linked list" | "grid" | "words" | "number";
+export type InputShape =
+  "array" | "string" | "linked list" | "grid" | "words" | "number";
 
 const SHAPE_OF: Record<string, InputShape> = {
   "int[]": "array",
@@ -423,7 +447,9 @@ export async function listProblemsByPattern(userId?: string): Promise<PatternGro
         orderBy: { isPrimary: "desc" },
       },
       topics: { select: { topic: { select: { slug: true, name: true } } } },
-      progress: userId ? { where: { userId }, select: { status: true }, take: 1 } : false,
+      progress: userId
+        ? { where: { userId }, select: { status: true }, take: 1 }
+        : false,
     },
   });
 
@@ -431,7 +457,11 @@ export async function listProblemsByPattern(userId?: string): Promise<PatternGro
     ? new Set(
         (
           await prisma.bookmark.findMany({
-            where: { userId, entityType: "PROBLEM", entityId: { in: rows.map((r) => r.id) } },
+            where: {
+              userId,
+              entityType: "PROBLEM",
+              entityId: { in: rows.map((r) => r.id) },
+            },
             select: { entityId: true },
           })
         ).map((b) => b.entityId)
@@ -444,7 +474,9 @@ export async function listProblemsByPattern(userId?: string): Promise<PatternGro
     const key = primary?.slug ?? "";
     if (!groups.has(key)) {
       groups.set(key, {
-        pattern: primary ? { slug: primary.slug, name: primary.name, tagline: primary.tagline } : null,
+        pattern: primary
+          ? { slug: primary.slug, name: primary.name, tagline: primary.tagline }
+          : null,
         problems: [],
         order: primary?.order ?? Number.MAX_SAFE_INTEGER,
       });
@@ -457,10 +489,14 @@ export async function listProblemsByPattern(userId?: string): Promise<PatternGro
       slug: row.slug,
       title: row.title,
       difficulty: row.difficulty,
-      patterns: row.patterns.map((p) => ({ slug: p.pattern.slug, name: p.pattern.name })),
+      patterns: row.patterns.map((p) => ({
+        slug: p.pattern.slug,
+        name: p.pattern.name,
+      })),
       topics: row.topics.map((t) => t.topic),
       status:
-        (Array.isArray(row.progress) ? row.progress[0]?.status : undefined) ?? "NOT_STARTED",
+        (Array.isArray(row.progress) ? row.progress[0]?.status : undefined) ??
+        "NOT_STARTED",
       bookmarked: bookmarkedIds.has(row.id),
       inputShape: firstParam ? (SHAPE_OF[firstParam] ?? null) : null,
     });

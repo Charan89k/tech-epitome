@@ -4,11 +4,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import type { OneTimeLinkState } from "@/components/campus/invite-form";
 import { InstitutionRole, InstitutionStatus } from "@/generated/prisma/enums";
 import { requireAdminOrThrow } from "@/lib/auth/session";
+import { site } from "@/lib/site";
 import { InstitutionError } from "@/lib/tenancy/context";
 import { route } from "@/lib/utils";
 import { inviteMember } from "@/services/institutions";
+import { issueResetLinkAsAdmin } from "@/services/password-reset";
 import {
   addDomain,
   createInstitution,
@@ -105,21 +108,38 @@ export async function verifyDomainAction(
 /** The usual first step for a new college: invite its first admin. */
 export async function inviteAdminAction(
   institutionId: string,
+  _state: OneTimeLinkState,
   form: FormData
-): Promise<void> {
+): Promise<OneTimeLinkState> {
   const admin = await requireAdminOrThrow();
   const email = z.string().trim().email().max(254).safeParse(form.get("email"));
   if (!email.success) back(PAGE, "invalid");
+  let undelivered: string | undefined;
   try {
     const ctx = await platformContext(admin, idSchema.parse(institutionId));
-    await inviteMember(ctx, {
+    ({ undeliveredToken: undelivered } = await inviteMember(ctx, {
       email: email.data,
       role: InstitutionRole.INSTITUTION_ADMIN,
-    });
+    }));
   } catch (error) {
     back(PAGE, codeFor(error));
   }
-  back(PAGE, "invited");
+  if (!undelivered) back(PAGE, "invited");
+  return {
+    link: new URL(`/campus/invite/${undelivered}`, site.url).toString(),
+    label: `Invitation for ${email.data}. It works only for that address.`,
+  };
+}
+
+/** Account recovery when no email can reach the person. Audited by the service. */
+export async function issueResetLinkAction(userId: string): Promise<OneTimeLinkState> {
+  const admin = await requireAdminOrThrow();
+  const token = await issueResetLinkAsAdmin(admin, idSchema.parse(userId));
+  if (!token) return {};
+  return {
+    link: new URL(`/reset-password/${token}`, site.url).toString(),
+    label: "Password reset link. It works once and expires in 1 hour.",
+  };
 }
 
 export async function setUserSuspendedAction(

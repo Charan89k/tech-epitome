@@ -223,7 +223,16 @@ export async function inviteMember(
   input: { email: string; role: InstitutionRole },
   /** Roster import: the per-institution limit still applies, the per-inviter one does not. */
   options: { bulk?: boolean } = {}
-): Promise<{ invitationId: string; emailStatus: string }> {
+): Promise<{
+  invitationId: string;
+  emailStatus: string;
+  /**
+   * The link's token, only when no email went out. This is the one moment it
+   * exists in the clear, and the inviter is already allowed to invite this
+   * address, so they can pass it on themselves. Never stored or logged.
+   */
+  undeliveredToken?: string;
+}> {
   assertCan(ctx, "members.invite");
   if (!canInviteRole(ctx, input.role)) {
     throw new InstitutionError("forbidden", "You cannot invite someone to that role.");
@@ -254,16 +263,27 @@ export async function inviteMember(
       throw new InstitutionError("conflict", "That person is already a member.");
     }
     if (existing && !can(ctx, "members.manage")) {
-      throw new InstitutionError("forbidden", "Only an admin can re-invite that person.");
+      throw new InstitutionError(
+        "forbidden",
+        "Only an admin can re-invite that person."
+      );
     }
     // Re-inviting replaces the old link, but never one for a role this
     // inviter could not have granted (faculty cannot cancel an admin invite).
     const pending = await tx.institutionInvitation.findMany({
-      where: { institutionId: ctx.institution.id, email, acceptedAt: null, revokedAt: null },
+      where: {
+        institutionId: ctx.institution.id,
+        email,
+        acceptedAt: null,
+        revokedAt: null,
+      },
       select: { role: true },
     });
     if (pending.some((p) => !canInviteRole(ctx, p.role))) {
-      throw new InstitutionError("conflict", "A pending invitation for that address outranks yours.");
+      throw new InstitutionError(
+        "conflict",
+        "A pending invitation for that address outranks yours."
+      );
     }
     // One live invitation per address.
     await tx.institutionInvitation.updateMany({
@@ -303,7 +323,10 @@ export async function inviteMember(
         { institutionName: ctx.institution.name, role: input.role, token, expiresAt }
       )
     )
-    .catch(() => ({ status: "rejected" as const, reason: "The email provider failed." }));
+    .catch(() => ({
+      status: "rejected" as const,
+      reason: "The email provider failed.",
+    }));
   // Recorded so staff can see an invitation that never arrived and resend
   // it. The reason is the provider's status text, never the message.
   await withTenantScope(scopeOf(ctx), (tx) =>
@@ -315,7 +338,18 @@ export async function inviteMember(
       },
     })
   );
-  return { invitationId, emailStatus: sent.status };
+  if (sent.status === "accepted") return { invitationId, emailStatus: sent.status };
+
+  await withTenantScope(scopeOf(ctx), (tx) =>
+    writeAudit(tx, ctx.institution.id, ctx.user, {
+      action: "invitation.link_issued",
+      targetType: "invitation",
+      targetId: invitationId,
+      summary: `Email not sent; link shown to the inviter for ${email}`,
+      metadata: { email, role: input.role },
+    })
+  );
+  return { invitationId, emailStatus: sent.status, undeliveredToken: token };
 }
 
 export async function revokeInvitation(
@@ -466,7 +500,10 @@ export async function acceptInvitation(
       throw new InstitutionError("conflict", "You are already a member here.");
     }
     if (existing?.status === "SUSPENDED") {
-      throw new InstitutionError("forbidden", "Your membership is suspended. Ask an administrator.");
+      throw new InstitutionError(
+        "forbidden",
+        "Your membership is suspended. Ask an administrator."
+      );
     }
 
     const membership = await tx.institutionMembership.upsert({
@@ -661,7 +698,8 @@ export async function setMembershipStatus(
       where: { id: target.id },
       data: { status, revokedAt: status === "REVOKED" ? new Date() : null },
     });
-    if (status !== "ACTIVE") await revokePendingInvitations(tx, ctx.institution.id, target.user.email);
+    if (status !== "ACTIVE")
+      await revokePendingInvitations(tx, ctx.institution.id, target.user.email);
     await writeAudit(tx, ctx.institution.id, ctx.user, {
       action: `membership.${status.toLowerCase()}`,
       targetType: "membership",

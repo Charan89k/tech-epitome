@@ -4,10 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
+  BriefcaseBusiness,
   ChevronDown,
   Library,
+  ListChecks,
   Menu,
   Building2,
+  Presentation,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,7 +34,14 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { isNavItemActive, navForViewer, type NavGroup, type NavViewer } from "@/lib/navigation";
+import {
+  isNavItemActive,
+  navForViewer,
+  productForPath,
+  type NavCampus,
+  type NavGroup,
+  type NavViewer,
+} from "@/lib/navigation";
 import { cn, route } from "@/lib/utils";
 
 /**
@@ -45,34 +55,70 @@ import { cn, route } from "@/lib/utils";
  * four can never disagree about what exists.
  */
 
+const PRODUCTS = [
+  { id: "learn", label: "Learn", href: "/explore" },
+  { id: "campus", label: "Campus", href: "/campus" },
+] as const;
+
 const MENU_ICON: Record<string, LucideIcon> = {
   Learn: BookOpen,
+  Practice: ListChecks,
   Campus: Building2,
+  Teaching: Presentation,
+  Placement: BriefcaseBusiness,
   Library: Library,
 };
 
-const HEADER_GROUPS = ["Learn", "Campus", "Library"];
+const HEADER_GROUPS = ["Practice", "Learn", "Teaching", "Placement", "Library"];
 
 type Props = {
-  user: (UserMenuUser & { role: "USER" | "ADMIN"; campusMember?: boolean }) | null;
+  user:
+    | (UserMenuUser & {
+        role: "USER" | "ADMIN";
+        campusMember?: boolean;
+        campus?: NavCampus | null;
+      })
+    | null;
   streak: number;
   unreadNotifications: number;
 };
 
 export function SiteHeader({ user, streak, unreadNotifications }: Props) {
   const pathname = usePathname();
-  const groups = navForViewer(user).filter((group) => HEADER_GROUPS.includes(group.label));
+  const product = productForPath(pathname);
+  const groups = navForViewer(user, product).filter((group) =>
+    HEADER_GROUPS.includes(group.label)
+  );
+  const home = !user ? "/" : product === "campus" ? "/campus" : "/dashboard";
 
   return (
     <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-3 sm:px-4">
       <MobileNav user={user} pathname={pathname} />
 
-      <Link
-        href={user ? "/dashboard" : "/"}
-        className="mr-2 flex items-center rounded-md px-1 py-1"
-      >
+      <Link href={route(home)} className="mr-1 flex items-center rounded-md px-1 py-1">
         <Logo responsive wordmarkClassName="text-[1.05rem]" />
       </Link>
+
+      <nav
+        aria-label="Products"
+        className="mr-2 hidden items-center rounded-md border border-border p-0.5 sm:flex"
+      >
+        {PRODUCTS.map((p) => (
+          <Link
+            key={p.id}
+            href={route(p.id === "campus" && !user ? "/campus/login" : p.href)}
+            aria-current={product === p.id ? "true" : undefined}
+            className={cn(
+              "rounded-[3px] px-2 py-1 text-xs font-medium transition-colors",
+              product === p.id
+                ? "bg-accent text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {p.label}
+          </Link>
+        ))}
+      </nav>
 
       <nav aria-label="Sections" className="hidden items-center gap-0.5 lg:flex">
         {groups.map((group) => (
@@ -138,7 +184,10 @@ function SectionMenu({ group, pathname }: { group: NavGroup; pathname: string })
               asChild
               className="items-start gap-3 rounded-lg p-2.5"
             >
-              <Link href={route(item.href)} aria-current={itemActive ? "page" : undefined}>
+              <Link
+                href={route(item.href)}
+                aria-current={itemActive ? "page" : undefined}
+              >
                 <span
                   className={cn(
                     "flex size-9 shrink-0 items-center justify-center rounded-xl border",
@@ -168,13 +217,7 @@ function SectionMenu({ group, pathname }: { group: NavGroup; pathname: string })
   );
 }
 
-function MobileNav({
-  user,
-  pathname,
-}: {
-  user: NavViewer;
-  pathname: string;
-}) {
+function MobileNav({ user, pathname }: { user: NavViewer; pathname: string }) {
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -194,7 +237,32 @@ function MobileNav({
           </SheetTitle>
         </SheetHeader>
         <nav aria-label="All sections" className="space-y-5 px-4 pb-8">
-          {navForViewer(user).map(({ label, items }) => {
+          <div>
+            <p className="mb-1.5 px-2 text-xs font-medium text-muted-foreground">
+              Products
+            </p>
+            <ul className="flex gap-2 px-2">
+              {PRODUCTS.map((p) => (
+                <li key={p.id}>
+                  <Link
+                    href={route(p.id === "campus" && !user ? "/campus/login" : p.href)}
+                    aria-current={
+                      productForPath(pathname) === p.id ? "true" : undefined
+                    }
+                    className={cn(
+                      "block rounded-md border border-border px-3 py-1.5 text-sm",
+                      productForPath(pathname) === p.id
+                        ? "bg-accent font-medium text-foreground"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    {p.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          {navForViewer(user, productForPath(pathname)).map(({ label, items }) => {
             return (
               <div key={label}>
                 <p className="mb-1.5 px-2 text-xs font-medium text-muted-foreground">

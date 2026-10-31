@@ -2,7 +2,7 @@ import { AppRail } from "@/components/layout/app-rail";
 import { CommandPaletteProvider } from "@/components/layout/command-palette";
 import { SiteHeader } from "@/components/layout/site-header";
 import { getCurrentUser } from "@/lib/auth/session";
-import { hasCampusAccess } from "@/lib/campus-access";
+import { listMyMemberships } from "@/services/institutions";
 import { unreadCount } from "@/services/notifications";
 import { getStreak } from "@/services/progress";
 
@@ -20,12 +20,24 @@ import { getStreak } from "@/services/progress";
 export default async function ShellLayout({ children }: LayoutProps<"/">) {
   const user = await getCurrentUser();
   // Two small per-user reads, in parallel, only when there is a user.
-  const [streak, unread, campusMember] = user
-    ? await Promise.all([getStreak(user.id), unreadCount(user.id), hasCampusAccess(user)])
-    : [0, 0, false];
+  const [streak, unread, memberships] = user
+    ? await Promise.all([
+        getStreak(user.id),
+        unreadCount(user.id),
+        listMyMemberships(user),
+      ])
+    : [0, 0, []];
+  // Staff tools link to one college, so a teaching membership comes first.
+  const primary = memberships.find((m) => m.role !== "STUDENT") ?? memberships[0];
+  const campusMember = user?.role === "ADMIN" || memberships.length > 0;
+  const campus = primary
+    ? { slug: primary.institution.slug, role: primary.role }
+    : null;
 
   return (
-    <CommandPaletteProvider viewer={user ? { role: user.role, campusMember } : null}>
+    <CommandPaletteProvider
+      viewer={user ? { role: user.role, campusMember, campus } : null}
+    >
       <SiteHeader
         user={
           user
@@ -35,6 +47,7 @@ export default async function ShellLayout({ children }: LayoutProps<"/">) {
                 image: user.image,
                 role: user.role,
                 campusMember,
+                campus,
               }
             : null
         }
@@ -42,7 +55,7 @@ export default async function ShellLayout({ children }: LayoutProps<"/">) {
         unreadNotifications={unread}
       />
       <div className="flex min-h-0 flex-1">
-        <AppRail user={user ? { role: user.role, campusMember } : null} />
+        <AppRail user={user ? { role: user.role, campusMember, campus } : null} />
         {/* The one `main` landmark in the shell, and the skip link's
             target. Pages render sections inside it rather than a
             `main` of their own — nested `main` is invalid HTML and

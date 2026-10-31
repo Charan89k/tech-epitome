@@ -20,12 +20,17 @@ import { route } from "@/lib/utils";
  */
 export function SiteHeader({ signedIn }: { signedIn: boolean }) {
   return (
-    <header className="bg-background border-border sticky top-0 z-40 border-b">
+    <header className="sticky top-0 z-40 border-b border-border bg-background">
       <div className="flex h-14 items-center gap-2 px-3 sm:px-4">
         {/* Mobile nav */}
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-9 lg:hidden" aria-label="Open menu">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-9 lg:hidden"
+              aria-label="Open menu"
+            >
               <MenuGlyph />
             </Button>
           </SheetTrigger>
@@ -41,7 +46,7 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
                   <li key={item.href}>
                     <Link
                       href={route(item.href)}
-                      className="text-muted-foreground hover:bg-accent/60 hover:text-foreground block rounded-md px-2 py-2 text-sm transition-colors"
+                      className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
                     >
                       {item.title}
                     </Link>
@@ -51,7 +56,7 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
                   <li>
                     <Link
                       href="/login"
-                      className="text-muted-foreground hover:bg-accent/60 hover:text-foreground block rounded-md px-2 py-2 text-sm transition-colors"
+                      className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
                     >
                       Sign in
                     </Link>
@@ -72,7 +77,7 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
               <li key={item.href}>
                 <Link
                   href={route(item.href)}
-                  className="text-muted-foreground hover:text-foreground hover:bg-accent/60 flex h-9 items-center rounded-md px-2.5 text-sm font-medium transition-colors"
+                  className="flex h-9 items-center rounded-md px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
                 >
                   {item.title}
                 </Link>
@@ -89,11 +94,16 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
             </Button>
           ) : (
             <>
-              <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="hidden sm:inline-flex"
+              >
                 <Link href="/login">Sign in</Link>
               </Button>
               <Button asChild size="sm">
-                <Link href="/signup">Start learning</Link>
+                <Link href="/explore">Explore Learn</Link>
               </Button>
             </>
           )}

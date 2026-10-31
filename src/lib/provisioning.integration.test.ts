@@ -89,8 +89,8 @@ describe("assertSafeTarget", () => {
 describe("provisionAccount", () => {
   it("defines exactly the two accounts, with the application's own roles", () => {
     expect(ACCOUNTS.map((a) => [a.email, a.role])).toEqual([
-      ["admin@cloude5.tech", "ADMIN"],
-      ["student@cloude5.tech", "USER"],
+      ["admin@techepitome.test", "ADMIN"],
+      ["student@techepitome.test", "USER"],
     ]);
   });
 

@@ -72,16 +72,12 @@ type CommandPaletteContextValue = {
   toggle: () => void;
 };
 
-const CommandPaletteContext = createContext<CommandPaletteContextValue | null>(
-  null
-);
+const CommandPaletteContext = createContext<CommandPaletteContextValue | null>(null);
 
 export function useCommandPalette(): CommandPaletteContextValue {
   const ctx = useContext(CommandPaletteContext);
   if (!ctx) {
-    throw new Error(
-      "useCommandPalette must be used inside <CommandPaletteProvider>."
-    );
+    throw new Error("useCommandPalette must be used inside <CommandPaletteProvider>.");
   }
   return ctx;
 }
@@ -149,10 +145,7 @@ export function CommandPaletteProvider({
     }
   }, []);
 
-  const value = useMemo(
-    () => ({ open, setOpen, toggle }),
-    [open, toggle]
-  );
+  const value = useMemo(() => ({ open, setOpen, toggle }), [open, toggle]);
 
   const grouped = useMemo(() => {
     // Derived, not stored: while the query is too short to search, any
@@ -191,7 +184,7 @@ export function CommandPaletteProvider({
         <CommandList>
           <CommandEmpty>
             {searching ? (
-              <span className="text-muted-foreground flex items-center justify-center gap-2 text-sm">
+              <span className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
                 Searching…
               </span>
@@ -212,9 +205,9 @@ export function CommandPaletteProvider({
                     value={`${result.type} ${result.title} ${result.description}`}
                     onSelect={() => go(result.href)}
                   >
-                    <Icon className="text-muted-foreground size-4" />
+                    <Icon className="size-4 text-muted-foreground" />
                     <span className="truncate">{result.title}</span>
-                    <span className="text-muted-foreground ml-auto hidden max-w-[16rem] truncate text-xs sm:inline">
+                    <span className="ml-auto hidden max-w-[16rem] truncate text-xs text-muted-foreground sm:inline">
                       {result.description}
                     </span>
                   </CommandItem>
@@ -223,7 +216,13 @@ export function CommandPaletteProvider({
             );
           })}
 
-          {navForViewer(viewer).map((group) => (
+          {[
+            ...navForViewer(viewer, "learn"),
+            ...navForViewer(viewer, "campus").map((g) => ({
+              ...g,
+              label: g.label === "Campus" ? g.label : `Campus: ${g.label}`,
+            })),
+          ].map((group) => (
             <CommandGroup key={group.label} heading={group.label}>
               {group.items.map((item) => (
                 <CommandItem
@@ -231,10 +230,10 @@ export function CommandPaletteProvider({
                   value={`${item.title} ${item.description ?? ""}`}
                   onSelect={() => go(item.href)}
                 >
-                  <item.icon className="text-muted-foreground size-4" />
+                  <item.icon className="size-4 text-muted-foreground" />
                   <span>{item.title}</span>
                   {item.description && (
-                    <span className="text-muted-foreground ml-auto hidden truncate text-xs sm:inline">
+                    <span className="ml-auto hidden truncate text-xs text-muted-foreground sm:inline">
                       {item.description}
                     </span>
                   )}
@@ -258,7 +257,7 @@ export function CommandPaletteTrigger({ compact = false }: { compact?: boolean }
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Search"
-        className="text-muted-foreground hover:text-foreground hover:bg-muted/60 flex size-9 items-center justify-center rounded-md transition-colors"
+        className="flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
       >
         <Search className="size-4" aria-hidden="true" />
       </button>
@@ -270,11 +269,11 @@ export function CommandPaletteTrigger({ compact = false }: { compact?: boolean }
       type="button"
       onClick={() => setOpen(true)}
       aria-keyshortcuts="Meta+K Control+K"
-      className="text-muted-foreground hover:border-input hover:text-foreground bg-muted/40 border-border flex h-9 w-full max-w-64 items-center gap-2 rounded-md border px-3 text-sm transition-colors"
+      className="flex h-9 w-full max-w-64 items-center gap-2 rounded-md border border-border bg-muted/40 px-3 text-sm text-muted-foreground transition-colors hover:border-input hover:text-foreground"
     >
       <Search className="size-4 shrink-0" aria-hidden="true" />
       <span className="truncate">Search…</span>
-      <kbd className="bg-background text-muted-foreground border-border ml-auto hidden rounded border px-1.5 py-0.5 font-mono text-[0.65rem] sm:inline">
+      <kbd className="ml-auto hidden rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[0.65rem] text-muted-foreground sm:inline">
         ⌘K
       </kbd>
     </button>

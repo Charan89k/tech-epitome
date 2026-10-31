@@ -1,0 +1,170 @@
+import "server-only";
+
+import { z } from "zod";
+
+import { prisma } from "@/lib/db";
+
+import { computeStandings, contestPhase } from "./contest-scoring";
+
+export { computeStandings, contestPhase } from "./contest-scoring";
+
+export async function listContests() {
+  return prisma.contest.findMany({
+    orderBy: { startsAt: "desc" },
+    take: 100,
+    select: {
+      slug: true,
+      title: true,
+      startsAt: true,
+      endsAt: true,
+      _count: { select: { entries: true, problems: true } },
+    },
+  });
+}
+
+export async function getContest(slug: string) {
+  return prisma.contest.findUnique({
+    where: { slug },
+    include: {
+      problems: {
+        orderBy: { order: "asc" },
+        include: {
+          problem: { select: { id: true, slug: true, title: true, difficulty: true } },
+        },
+      },
+    },
+  });
+}
+
+export async function isEntered(contestId: string, userId: string): Promise<boolean> {
+  const row = await prisma.contestEntry.findUnique({
+    where: { contestId_userId: { contestId, userId } },
+    select: { userId: true },
+  });
+  return Boolean(row);
+}
+
+/** Entering twice is harmless, and entering a finished contest is refused. */
+export async function enterContest(slug: string, userId: string, now = new Date()) {
+  const contest = await prisma.contest.findUnique({
+    where: { slug },
+    select: { id: true, startsAt: true, endsAt: true },
+  });
+  if (!contest || contestPhase(contest, now) === "ended") return false;
+  await prisma.contestEntry.createMany({
+    data: [{ contestId: contest.id, userId }],
+    skipDuplicates: true,
+  });
+  return true;
+}
+
+/** Standings use only scored submissions inside the window, from entrants. */
+export async function getStandings(contest: {
+  id: string;
+  startsAt: Date;
+  endsAt: Date;
+  penaltyMinutes: number;
+  problems: { problemId: string; points: number }[];
+}) {
+  const entries = await prisma.contestEntry.findMany({
+    where: { contestId: contest.id },
+    take: 2000,
+    select: {
+      userId: true,
+      user: { select: { name: true, profile: { select: { username: true } } } },
+    },
+  });
+  const submissions = await prisma.submission.findMany({
+    where: {
+      userId: { in: entries.map((e) => e.userId) },
+      problemId: { in: contest.problems.map((p) => p.problemId) },
+      isRun: false,
+      createdAt: { gte: contest.startsAt, lte: contest.endsAt },
+    },
+    orderBy: { createdAt: "asc" },
+    select: { userId: true, problemId: true, status: true, createdAt: true },
+  });
+  const names = new Map(
+    entries.map((e) => [e.userId, e.user.profile?.username ?? e.user.name ?? "Entrant"])
+  );
+  return computeStandings(
+    contest,
+    entries.map((e) => e.userId),
+    submissions
+  ).map((row) => ({
+    ...row,
+    name: names.get(row.userId) ?? "Entrant",
+  }));
+}
+
+export const contestInputSchema = z
+  .object({
+    title: z.string().trim().min(3).max(120),
+    slug: z
+      .string()
+      .trim()
+      .regex(/^[a-z0-9](?:[a-z0-9-]{1,60}[a-z0-9])$/),
+    description: z.string().trim().min(1).max(2000),
+    startsAt: z.coerce.date(),
+    endsAt: z.coerce.date(),
+    problemNumbers: z.array(z.number().int().positive()).min(1).max(12),
+  })
+  .refine((v) => v.endsAt > v.startsAt, {
+    message: "A contest must end after it starts.",
+  })
+  .refine((v) => new Set(v.problemNumbers).size === v.problemNumbers.length, {
+    message: "A problem can appear only once.",
+  });
+
+export type CreateContestResult = "created" | "slug_taken" | "unknown_problem";
+
+export async function createContest(
+  admin: { id: string; email: string; role: string },
+  input: z.infer<typeof contestInputSchema>
+): Promise<CreateContestResult> {
+  if (admin.role !== "ADMIN")
+    throw new Error("Only a platform admin can create a contest.");
+  const problems = await prisma.problem.findMany({
+    where: { number: { in: input.problemNumbers }, status: "PUBLISHED" },
+    select: { id: true, number: true },
+  });
+  if (problems.length !== input.problemNumbers.length) return "unknown_problem";
+  const idFor = new Map(problems.map((p) => [p.number, p.id]));
+
+  const taken = await prisma.contest.findUnique({
+    where: { slug: input.slug },
+    select: { id: true },
+  });
+  if (taken) return "slug_taken";
+
+  await prisma.$transaction(async (tx) => {
+    const contest = await tx.contest.create({
+      data: {
+        slug: input.slug,
+        title: input.title,
+        description: input.description,
+        startsAt: input.startsAt,
+        endsAt: input.endsAt,
+        createdById: admin.id,
+        problems: {
+          create: input.problemNumbers.map((number, order) => ({
+            problemId: idFor.get(number)!,
+            order,
+          })),
+        },
+      },
+      select: { id: true },
+    });
+    await tx.auditLog.create({
+      data: {
+        actorId: admin.id,
+        actorEmail: admin.email,
+        action: "contest.created",
+        entity: "contest",
+        entityId: contest.id,
+        summary: `Created contest ${input.slug}`,
+      },
+    });
+  });
+  return "created";
+}

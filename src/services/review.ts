@@ -72,12 +72,7 @@ export async function getReviewQueue(
 ): Promise<ReviewCard[]> {
   const items = await prisma.reviewItem.findMany({
     where: { userId, dueAt: { lte: now } },
-    orderBy: [
-      { dueAt: "asc" },
-      { lapses: "desc" },
-      { ease: "asc" },
-      { id: "asc" },
-    ],
+    orderBy: [{ dueAt: "asc" }, { lapses: "desc" }, { ease: "asc" }, { id: "asc" }],
     take: limit,
     select: {
       id: true,
@@ -103,7 +98,9 @@ export async function getReviewQueue(
     lapses: item.lapses,
     overdueDays: Math.max(
       0,
-      Math.round((todayStart.getTime() - utcDayStart(item.dueAt).getTime()) / 86_400_000)
+      Math.round(
+        (todayStart.getTime() - utcDayStart(item.dueAt).getTime()) / 86_400_000
+      )
     ),
     prompt:
       prompts.get(`${item.entityType}:${item.entityId}`) ??
@@ -261,25 +258,25 @@ export async function ensureReviewItem(
 ): Promise<void> {
   const now = options.now ?? new Date();
 
-  await prisma.reviewItem.upsert({
-    where: {
-      userId_entityType_entityId: { userId, entityType, entityId },
-    },
-    create: {
-      userId,
-      entityType,
-      entityId,
-      stage: "NEW",
-      dueAt: firstDueAt(now),
-      intervalDays: 1,
-      repetitions: 0,
-      ease: options.ease ?? EASE_DEFAULT,
-      lapses: 0,
-      totalReviews: 0,
-    },
-    // Deliberately empty: the item already exists and its schedule belongs
-    // to the learner's review history, not to the act of revisiting content.
-    update: {},
+  // ON CONFLICT DO NOTHING: an existing schedule belongs to the learner's
+  // review history, and concurrent callers cannot collide. Prisma's `upsert`
+  // with an empty update reads first, so two at once raised a unique error.
+  await prisma.reviewItem.createMany({
+    data: [
+      {
+        userId,
+        entityType,
+        entityId,
+        stage: "NEW",
+        dueAt: firstDueAt(now),
+        intervalDays: 1,
+        repetitions: 0,
+        ease: options.ease ?? EASE_DEFAULT,
+        lapses: 0,
+        totalReviews: 0,
+      },
+    ],
+    skipDuplicates: true,
   });
 }
 

@@ -493,7 +493,7 @@ Never commit `.env`. It is gitignored.
 
 The production deployment is a self-hosted Docker stack (app, its own
 Postgres, encrypted backups, health-checked releases with automatic rollback)
-behind an existing Caddy. See **[docs/DEPLOY.md](docs/DEPLOY.md)**. The
+behind an existing Caddy. Operational runbooks are kept private. The
 Vercel route below still works for a personal copy.
 
 Tech Epitome is a standard Next.js application and deploys to Vercel without

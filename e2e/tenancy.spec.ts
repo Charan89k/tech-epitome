@@ -61,8 +61,13 @@ test("a suspended account is signed out on its next request", async ({ page }) =
   );
 
   await page.goto("/campus");
-  await expect(page).toHaveURL(/\/login\?.*ended=1/);
-  await expect(page.getByRole("button", { name: /sign in/i }).first()).toBeVisible();
+  await expect(page).toHaveURL(/\/campus\/login\?.*ended=1/);
+  // Signed out for real: the door page, not a bounce back into Campus.
+  await expect(page.getByRole("heading", { name: "Enter Campus" })).toBeVisible();
+  await page.getByRole("link", { name: /I am a student/ }).click();
+  await expect(
+    page.getByRole("button", { name: "Sign in", exact: true })
+  ).toBeVisible();
 });
 
 test("a revoked membership stops working on the next request", async ({ page }) => {

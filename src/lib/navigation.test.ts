@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { navForViewer } from "./navigation";
+import { navForViewer, productForPath } from "./navigation";
 
 /**
  * The header menus, mobile sheet, rail and command palette all list
@@ -32,16 +32,40 @@ describe("navForViewer", () => {
   it("keeps the learner destinations for everyone", () => {
     for (const viewer of [null, { role: "USER" as const }]) {
       expect(hrefs(viewer)).toEqual(
-        expect.arrayContaining(["/learn/dsa", "/patterns", "/problems", "/campus"])
+        expect.arrayContaining(["/learn/dsa", "/patterns", "/problems", "/visualize"])
       );
     }
   });
 
-  it("puts courses, patterns and problems in one Learn section", () => {
-    const learn = navForViewer({ role: "USER" }).find((g) => g.label === "Learn");
-    expect(learn?.items.map((item) => item.href)).toEqual(
-      expect.arrayContaining(["/learn", "/patterns", "/problems"])
+  it("gives Learn a competitive Practice section", () => {
+    const practice = navForViewer({ role: "USER" }).find((g) => g.label === "Practice");
+    expect(practice?.items.map((item) => item.href)).toEqual(
+      expect.arrayContaining([
+        "/problems",
+        "/daily",
+        "/contests",
+        "/leaderboard",
+        "/visualize",
+      ])
     );
+  });
+
+  it("decides the product from the path", () => {
+    expect(productForPath("/campus/college")).toBe("campus");
+    expect(productForPath("/interviews/abc")).toBe("campus");
+    expect(productForPath("/problems")).toBe("learn");
+    expect(productForPath("/campuses")).toBe("learn");
+  });
+
+  it("shows teaching tools only to staff of that college", () => {
+    const labels = (role: "STUDENT" | "FACULTY" | "INSTITUTION_ADMIN") =>
+      navForViewer(
+        { role: "USER", campusMember: true, campus: { slug: "c", role } },
+        "campus"
+      ).map((g) => g.label);
+    expect(labels("STUDENT")).not.toContain("Teaching");
+    expect(labels("FACULTY")).toContain("Teaching");
+    expect(labels("INSTITUTION_ADMIN")).toContain("Teaching");
   });
 
   it("keeps Campus-only links out of an individual learner's navigation", () => {
@@ -62,11 +86,24 @@ describe("navForViewer", () => {
       { role: "USER" as const, campusMember: true },
       { role: "ADMIN" as const },
     ]) {
-      const campus = navForViewer(viewer).find((g) => g.label === "Campus");
-      expect(campus?.items.map((item) => item.href)).toEqual(
-        expect.arrayContaining(["/campus", "/interviews", "/prepare", "/roadmaps"])
+      const campus = navForViewer(viewer, "campus").flatMap((g) =>
+        g.items.map((i) => i.href)
+      );
+      expect(campus).toEqual(
+        expect.arrayContaining([
+          "/campus",
+          "/interviews",
+          "/prepare",
+          "/roadmaps",
+          "/campus/exams",
+          "/campus/aptitude",
+        ])
       );
     }
+    const outsider = navForViewer({ role: "USER" }, "campus").flatMap((g) =>
+      g.items.map((i) => i.href)
+    );
+    expect(outsider).toEqual(["/campus"]);
     const learn = navForViewer({ role: "USER", campusMember: true }).find(
       (g) => g.label === "Learn"
     );

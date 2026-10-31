@@ -1,12 +1,12 @@
-# Tech Epitome production stack. Separate from the DPDP application in every
+# Tech Epitome production stack. Separate from any other application on the host in every
 # way: its own project name, network, volume, database server, credentials
-# and backups. Nothing here touches DPDP resources.
+# and backups. Nothing here touches another application's resources.
 #
 #   docker compose -f deploy/compose.yml --env-file /etc/tech-epitome/compose.env up -d
 #
 # compose.env sets IMAGE (registry/name:tag) and SECRETS_DIR; the app's own
 # configuration is APP_ENV_FILE. Both live outside the repository with mode
-# 600. See docs/DEPLOY.md.
+# 600. 
 
 name: tech-epitome
 
@@ -45,7 +45,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-    # Half DPDP's CPU weight: under contention DPDP gets twice the share.
+    # Half the default CPU weight, so co-hosted workloads win under contention.
     cpu_shares: 512
     deploy:
       resources:
@@ -66,7 +66,7 @@ services:
     restart: unless-stopped
     init: true
     env_file: ${APP_ENV_FILE:?set APP_ENV_FILE}
-    # Public traffic arrives from the DPDP Caddy container over the edge
+    # Public traffic arrives from the reverse proxy over the edge
     # network (as tech-epitome-app:3000). The localhost port is only for
     # health checks and the host cron; nothing is published publicly.
     ports:
@@ -84,9 +84,9 @@ services:
     stop_grace_period: 30s
     depends_on:
       db: { condition: service_healthy }
-    # Capped so Tech Epitome at full load still leaves DPDP 1 of 2 vCPUs, and
-    # weighted below DPDP (default 1024) when both are busy. Measured: 1.5
-    # CPUs saturated at ~17 req/s (20 concurrent); see docs/DEPLOY.md.
+    # Capped so Tech Epitome at full load still leaves 1 of 2 vCPUs free, and
+    # weighted below the default of 1024 when the host is busy. Measured: 1.5
+    # CPUs saturated at ~17 req/s (20 concurrent).
     cpu_shares: 512
     deploy:
       resources:
@@ -98,7 +98,7 @@ networks:
   internal:
     internal: true
   # Outbound for OAuth, AI and email, and the one network the existing Caddy
-  # joins (docker network connect tech-epitome-edge dpdptool-caddy-1). Caddy
+  # joins (docker network connect tech-epitome-edge <proxy-container>). Caddy
   # can reach only the app here; the database is not on this network.
   edge:
     name: tech-epitome-edge
