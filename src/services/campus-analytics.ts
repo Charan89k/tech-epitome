@@ -215,7 +215,7 @@ export async function getAnalytics(
         where: { institutionId: ctx.institution.id },
         _count: true,
       });
-      const byRole = (["STUDENT", "FACULTY", "INSTITUTION_ADMIN"] as const).map(
+      const byRole = (["STUDENT", "FACULTY", "INSTITUTION_ADMIN", "PLACEMENT_OFFICER"] as const).map(
         (role) => {
           const n = (status: string) =>
             grouped.find((g) => g.role === role && g.status === status)?._count ?? 0;

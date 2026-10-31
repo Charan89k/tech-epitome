@@ -43,6 +43,7 @@ export const metadata: Metadata = { title: "College" };
 const ROLES: { value: InstitutionRole; label: string }[] = [
   { value: "STUDENT", label: "Student" },
   { value: "FACULTY", label: "Faculty" },
+  { value: "PLACEMENT_OFFICER", label: "Placement officer" },
   { value: "INSTITUTION_ADMIN", label: "Admin" },
 ];
 const roleLabel = (role: InstitutionRole) =>
