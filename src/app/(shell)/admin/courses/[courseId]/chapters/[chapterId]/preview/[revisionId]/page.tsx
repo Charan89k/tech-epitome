@@ -32,7 +32,8 @@ export default async function RevisionPreviewPage({
   return (
     <div className="max-w-3xl">
       <p role="status" className="rounded-md border border-warning/40 p-3 text-sm">
-        Preview of v{revision.number} ({revision.status.toLowerCase().replace("_", " ")}).{" "}
+        Preview of v{revision.number} ({revision.status.toLowerCase().replace("_", " ")}
+        ).{" "}
         <Link
           href={route(`/admin/courses/${courseId}/chapters/${chapterId}`)}
           className="font-medium underline"
@@ -40,8 +41,12 @@ export default async function RevisionPreviewPage({
           Back to the editor
         </Link>
       </p>
-      <h2 className="tracking-headline mt-6 text-2xl font-semibold">{revision.title}</h2>
-      {revision.summary && <p className="mt-2 text-muted-foreground">{revision.summary}</p>}
+      <h2 className="tracking-headline mt-6 text-2xl font-semibold">
+        {revision.title}
+      </h2>
+      {revision.summary && (
+        <p className="mt-2 text-muted-foreground">{revision.summary}</p>
+      )}
       <div className="reading mt-6">
         <ContentRenderer
           blocks={blocks}

@@ -53,7 +53,9 @@ test("an admin authors a course and a learner reads it only once published", asy
   await page.getByLabel("Section title").fill("Start here");
   await page.getByLabel("Section slug").fill("start");
   await page.getByRole("button", { name: "Add section" }).click();
-  await expect(page.getByRole("heading", { name: "Start here" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "Start here" })).toBeVisible({
+    timeout: 30_000,
+  });
 
   await page.getByLabel("Chapter title").fill("First steps");
   await page.getByLabel("Chapter slug").fill("first-steps");
@@ -64,7 +66,9 @@ test("an admin authors a course and a learner reads it only once published", asy
   // A mistake in the source is explained and saves nothing.
   await page.getByLabel("Lesson", { exact: true }).fill("# Too big a heading");
   await page.getByRole("button", { name: "Save draft" }).click();
-  await expect(page.getByText(/Line 1: Use ## or ###/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Line 1: Use ## or ###/)).toBeVisible({
+    timeout: 30_000,
+  });
 
   await page
     .getByLabel("Lesson", { exact: true })
@@ -74,14 +78,18 @@ test("an admin authors a course and a learner reads it only once published", asy
   await page.reload();
 
   await page.getByRole("link", { name: "Preview" }).click();
-  await expect(page.getByRole("heading", { name: "Hello" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "Hello" })).toBeVisible({
+    timeout: 30_000,
+  });
   await page.goto(chapterUrl);
 
   await page.getByRole("button", { name: "Submit for review" }).click();
   const publish = page.getByRole("button", { name: "Publish", exact: true });
   await expect(publish).toBeVisible({ timeout: 30_000 });
   await publish.click();
-  await expect(page.getByRole("button", { name: "Start a draft from this" })).toBeVisible({
+  await expect(
+    page.getByRole("button", { name: "Start a draft from this" })
+  ).toBeVisible({
     timeout: 30_000,
   });
 
@@ -93,17 +101,25 @@ test("an admin authors a course and a learner reads it only once published", asy
 
   await page.goto(courseUrl);
   await page.getByRole("button", { name: "Publish course" }).click();
-  await expect(page.getByRole("link", { name: "View live" })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("link", { name: "View live" })).toBeVisible({
+    timeout: 30_000,
+  });
 
   await visitor.goto(lessonPath);
-  await expect(visitor.getByRole("heading", { name: "Hello" })).toBeVisible({ timeout: 30_000 });
+  await expect(visitor.getByRole("heading", { name: "Hello" })).toBeVisible({
+    timeout: 30_000,
+  });
   await expect(visitor.getByText("print(1)")).toBeVisible();
 
   await visitor.goto(`/learn/courses/${slug}`);
-  await expect(visitor.getByRole("heading", { name: `E2E Course ${id}` })).toBeVisible();
+  await expect(
+    visitor.getByRole("heading", { name: `E2E Course ${id}` })
+  ).toBeVisible();
   await visitor.close();
 
   // The audit log records it.
   await page.goto("/admin/audit");
-  await expect(page.getByText("revision.published").first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("revision.published").first()).toBeVisible({
+    timeout: 30_000,
+  });
 });

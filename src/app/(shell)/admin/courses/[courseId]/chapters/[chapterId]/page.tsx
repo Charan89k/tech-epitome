@@ -43,7 +43,9 @@ export default async function AdminChapterPage({
   // A chapter seeded before the CMS has blocks but no Markdown, so it edits as
   // blocks. Converting it would silently drop its richer block types.
   const hasBlocksOnly =
-    latest?.markdown == null && Array.isArray(source.content) && source.content.length > 0;
+    latest?.markdown == null &&
+    Array.isArray(source.content) &&
+    source.content.length > 0;
   const format = hasBlocksOnly ? "blocks" : "markdown";
   const sourceText = hasBlocksOnly
     ? JSON.stringify(source.content, null, 2)
@@ -65,8 +67,8 @@ export default async function AdminChapterPage({
           </Badge>
         </h2>
         <p className="mt-1 text-muted-foreground">
-          Saving never changes what learners read. A version goes live when it is submitted and
-          published.
+          Saving never changes what learners read. A version goes live when it is
+          submitted and published.
         </p>
       </div>
 
@@ -182,9 +184,15 @@ export default async function AdminChapterPage({
       </section>
 
       <section aria-labelledby="versions">
-        <SectionHeading id="versions" title="Versions" count={chapter.revisions.length} />
+        <SectionHeading
+          id="versions"
+          title="Versions"
+          count={chapter.revisions.length}
+        />
         {chapter.revisions.length === 0 ? (
-          <p className="mt-3 text-muted-foreground">Save a draft to start the history.</p>
+          <p className="mt-3 text-muted-foreground">
+            Save a draft to start the history.
+          </p>
         ) : (
           <ul className="mt-2 divide-y divide-border">
             {chapter.revisions.map((revision) => (
@@ -197,11 +205,14 @@ export default async function AdminChapterPage({
                   <span className="text-muted-foreground">{revision.title}</span>
                   <span className="ml-auto font-mono text-xs text-subtle-foreground">
                     {revision.author.email} ·{" "}
-                    {revision.updatedAt.toISOString().slice(0, 16).replace("T", " ")} UTC
+                    {revision.updatedAt.toISOString().slice(0, 16).replace("T", " ")}{" "}
+                    UTC
                   </span>
                 </div>
                 {revision.reviewNote && (
-                  <p className="mt-1 text-muted-foreground">Review note: {revision.reviewNote}</p>
+                  <p className="mt-1 text-muted-foreground">
+                    Review note: {revision.reviewNote}
+                  </p>
                 )}
                 <div className="mt-2 flex flex-wrap items-start gap-3">
                   <Link
@@ -250,7 +261,8 @@ export default async function AdminChapterPage({
                       </CmsForm>
                     </>
                   )}
-                  {(revision.status === "PUBLISHED" || revision.status === "REJECTED") && (
+                  {(revision.status === "PUBLISHED" ||
+                    revision.status === "REJECTED") && (
                     <CmsForm
                       action={restoreRevisionAction.bind(null, revision.id)}
                       submitLabel="Start a draft from this"

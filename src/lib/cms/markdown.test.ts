@@ -20,7 +20,9 @@ describe("parseInline", () => {
   });
 
   it("does not make a link from a javascript: URL", () => {
-    expect(parseInline("[x](javascript:alert(1))").every((n) => n.type !== "link")).toBe(true);
+    expect(
+      parseInline("[x](javascript:alert(1))").every((n) => n.type !== "link")
+    ).toBe(true);
   });
 
   it("leaves raw HTML as text for React to escape", () => {
@@ -98,7 +100,10 @@ describe("markdownToBlocks", () => {
       tone: "warning",
       title: "Careful",
     });
-    expect(markdownToBlocks("> Plain")[0]).toMatchObject({ type: "callout", tone: "note" });
+    expect(markdownToBlocks("> Plain")[0]).toMatchObject({
+      type: "callout",
+      tone: "note",
+    });
   });
 
   it.each([

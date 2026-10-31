@@ -27,7 +27,8 @@ export class CmsError extends Error {
 }
 
 function assertAdmin(actor: CmsActor): void {
-  if (actor.role !== "ADMIN") throw new Error("Only a platform admin can edit content.");
+  if (actor.role !== "ADMIN")
+    throw new Error("Only a platform admin can edit content.");
 }
 
 async function audit(
@@ -39,14 +40,24 @@ async function audit(
   summary: string
 ) {
   await tx.auditLog.create({
-    data: { actorId: actor.id, actorEmail: actor.email, action, entity, entityId, summary },
+    data: {
+      actorId: actor.id,
+      actorEmail: actor.email,
+      action,
+      entity,
+      entityId,
+      summary,
+    },
   });
 }
 
 const slugSchema = z
   .string()
   .trim()
-  .regex(/^[a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?$/, "Use lowercase letters, digits and hyphens.");
+  .regex(
+    /^[a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?$/,
+    "Use lowercase letters, digits and hyphens."
+  );
 const lines = (value: unknown) =>
   String(value ?? "")
     .split("\n")
@@ -134,27 +145,47 @@ export async function getCmsCourse(id: string) {
   });
 }
 
-export async function createCourse(actor: CmsActor, input: CourseInput): Promise<string> {
+export async function createCourse(
+  actor: CmsActor,
+  input: CourseInput
+): Promise<string> {
   assertAdmin(actor);
   try {
     return await prisma.$transaction(async (tx) => {
-      const top = await tx.course.aggregate({ where: { track: "GENERAL" }, _max: { order: true } });
+      const top = await tx.course.aggregate({
+        where: { track: "GENERAL" },
+        _max: { order: true },
+      });
       const course = await tx.course.create({
         data: { ...input, track: "GENERAL", order: (top._max.order ?? 0) + 1 },
         select: { id: true },
       });
-      await audit(tx, actor, "course.created", "course", course.id, `Created ${input.slug}`);
+      await audit(
+        tx,
+        actor,
+        "course.created",
+        "course",
+        course.id,
+        `Created ${input.slug}`
+      );
       return course.id;
     });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
       throw new CmsError("conflict", "That slug is taken.");
     }
     throw error;
   }
 }
 
-export async function updateCourse(actor: CmsActor, id: string, input: CourseInput): Promise<void> {
+export async function updateCourse(
+  actor: CmsActor,
+  id: string,
+  input: CourseInput
+): Promise<void> {
   assertAdmin(actor);
   try {
     await prisma.$transaction(async (tx) => {
@@ -162,7 +193,10 @@ export async function updateCourse(actor: CmsActor, id: string, input: CourseInp
       await audit(tx, actor, "course.updated", "course", id, `Updated ${input.slug}`);
     });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
       throw new CmsError("conflict", "That slug is taken.");
     }
     throw error;
@@ -181,13 +215,21 @@ export async function setCoursePublished(
       const live = await tx.chapter.count({
         where: { status: "PUBLISHED", section: { courseId: id } },
       });
-      if (live === 0) throw new CmsError("invalid", "Publish at least one chapter first.");
+      if (live === 0)
+        throw new CmsError("invalid", "Publish at least one chapter first.");
     }
     await tx.course.update({
       where: { id },
       data: { status: published ? "PUBLISHED" : "DRAFT" },
     });
-    await audit(tx, actor, published ? "course.published" : "course.unpublished", "course", id, id);
+    await audit(
+      tx,
+      actor,
+      published ? "course.published" : "course.unpublished",
+      "course",
+      id,
+      id
+    );
   });
 }
 
@@ -204,7 +246,10 @@ export async function createSection(
   }
   try {
     await prisma.$transaction(async (tx) => {
-      const top = await tx.courseSection.aggregate({ where: { courseId }, _max: { order: true } });
+      const top = await tx.courseSection.aggregate({
+        where: { courseId },
+        _max: { order: true },
+      });
       const section = await tx.courseSection.create({
         data: {
           courseId,
@@ -217,10 +262,20 @@ export async function createSection(
         },
         select: { id: true },
       });
-      await audit(tx, actor, "section.created", "section", section.id, `Created ${slug.data}`);
+      await audit(
+        tx,
+        actor,
+        "section.created",
+        "section",
+        section.id,
+        `Created ${slug.data}`
+      );
     });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
       throw new CmsError("conflict", "That slug is taken in this course.");
     }
     throw error;
@@ -240,7 +295,10 @@ export async function createChapter(
   }
   try {
     return await prisma.$transaction(async (tx) => {
-      const top = await tx.chapter.aggregate({ where: { sectionId }, _max: { order: true } });
+      const top = await tx.chapter.aggregate({
+        where: { sectionId },
+        _max: { order: true },
+      });
       const chapter = await tx.chapter.create({
         data: {
           sectionId,
@@ -251,11 +309,21 @@ export async function createChapter(
         },
         select: { id: true },
       });
-      await audit(tx, actor, "chapter.created", "chapter", chapter.id, `Created ${slug.data}`);
+      await audit(
+        tx,
+        actor,
+        "chapter.created",
+        "chapter",
+        chapter.id,
+        `Created ${slug.data}`
+      );
       return chapter.id;
     });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
       throw new CmsError("conflict", "That slug is taken in this section.");
     }
     throw error;
@@ -370,7 +438,12 @@ export async function saveDraft(
       return;
     }
     await tx.chapterRevision.create({
-      data: { ...data, chapterId, authorId: actor.id, number: (latest?.number ?? 0) + 1 },
+      data: {
+        ...data,
+        chapterId,
+        authorId: actor.id,
+        number: (latest?.number ?? 0) + 1,
+      },
     });
   });
 }
@@ -389,10 +462,13 @@ async function moveRevision(
       where: { id: revisionId, status: from },
       data: {
         status: to,
-        ...(to === "REJECTED" ? { reviewerId: actor.id, reviewNote: extra.reviewNote ?? null } : {}),
+        ...(to === "REJECTED"
+          ? { reviewerId: actor.id, reviewNote: extra.reviewNote ?? null }
+          : {}),
       },
     });
-    if (claimed.count !== 1) throw new CmsError("conflict", "That version has already moved on.");
+    if (claimed.count !== 1)
+      throw new CmsError("conflict", "That version has already moved on.");
     await audit(tx, actor, action, "chapter_revision", revisionId, `${from} to ${to}`);
   });
 }
@@ -400,11 +476,20 @@ async function moveRevision(
 export const submitForReview = (actor: CmsActor, revisionId: string) =>
   moveRevision(actor, revisionId, "DRAFT", "IN_REVIEW", "revision.submitted");
 
-export const rejectRevision = (actor: CmsActor, revisionId: string, reviewNote: string) =>
-  moveRevision(actor, revisionId, "IN_REVIEW", "REJECTED", "revision.rejected", { reviewNote });
+export const rejectRevision = (
+  actor: CmsActor,
+  revisionId: string,
+  reviewNote: string
+) =>
+  moveRevision(actor, revisionId, "IN_REVIEW", "REJECTED", "revision.rejected", {
+    reviewNote,
+  });
 
 /** Copies a reviewed revision onto the chapter learners read. */
-export async function publishRevision(actor: CmsActor, revisionId: string): Promise<void> {
+export async function publishRevision(
+  actor: CmsActor,
+  revisionId: string
+): Promise<void> {
   assertAdmin(actor);
   await prisma.$transaction(async (tx) => {
     const claimed = await tx.chapterRevision.updateMany({
@@ -415,7 +500,9 @@ export async function publishRevision(actor: CmsActor, revisionId: string): Prom
       throw new CmsError("conflict", "Only a version in review can be published.");
     }
 
-    const revision = await tx.chapterRevision.findUniqueOrThrow({ where: { id: revisionId } });
+    const revision = await tx.chapterRevision.findUniqueOrThrow({
+      where: { id: revisionId },
+    });
     // Validated again: the schema may have tightened since it was saved.
     const content = contentDocumentSchema.parse(
       revision.content
@@ -445,7 +532,10 @@ export async function publishRevision(actor: CmsActor, revisionId: string): Prom
 }
 
 /** Restoring never rewrites history: it starts a new draft from the old version. */
-export async function restoreRevision(actor: CmsActor, revisionId: string): Promise<void> {
+export async function restoreRevision(
+  actor: CmsActor,
+  revisionId: string
+): Promise<void> {
   assertAdmin(actor);
   await prisma.$transaction(async (tx) => {
     const old = await tx.chapterRevision.findUnique({ where: { id: revisionId } });

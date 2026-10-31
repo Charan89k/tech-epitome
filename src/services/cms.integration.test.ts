@@ -57,9 +57,14 @@ describe("the course CMS", () => {
       featured: false,
     });
     await createSection(admin, courseId, { title: "Start", slug: "start" });
-    const section = await prisma.courseSection.findFirstOrThrow({ where: { courseId } });
+    const section = await prisma.courseSection.findFirstOrThrow({
+      where: { courseId },
+    });
     sectionId = section.id;
-    chapterId = await createChapter(admin, sectionId, { title: "Variables", slug: "variables" });
+    chapterId = await createChapter(admin, sectionId, {
+      title: "Variables",
+      slug: "variables",
+    });
   });
 
   afterAll(async () => {
@@ -70,16 +75,24 @@ describe("the course CMS", () => {
 
   it("refuses anyone who is not a platform admin", async () => {
     const learner = { ...admin, role: "USER" };
-    await expect(saveDraft(learner, chapterId, draft("text"))).rejects.toThrow(/platform admin/);
-    await expect(setCoursePublished(learner, courseId, true)).rejects.toThrow(/platform admin/);
+    await expect(saveDraft(learner, chapterId, draft("text"))).rejects.toThrow(
+      /platform admin/
+    );
+    await expect(setCoursePublished(learner, courseId, true)).rejects.toThrow(
+      /platform admin/
+    );
   });
 
   it("will not publish a course with nothing in it", async () => {
-    await expect(setCoursePublished(admin, courseId, true)).rejects.toBeInstanceOf(CmsError);
+    await expect(setCoursePublished(admin, courseId, true)).rejects.toBeInstanceOf(
+      CmsError
+    );
   });
 
   it("explains bad source and saves nothing", async () => {
-    await expect(saveDraft(admin, chapterId, draft("# Title"))).rejects.toThrow(/Line 1/);
+    await expect(saveDraft(admin, chapterId, draft("# Title"))).rejects.toThrow(
+      /Line 1/
+    );
     expect((await getChapterForEditing(chapterId))!.revisions).toHaveLength(0);
   });
 
@@ -112,7 +125,10 @@ describe("the course CMS", () => {
     const revision = await latest();
     await submitForReview(admin, revision.id);
     await rejectRevision(admin, revision.id, "Needs an example");
-    expect(await latest()).toMatchObject({ status: "REJECTED", reviewNote: "Needs an example" });
+    expect(await latest()).toMatchObject({
+      status: "REJECTED",
+      reviewNote: "Needs an example",
+    });
     expect(JSON.stringify((await chapter()).content)).toContain("Hello again");
   });
 
@@ -137,7 +153,9 @@ describe("the course CMS", () => {
 
   it("audits publishing", async () => {
     expect(
-      await prisma.auditLog.count({ where: { entityId: chapterId, action: "revision.published" } })
+      await prisma.auditLog.count({
+        where: { entityId: chapterId, action: "revision.published" },
+      })
     ).toBeGreaterThanOrEqual(2);
   });
 });

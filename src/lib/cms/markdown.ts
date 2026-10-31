@@ -24,11 +24,17 @@ export function parseInline(text: string): InlineNode[] {
     if (at > last) nodes.push({ type: "text", value: text.slice(last, at) });
     const token = match[0];
     if (token.startsWith("`")) nodes.push({ type: "code", value: token.slice(1, -1) });
-    else if (token.startsWith("**")) nodes.push({ type: "strong", value: token.slice(2, -2) });
-    else if (token.startsWith("*")) nodes.push({ type: "em", value: token.slice(1, -1) });
+    else if (token.startsWith("**"))
+      nodes.push({ type: "strong", value: token.slice(2, -2) });
+    else if (token.startsWith("*"))
+      nodes.push({ type: "em", value: token.slice(1, -1) });
     else {
       const split = token.indexOf("](");
-      nodes.push({ type: "link", value: token.slice(1, split), href: token.slice(split + 2, -1) });
+      nodes.push({
+        type: "link",
+        value: token.slice(1, split),
+        href: token.slice(split + 2, -1),
+      });
     }
     last = at + token.length;
   }
@@ -59,8 +65,7 @@ export function markdownToBlocks(source: string): ContentBlock[] {
   const blocks: ContentBlock[] = [];
   let i = 0;
 
-  const startsBlock = (line: string) =>
-    /^(#{2,3} |```|> |- |\d+\. |\||:::)/.test(line);
+  const startsBlock = (line: string) => /^(#{2,3} |```|> |- |\d+\. |\||:::)/.test(line);
 
   while (i < lines.length) {
     const line = lines[i]!;
@@ -72,7 +77,10 @@ export function markdownToBlocks(source: string): ContentBlock[] {
     const heading = /^(#{1,6}) (.+)$/.exec(line);
     if (heading) {
       if (heading[1]!.length !== 2 && heading[1]!.length !== 3) {
-        throw new MarkdownError(i + 1, "Use ## or ### for headings; the page owns the title.");
+        throw new MarkdownError(
+          i + 1,
+          "Use ## or ### for headings; the page owns the title."
+        );
       }
       blocks.push({
         type: "heading",
@@ -88,7 +96,8 @@ export function markdownToBlocks(source: string): ContentBlock[] {
       const start = i + 1;
       let end = start;
       while (end < lines.length && !lines[end]!.startsWith("```")) end += 1;
-      if (end === lines.length) throw new MarkdownError(i + 1, "This code fence is never closed.");
+      if (end === lines.length)
+        throw new MarkdownError(i + 1, "This code fence is never closed.");
       blocks.push({ type: "code", language, code: lines.slice(start, end).join("\n") });
       i = end + 1;
       continue;
@@ -152,7 +161,11 @@ export function markdownToBlocks(source: string): ContentBlock[] {
       if (rows.length < 2 || !/^[\s|:-]+$/.test(rows[1]!)) {
         throw new MarkdownError(i, "A table needs a header row and a |---| row.");
       }
-      blocks.push({ type: "table", headers: cells(rows[0]!), rows: rows.slice(2).map(cells) });
+      blocks.push({
+        type: "table",
+        headers: cells(rows[0]!),
+        rows: rows.slice(2).map(cells),
+      });
       continue;
     }
 

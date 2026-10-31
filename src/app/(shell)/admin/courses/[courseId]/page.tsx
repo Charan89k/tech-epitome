@@ -36,12 +36,17 @@ export default async function AdminCoursePage({
     <div className="space-y-8 text-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href="/admin/courses" className="text-muted-foreground hover:text-foreground">
+          <Link
+            href="/admin/courses"
+            className="text-muted-foreground hover:text-foreground"
+          >
             All courses
           </Link>
           <h2 className="mt-1 flex items-center gap-2 text-lg font-semibold">
             {course.title}
-            <Badge variant={published ? "success" : "outline"}>{course.status.toLowerCase()}</Badge>
+            <Badge variant={published ? "success" : "outline"}>
+              {course.status.toLowerCase()}
+            </Badge>
           </h2>
         </div>
         <div className="flex items-center gap-3">
@@ -64,10 +69,17 @@ export default async function AdminCoursePage({
       </div>
 
       <section aria-labelledby="curriculum">
-        <SectionHeading id="curriculum" title="Curriculum" count={course.sections.length} />
+        <SectionHeading
+          id="curriculum"
+          title="Curriculum"
+          count={course.sections.length}
+        />
         <div className="mt-3 space-y-4">
           {course.sections.map((section) => (
-            <div key={section.id} className="rounded-lg border border-border bg-card p-4">
+            <div
+              key={section.id}
+              className="rounded-lg border border-border bg-card p-4"
+            >
               <h3 className="font-medium">{section.title}</h3>
               <ul className="mt-2 divide-y divide-border">
                 {section.chapters.map((chapter) => {
@@ -78,7 +90,9 @@ export default async function AdminCoursePage({
                       className="flex flex-wrap items-center justify-between gap-2 py-2"
                     >
                       <Link
-                        href={route(`/admin/courses/${course.id}/chapters/${chapter.id}`)}
+                        href={route(
+                          `/admin/courses/${course.id}/chapters/${chapter.id}`
+                        )}
                         className="text-info hover:underline"
                       >
                         {chapter.title}
@@ -86,10 +100,15 @@ export default async function AdminCoursePage({
                       <span className="flex items-center gap-2">
                         {revision && (
                           <span className="font-mono text-xs text-subtle-foreground">
-                            v{revision.number} {revision.status.toLowerCase().replace("_", " ")}
+                            v{revision.number}{" "}
+                            {revision.status.toLowerCase().replace("_", " ")}
                           </span>
                         )}
-                        <Badge variant={chapter.status === "PUBLISHED" ? "success" : "outline"}>
+                        <Badge
+                          variant={
+                            chapter.status === "PUBLISHED" ? "success" : "outline"
+                          }
+                        >
                           {chapter.status.toLowerCase()}
                         </Badge>
                       </span>
@@ -145,13 +164,25 @@ export default async function AdminCoursePage({
               <label htmlFor="section-title" className={label}>
                 Section title
               </label>
-              <Input id="section-title" name="title" required maxLength={160} className="mt-1" />
+              <Input
+                id="section-title"
+                name="title"
+                required
+                maxLength={160}
+                className="mt-1"
+              />
             </div>
             <div>
               <label htmlFor="section-slug" className={label}>
                 Section slug
               </label>
-              <Input id="section-slug" name="slug" required maxLength={80} className="mt-1" />
+              <Input
+                id="section-slug"
+                name="slug"
+                required
+                maxLength={80}
+                className="mt-1"
+              />
             </div>
           </div>
         </CmsForm>

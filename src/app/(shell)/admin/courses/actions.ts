@@ -183,7 +183,9 @@ export async function rejectRevisionAction(
   form: FormData
 ): Promise<CmsFormState> {
   const admin = await requireAdminOrThrow();
-  const note = String(form.get("note") ?? "").trim().slice(0, 2000);
+  const note = String(form.get("note") ?? "")
+    .trim()
+    .slice(0, 2000);
   if (!note) return { error: "Say what needs to change." };
   return step(() => rejectRevision(admin, id.parse(revisionId), note));
 }
