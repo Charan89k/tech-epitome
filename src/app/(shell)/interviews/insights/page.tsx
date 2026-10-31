@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/common/page-header";
 import { Button } from "@/components/ui/button";
-import { requireUser } from "@/lib/auth/session";
+import { requireCampusUser } from "@/lib/campus-access";
 import type { DimensionHistory } from "@/lib/career/summary";
 import {
   BAND_LABELS,
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
  * own feedback and activity. Private to them; nothing here is shared.
  */
 export default async function InsightsPage() {
-  const user = await requireUser("/interviews/insights");
+  const user = await requireCampusUser("/interviews/insights");
   const { summary, history, recommendations } = await getCareerOverview(user.id);
 
   const stats = [
@@ -36,7 +36,7 @@ export default async function InsightsPage() {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <PageHeader
         title="Interview insights"
         description="Built only from feedback you received and practice you did. Private to you."

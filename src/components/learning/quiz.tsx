@@ -66,7 +66,7 @@ export function Quiz({
     >
       <header className="border-border flex items-center justify-between gap-3 border-b px-5 py-3">
         <div className="min-w-0">
-          <p className="text-ember-400 font-mono text-[0.68rem] tracking-wider uppercase">
+          <p className="text-brand-400 font-mono text-[0.68rem] tracking-wider uppercase">
             Quick quiz
           </p>
           <h3 id={`quiz-${quiz.slug}`} className="truncate text-sm font-semibold">
@@ -141,7 +141,7 @@ export function Quiz({
                           : showWrong
                             ? "border-destructive/40 bg-destructive/8"
                             : isChosen
-                              ? "border-ember-500/40 bg-ember-500/6"
+                              ? "border-brand-500/40 bg-brand-500/6"
                               : "border-border"
                       )}
                     >

@@ -22,9 +22,12 @@ function getSnapshot(): boolean {
  * layout on a phone. This reads the media query during render instead, so
  * the first paint is already correct.
  *
- * The server snapshot is `false`: markup is rendered desktop-first and
- * React reconciles on hydration.
+ * The server snapshot is `serverGuess` (default `false`, desktop-first).
+ * React uses it again while hydrating, so a page whose layout differs by
+ * breakpoint should pass the server's guess from the request (see
+ * `isLikelyMobileRequest`); otherwise a phone hydrates the desktop layout
+ * and then swaps to the mobile one, remounting everything inside it.
  */
-export function useIsMobile(): boolean {
-  return React.useSyncExternalStore(subscribe, getSnapshot, () => false);
+export function useIsMobile(serverGuess = false): boolean {
+  return React.useSyncExternalStore(subscribe, getSnapshot, () => serverGuess);
 }

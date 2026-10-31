@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { useFormStatus } from "react-dom";
 import { AlertCircle, Loader2 } from "lucide-react";
@@ -45,6 +45,10 @@ export function AuthForm({
 }: AuthFormProps) {
   const action = mode === "signin" ? signInAction : signUpAction;
   const [state, formAction] = useActionState(action, EMPTY);
+  // Controlled so a failed attempt keeps what was typed; the password still
+  // clears, as it should.
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
 
   const fieldErrors = state.fieldErrors ?? {};
 
@@ -57,7 +61,7 @@ export function AuthForm({
         <p className="text-muted-foreground text-sm">
           {mode === "signin"
             ? "Pick up where you left off."
-            : "Free, every track and feature. No card."}
+            : "Free for every learner. No card."}
         </p>
       </header>
 
@@ -123,6 +127,8 @@ export function AuthForm({
             autoComplete="name"
             placeholder="Ada Lovelace"
             error={fieldErrors.name}
+            value={name}
+            onValueChange={setName}
             required
           />
         )}
@@ -135,6 +141,8 @@ export function AuthForm({
           autoComplete="email"
           placeholder="you@example.com"
           error={fieldErrors.email}
+          value={email}
+          onValueChange={setEmail}
           required
         />
 
@@ -163,7 +171,7 @@ export function AuthForm({
             New here?{" "}
             <Link
               href={{ pathname: "/signup", query: { next } }}
-              className="text-ember-300 hover:text-ember-200 font-medium underline-offset-4 hover:underline"
+              className="text-brand-300 hover:text-brand-200 font-medium underline-offset-4 hover:underline"
             >
               Create an account
             </Link>
@@ -173,7 +181,7 @@ export function AuthForm({
             Already have an account?{" "}
             <Link
               href={{ pathname: "/login", query: { next } }}
-              className="text-ember-300 hover:text-ember-200 font-medium underline-offset-4 hover:underline"
+              className="text-brand-300 hover:text-brand-200 font-medium underline-offset-4 hover:underline"
             >
               Sign in
             </Link>
@@ -237,6 +245,9 @@ type FieldProps = {
   hint?: string;
   error?: string;
   required?: boolean;
+  /** Set to keep the value across a failed submit (React resets uncontrolled fields). */
+  value?: string;
+  onValueChange?: (value: string) => void;
 };
 
 function Field({
@@ -249,6 +260,8 @@ function Field({
   hint,
   error,
   required,
+  value,
+  onValueChange,
 }: FieldProps) {
   const describedBy =
     [error ? `${id}-error` : null, hint ? `${id}-hint` : null]
@@ -265,6 +278,8 @@ function Field({
         autoComplete={autoComplete}
         placeholder={placeholder}
         required={required}
+        value={value}
+        onChange={onValueChange ? (event) => onValueChange(event.target.value) : undefined}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         className={cn("h-10", error && "border-destructive focus-visible:ring-destructive/40")}

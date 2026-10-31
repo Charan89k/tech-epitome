@@ -113,7 +113,7 @@ export default async function LLDExercisePage({
             <h2 id="requirements" className="text-sm font-semibold">
               Requirements
             </h2>
-            <ul className="marker:text-ember-500/60 mt-2 list-disc space-y-1 pl-5">
+            <ul className="marker:text-brand-500/60 mt-2 list-disc space-y-1 pl-5">
               {problem.requirements.map((item) => (
                 <li key={item} className="text-muted-foreground text-sm leading-relaxed">
                   {item}
@@ -127,7 +127,7 @@ export default async function LLDExercisePage({
               <h2 id="constraints" className="text-sm font-semibold">
                 Assumptions you may make
               </h2>
-              <ul className="marker:text-ember-500/60 mt-2 list-disc space-y-1 pl-5">
+              <ul className="marker:text-brand-500/60 mt-2 list-disc space-y-1 pl-5">
                 {problem.constraints.map((item) => (
                   <li key={item} className="text-muted-foreground text-sm leading-relaxed">
                     {item}
@@ -164,10 +164,10 @@ export default async function LLDExercisePage({
                 id="objectives"
                 className="flex items-center gap-1.5 text-sm font-semibold"
               >
-                <Target className="text-ember-400 size-3.5" aria-hidden="true" />
+                <Target className="text-brand-400 size-3.5" aria-hidden="true" />
                 What this exercise is teaching
               </h2>
-              <ul className="marker:text-ember-500/60 mt-2 list-disc space-y-1 pl-5">
+              <ul className="marker:text-brand-500/60 mt-2 list-disc space-y-1 pl-5">
                 {problem.objectives.map((item) => (
                   <li key={item} className="text-muted-foreground text-sm leading-relaxed">
                     {item}
@@ -182,7 +182,7 @@ export default async function LLDExercisePage({
               <h2 id="extensions" className="text-sm font-semibold">
                 Once it works, make it survive these
               </h2>
-              <ul className="marker:text-ember-500/60 mt-2 list-disc space-y-1 pl-5">
+              <ul className="marker:text-brand-500/60 mt-2 list-disc space-y-1 pl-5">
                 {problem.extensions.map((item) => (
                   <li key={item} className="text-muted-foreground text-sm leading-relaxed">
                     {item}
@@ -220,7 +220,7 @@ export default async function LLDExercisePage({
             />
           ) : (
             <div className="viz-canvas border-border flex flex-col items-center rounded-lg border px-6 py-12 text-center">
-              <PenTool className="text-ember-400 size-5" aria-hidden="true" />
+              <PenTool className="text-brand-400 size-5" aria-hidden="true" />
               <p className="text-muted-foreground mt-3 text-sm">
                 Sign in to design and save.
               </p>
@@ -238,7 +238,7 @@ export default async function LLDExercisePage({
           aria-labelledby="reference"
           className="bg-card border-border mt-8 min-w-0 rounded-xl border p-4 sm:p-6"
         >
-          <p className="text-ember-300 text-[0.68rem] font-medium tracking-wider uppercase">
+          <p className="text-brand-300 text-[0.68rem] font-medium tracking-wider uppercase">
             Unlocked by your submission
           </p>
           <h2 id="reference" className="tracking-headline mt-1 text-lg font-semibold">
@@ -257,7 +257,7 @@ export default async function LLDExercisePage({
           {problem.reference.tradeoffs.length > 0 && (
             <>
               <h3 className="mt-6 flex items-center gap-1.5 text-sm font-semibold">
-                <Scale className="text-ember-400 size-3.5" aria-hidden="true" />
+                <Scale className="text-brand-400 size-3.5" aria-hidden="true" />
                 Trade-offs behind it
               </h3>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -265,7 +265,7 @@ export default async function LLDExercisePage({
                   <div key={t.decision} className="border-border bg-background/40 rounded-lg border p-3.5">
                     <p className="text-sm font-medium">{t.decision}</p>
                     <p className="text-muted-foreground mt-1 text-xs">
-                      Chose <span className="text-ember-300">{t.chose}</span> over{" "}
+                      Chose <span className="text-brand-300">{t.chose}</span> over{" "}
                       {t.over}.
                     </p>
                     <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
@@ -292,7 +292,7 @@ export default async function LLDExercisePage({
 
           {problem.designPatterns.length > 0 && (
             <p className="text-muted-foreground mt-4 flex flex-wrap items-center gap-1.5 text-xs">
-              <Sparkles className="text-ember-400 size-3.5" aria-hidden="true" />
+              <Sparkles className="text-brand-400 size-3.5" aria-hidden="true" />
               Patterns this reference uses:
               {problem.designPatterns.map((pattern) => (
                 <span key={pattern} className="bg-muted/50 rounded-full px-2 py-0.5 text-[0.65rem]">

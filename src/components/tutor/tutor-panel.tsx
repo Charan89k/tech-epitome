@@ -60,7 +60,7 @@ function ContextHeader({ label }: { label: TutorContextLabel }) {
   return (
     <header className="border-border border-b px-4 py-3">
       <div className="flex items-center gap-2">
-        <Sparkles className="text-ember-400 size-4 shrink-0" aria-hidden="true" />
+        <Sparkles className="text-brand-400 size-4 shrink-0" aria-hidden="true" />
         <h2 className="text-sm font-semibold">AI Tutor</h2>
       </div>
 
@@ -70,7 +70,7 @@ function ContextHeader({ label }: { label: TutorContextLabel }) {
             Currently studying
           </p>
           {label.primary && (
-            <p className="text-ember-300 mt-0.5 text-sm font-medium">
+            <p className="text-brand-300 mt-0.5 text-sm font-medium">
               {label.primary}
             </p>
           )}
@@ -127,7 +127,7 @@ function QuickActions({
             onClick={() => onPick(action)}
             className={cn(
               "border-border text-muted-foreground inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors",
-              "hover:border-ember-500/40 hover:text-ember-300",
+              "hover:border-brand-500/40 hover:text-brand-300",
               "disabled:pointer-events-none disabled:opacity-50"
             )}
           >
@@ -168,7 +168,7 @@ function Turn({ turn }: { turn: TutorTurn }) {
   return (
     <div className="group/turn">
       <div className="flex items-center gap-1.5">
-        <Sparkles className="text-ember-400 size-3" aria-hidden="true" />
+        <Sparkles className="text-brand-400 size-3" aria-hidden="true" />
         <span className="text-muted-foreground text-[0.65rem] font-medium tracking-wider uppercase">
           Tutor
         </span>
@@ -197,7 +197,7 @@ function Turn({ turn }: { turn: TutorTurn }) {
         <TutorMarkdown content={turn.content} />
         {turn.streaming && (
           <span
-            className="bg-ember-400 ml-0.5 inline-block h-3.5 w-1.5 animate-pulse align-text-bottom"
+            className="bg-brand-400 ml-0.5 inline-block h-3.5 w-1.5 animate-pulse align-text-bottom"
             aria-hidden="true"
           />
         )}

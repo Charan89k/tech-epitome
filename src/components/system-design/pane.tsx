@@ -3,12 +3,12 @@ import { cn } from "@/lib/utils";
 
 /**
  * Workspace pane chrome shared by the design, LLD and interview pages:
- * a rounded panel with a 40px header whose label carries the ember
+ * a rounded panel with a 40px header whose label carries the brand
  * underline, matching `PaneTab` in the problem workspace.
  */
 
 const UNDERLINE =
-  "after:bg-ember-500 relative after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full";
+  "after:bg-brand-500 relative after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full";
 
 export function Pane({
   label,
@@ -46,7 +46,7 @@ export function Pane({
             UNDERLINE
           )}
         >
-          {Icon && <Icon className="size-3.5 text-ember-400" />}
+          {Icon && <Icon className="size-3.5 text-brand-400" />}
           {label}
         </Label>
         {actions && (
@@ -58,7 +58,7 @@ export function Pane({
   );
 }
 
-/** A tab trigger in the underline style; the ember bar marks the active tab. */
+/** A tab trigger in the underline style; the brand bar marks the active tab. */
 export function UnderlineTab({
   value,
   icon: Icon,
@@ -77,7 +77,7 @@ export function UnderlineTab({
       value={value}
       disabled={disabled}
       className={cn(
-        "relative h-10 flex-none rounded-none border-0 bg-transparent px-3 text-xs shadow-none after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full after:bg-ember-500 after:opacity-0 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=active]:after:opacity-100 dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-transparent",
+        "relative h-10 flex-none rounded-none border-0 bg-transparent px-3 text-xs shadow-none after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full after:bg-brand-500 after:opacity-0 data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=active]:after:opacity-100 dark:data-[state=active]:border-transparent dark:data-[state=active]:bg-transparent",
         className
       )}
     >

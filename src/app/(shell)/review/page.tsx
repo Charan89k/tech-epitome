@@ -76,8 +76,8 @@ export default async function ReviewPage() {
         ) : (
           <>
             <div className="px-6 pt-10">
-              <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-ember-500/12 ring-1 ring-ember-500/25">
-                <CheckCircle2 className="size-6 text-ember-400" aria-hidden="true" />
+              <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-brand-500/12 ring-1 ring-brand-500/25">
+                <CheckCircle2 className="size-6 text-brand-400" aria-hidden="true" />
               </div>
               <h1 className="tracking-headline mt-4 text-xl font-bold">
                 Nothing due right now

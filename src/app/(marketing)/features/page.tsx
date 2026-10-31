@@ -26,7 +26,7 @@ const TRACKS = [
   {
     diagram: "tree",
     title: "Data structures & algorithms",
-    body: "A dependency-ordered curriculum from complexity analysis through advanced dynamic programming. Each chapter states what you should be able to do afterwards, then checks it with problems and recall.",
+    body: "A dependency-ordered curriculum from complexity analysis through arrays, hashing, pointers, windows, binary search, linked lists, stacks and recursion. Each chapter states what you should be able to do afterwards, then checks it with problems and recall.",
     href: "/learn/dsa",
     linkLabel: "Open the curriculum",
   },
@@ -75,15 +75,15 @@ const AI = [
   },
   {
     icon: MessagesSquare,
-    title: "Mock interviews with real feedback",
-    body: "An interviewer that asks rather than teaches, and will not correct you mid-answer. The feedback comes afterwards, with evidence quoted from your own transcript.",
+    title: "Mock interviews, with Campus",
+    body: "An interviewer that asks rather than teaches, and will not correct you mid-answer. The feedback comes afterwards, with evidence quoted from your own transcript. Part of Campus: students reach it through their college.",
   },
 ] as const;
 
 const FREE_FACTS = [
   "No paid plan, no paid tier, no add-ons.",
   "No card, at signup or ever.",
-  "No feature reserved for anyone. An account unlocks all of it.",
+  "Everything for individual learners comes with a free account. Mock interviews and interview preparation come with Campus, through your college.",
   "The AI features are rate-limited to keep them affordable to run — never to sell you a larger allowance.",
 ] as const;
 
@@ -99,13 +99,14 @@ export default function FeaturesPage() {
           </p>
           <h1 className="display mt-6 text-4xl sm:text-5xl lg:text-6xl">
             Everything in <span className="whitespace-nowrap">{site.name}</span>,{" "}
-            for everyone
+            for every learner
           </h1>
           <p className="text-muted-foreground mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-pretty">
             There is no pricing page because{" "}
-            <strong className="text-foreground font-semibold">there is no price</strong>. Every
-            track, every exercise and both AI features are available to any account. What follows is
-            what you get, not what a tier gets.
+            <strong className="text-foreground font-semibold">there is no price</strong>.  Every
+            course, problem, exercise and the AI tutor is available to any account; mock
+            interviews and interview preparation come with Campus, through your college. What
+            follows is what you get, not what a tier gets.
           </p>
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild className="h-12 w-full rounded-full px-7 text-base sm:w-auto">
@@ -165,7 +166,7 @@ export default function FeaturesPage() {
           <div className="mt-10 grid gap-6 sm:grid-cols-2">
             {AI.map((feature) => (
               <article key={feature.title} className="bg-card border-border rounded-lg border p-6">
-                <span className="border-border bg-muted/40 text-ember-400 flex size-9 items-center justify-center rounded-xl border">
+                <span className="border-border bg-muted/40 text-brand-400 flex size-9 items-center justify-center rounded-xl border">
                   <feature.icon className="size-4" aria-hidden="true" />
                 </span>
                 <h3 className="mt-4 text-base font-semibold">{feature.title}</h3>
@@ -188,7 +189,7 @@ export default function FeaturesPage() {
             <ul className="mt-6 space-y-3.5">
               {FREE_FACTS.map((fact) => (
                 <li key={fact} className="flex items-start gap-3">
-                  <span className="bg-ember-500/12 text-ember-400 mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full">
+                  <span className="bg-brand-500/12 text-brand-400 mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full">
                     <Check className="size-3" aria-hidden="true" />
                   </span>
                   <span className="text-foreground/90 text-sm leading-relaxed sm:text-base">

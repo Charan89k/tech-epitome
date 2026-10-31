@@ -93,6 +93,12 @@ async function readerReady(page: Page): Promise<void> {
   await expect(
     page.getByRole("main").locator("[data-block-index]").first()
   ).toBeVisible({ timeout: 30_000 });
+  // Wait for hydration too. On a phone the problem page is server-rendered
+  // in its desktop layout and switches to its tabs once hydrated, which
+  // replaces the text a selection made earlier would sit in. The tutor
+  // button is enabled only after hydration, in that same render.
+  const launcher = page.getByTestId("tutor-open").first();
+  if (await launcher.count()) await expect(launcher).toBeEnabled({ timeout: 30_000 });
 }
 
 /** Finds the first block with enough text to select from. */
@@ -120,10 +126,7 @@ test("the reader exposes block anchors for highlighting", async ({ page }) => {
   // nothing else in this file can work, so it is checked on its own.
   await page.goto(CHAPTER_URL);
   await readerReady(page);
-  const blocks = await page
-    .getByRole("main")
-    .locator("[data-block-index]")
-    .count();
+  const blocks = await page.getByRole("main").locator("[data-block-index]").count();
   expect(blocks).toBeGreaterThan(3);
 });
 
@@ -282,9 +285,7 @@ test("one learner's highlights never reach another's browser", async ({
   await expect(other.getByRole("main").locator("mark")).toHaveCount(0);
 
   await other.goto("/dashboard/highlights");
-  await expect(
-    other.getByRole("main").getByText("No highlights yet")
-  ).toBeVisible();
+  await expect(other.getByRole("main").getByText("No highlights yet")).toBeVisible();
   expect(await highlightCountFor(bob)).toBe(0);
 
   await context.close();

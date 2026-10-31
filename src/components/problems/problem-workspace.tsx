@@ -91,6 +91,8 @@ type Props = {
     timeLimitSeconds: number;
     memoryLimitMb: number;
   };
+  /** The server's guess at a phone, so hydration starts in the right layout. */
+  likelyMobile?: boolean;
 };
 
 function draftKey(slug: string, language: Language) {
@@ -128,13 +130,15 @@ export function ProblemWorkspace({
   samples,
   tutor,
   execution,
+  likelyMobile = false,
 }: Props) {
   // Only one layout is rendered at a time. Showing both and hiding one
   // with CSS would put two live Monaco instances on the page: double the
-  // memory, and an ambiguous `getModels()[0]`. The cost is that a phone
-  // renders the desktop layout for the first frame before hydration
-  // corrects it, which is by far the cheaper of the two problems.
-  const isMobile = useIsMobile();
+  // memory, and an ambiguous `getModels()[0]`. The server picks the first
+  // layout from the request so a phone hydrates straight into the tabs
+  // instead of swapping from desktop (which remounted the description and
+  // detached any selection in it).
+  const isMobile = useIsMobile(likelyMobile);
 
   const available = SUPPORTED_LANGUAGES.filter((language) => starterCode[language]);
   const initialLanguage = available.includes(defaultLanguage)
@@ -321,7 +325,7 @@ export function ProblemWorkspace({
           <Button
             variant="ghost"
             size="sm"
-            className="text-ember-300 hover:text-ember-200 h-8"
+            className="text-brand-300 hover:text-brand-200 h-8"
             onClick={visualize}
             disabled={!traceable}
             title={
@@ -582,7 +586,7 @@ function ResizeHandle({
   return (
     <Separator
       className={cn(
-        "bg-border hover:bg-ember-500/40 data-[state=dragging]:bg-ember-500/60 transition-colors",
+        "bg-border hover:bg-brand-500/40 data-[state=dragging]:bg-brand-500/60 transition-colors",
         orientation === "horizontal" ? "w-px cursor-col-resize" : "h-px cursor-row-resize"
       )}
       aria-label={`Resize ${orientation === "horizontal" ? "panels" : "editor"}`}
@@ -604,11 +608,11 @@ function PaneTab({
   return (
     <TabsTrigger
       value={value}
-      className="data-[state=active]:text-foreground data-[state=active]:after:bg-ember-500 relative h-10 rounded-none border-0 bg-transparent px-3 text-xs shadow-none after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+      className="data-[state=active]:text-foreground data-[state=active]:after:bg-brand-500 relative h-10 rounded-none border-0 bg-transparent px-3 text-xs shadow-none after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full data-[state=active]:bg-transparent data-[state=active]:shadow-none"
     >
       <Icon className="size-3.5" />
       {label}
-      {live && <span className="bg-ember-500 size-1.5 rounded-full" aria-hidden="true" />}
+      {live && <span className="bg-brand-500 size-1.5 rounded-full" aria-hidden="true" />}
     </TabsTrigger>
   );
 }

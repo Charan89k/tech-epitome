@@ -21,11 +21,11 @@ export type DesignThumbKind =
   | "roadmap";
 
 const LINE = "var(--viz-compare)";
-const ACTIVE = "var(--ember-500)";
+const ACTIVE = "var(--brand-500)";
 const MUTED = "var(--muted-foreground)";
 const STORE = "var(--viz-visited)";
 const TEXT = "var(--foreground)";
-const ACTIVE_FILL = "color-mix(in oklch, var(--ember-500) 18%, transparent)";
+const ACTIVE_FILL = "color-mix(in oklch, var(--brand-500) 18%, transparent)";
 
 export function DesignThumb({
   kind,
@@ -305,7 +305,7 @@ function Stages() {
             stroke={i <= 2 ? ACTIVE : LINE}
             strokeWidth="1.2"
             fill={
-              i < 2 ? "var(--ember-500)" : i === 2 ? ACTIVE_FILL : "var(--background)"
+              i < 2 ? "var(--brand-500)" : i === 2 ? ACTIVE_FILL : "var(--background)"
             }
           />
           {i < 2 && (
@@ -387,7 +387,7 @@ function Roadmap() {
       <Box x={6} y={62} w={26} label="dsa" active />
       <Box x={54} y={37} w={26} label="sd" />
       <Box x={106} y={12} w={30} label="mock" />
-      <circle cx="148" cy="20" r="3" fill="var(--ember-500)" />
+      <circle cx="148" cy="20" r="3" fill="var(--brand-500)" />
     </>
   );
 }

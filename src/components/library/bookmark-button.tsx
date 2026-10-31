@@ -78,7 +78,7 @@ export function BookmarkButton({
       className={cn("h-8 gap-1.5", className)}
     >
       <Bookmark
-        className={cn("size-3.5", bookmarked && "fill-current text-ember-500")}
+        className={cn("size-3.5", bookmarked && "fill-current text-brand-500")}
         aria-hidden="true"
       />
       <span className="hidden sm:inline">{bookmarked ? "Saved" : "Save"}</span>

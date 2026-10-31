@@ -26,7 +26,7 @@ export function StatPanel({
     <section
       aria-labelledby={id}
       className={cn(
-        "overflow-hidden rounded-xl border border-border bg-card",
+        "overflow-hidden rounded-lg border border-border bg-card",
         className
       )}
     >
@@ -44,7 +44,7 @@ export function StatPanel({
         {action && (
           <Link
             href={route(action.href)}
-            className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-ember-300"
+            className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-brand-300"
           >
             {action.label}
             <ArrowUpRight className="size-3.5" aria-hidden="true" />
@@ -64,8 +64,8 @@ export function StatPanel({
             key={stat.label}
             className="flex flex-col-reverse border-r border-b border-border px-4 py-3"
           >
-            <dt className="text-xs text-muted-foreground">{stat.label}</dt>
-            <dd className="font-mono text-xl font-semibold tabular-nums">
+            <dt className="label-mono">{stat.label}</dt>
+            <dd className="font-mono text-xl font-medium tabular-nums">
               {stat.value}
             </dd>
           </div>

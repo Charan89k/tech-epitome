@@ -118,7 +118,7 @@ export const linkedListReversalViz: Visualization<State, Input> = {
               <div key={index} className="flex shrink-0 flex-col items-center gap-1.5">
                 <div className="flex h-3.5 items-end">
                   {role && (
-                    <span className="text-ember-400 font-mono text-[0.6rem] leading-none">
+                    <span className="text-brand-400 font-mono text-[0.6rem] leading-none">
                       {role}
                     </span>
                   )}
@@ -129,7 +129,7 @@ export const linkedListReversalViz: Visualization<State, Input> = {
                     className={cn(
                       "flex size-10 items-center justify-center rounded-md border font-mono text-sm transition-colors",
                       index === current
-                        ? "border-ember-500/55 bg-ember-500/15 text-ember-200"
+                        ? "border-brand-500/55 bg-brand-500/15 text-brand-200"
                         : index === prev
                           ? "border-success/50 bg-success/12 text-success"
                           : index === next
@@ -175,7 +175,7 @@ function Arrow({ direction }: { direction: "right" | "left" | "null" | "other" }
     <span
       className={cn(
         "px-1.5 font-mono text-sm",
-        direction === "left" ? "text-ember-400" : "text-muted-foreground/60"
+        direction === "left" ? "text-brand-400" : "text-muted-foreground/60"
       )}
       aria-label={direction === "left" ? "points backwards" : "points forwards"}
     >

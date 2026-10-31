@@ -91,14 +91,14 @@ export default async function VisualizePage({
               <li key={other.key}>
                 <Link
                   href={route(`/visualize/${other.key}`)}
-                  className="border-border bg-card hover:border-ember-500/40 group flex h-full overflow-hidden rounded-xl border transition-colors"
+                  className="border-border bg-card hover:border-brand-500/40 group flex h-full overflow-hidden rounded-xl border transition-colors"
                 >
                   <MiniDiagram
                     kind={diagramFor(other.key, index)}
                     className="border-border w-24 shrink-0 border-r"
                   />
                   <div className="min-w-0 flex-1 p-3">
-                    <p className="group-hover:text-ember-200 truncate text-sm font-semibold transition-colors">
+                    <p className="group-hover:text-brand-200 truncate text-sm font-semibold transition-colors">
                       {other.title}
                     </p>
                     <p className="text-muted-foreground mt-1 font-mono text-[0.65rem]">

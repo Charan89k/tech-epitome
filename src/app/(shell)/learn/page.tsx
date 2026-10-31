@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookOpen, CheckCircle2, CircleDot, Search } from "lucide-react";
+import { ArrowRight, BookOpen, CheckCircle2, CircleDot, Search } from "lucide-react";
 
 import { DifficultyBadge } from "@/components/common/difficulty-badge";
 import { EmptyState } from "@/components/common/empty-state";
@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { Pagination } from "@/components/problems/pagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 import type { Difficulty, Track } from "@/generated/prisma/enums";
 import { getCurrentUser } from "@/lib/auth/session";
 import { courseHref, READER_TRACKS, TRACK_LABELS } from "@/lib/tracks";
@@ -22,7 +23,7 @@ import {
 export const metadata: Metadata = {
   title: "Courses",
   description:
-    "Every Tech-Epitome course in one place: DSA, system design and low-level design, searchable by chapter.",
+    "Every Tech Epitome course in one place: DSA, system design and low-level design, searchable by chapter.",
   alternates: { canonical: "/learn" },
 };
 
@@ -79,11 +80,11 @@ export default async function CataloguePage({ searchParams }: PageProps<"/learn"
           <label htmlFor="catalogue-track" className="text-sm font-medium">
             Track
           </label>
-          <select
+          <NativeSelect
             id="catalogue-track"
             name="track"
             defaultValue={track ?? ""}
-            className="mt-1 block h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            className="mt-1 w-full"
           >
             <option value="">All tracks</option>
             {READER_TRACKS.map((t) => (
@@ -91,17 +92,17 @@ export default async function CataloguePage({ searchParams }: PageProps<"/learn"
                 {TRACK_LABELS[t]}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
         <div>
           <label htmlFor="catalogue-difficulty" className="text-sm font-medium">
             Difficulty
           </label>
-          <select
+          <NativeSelect
             id="catalogue-difficulty"
             name="difficulty"
             defaultValue={difficulty ?? ""}
-            className="mt-1 block h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+            className="mt-1 w-full"
           >
             <option value="">Any</option>
             {DIFFICULTIES.map((d) => (
@@ -109,7 +110,7 @@ export default async function CataloguePage({ searchParams }: PageProps<"/learn"
                 {d.charAt(0) + d.slice(1).toLowerCase()}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
         <Button type="submit">
           <Search aria-hidden="true" />
@@ -150,15 +151,18 @@ async function CourseList({ userId }: { userId?: string }) {
   }
 
   return (
-    <div className="mt-8 space-y-10">
+    <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {byTrack
         .filter(([, courses]) => courses.length > 0)
         .map(([t, courses]) => (
-          <section key={t} aria-labelledby={`track-${t}`}>
-            <h2 id={`track-${t}`} className="text-base font-semibold">
+          <section key={t} aria-labelledby={`track-${t}`} className="flex flex-col">
+            <h2
+              id={`track-${t}`}
+              className="text-sm font-medium text-subtle-foreground"
+            >
               {TRACK_LABELS[t]}
             </h2>
-            <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+            <ul className="mt-2 grid flex-1 gap-3">
               {courses.map((course) => (
                 <CourseCard key={course.id} course={course} />
               ))}
@@ -174,31 +178,46 @@ function CourseCard({ course }: { course: CourseSummary }) {
     course.totalChapters > 0
       ? Math.round((course.completedChapters / course.totalChapters) * 100)
       : 0;
+  const action =
+    course.completedChapters === 0
+      ? "Start course"
+      : course.completedChapters < course.totalChapters
+        ? "Continue"
+        : "Review";
   return (
-    <li className="rounded-lg border border-border bg-card p-4">
+    <li>
       <Link
         href={route(courseHref(course.track, course.slug))}
-        className="font-medium underline-offset-4 hover:underline"
+        className="group flex h-full flex-col rounded-xl border border-border bg-card p-5 transition-colors outline-none hover:border-brand-500/50 focus-visible:ring-3 focus-visible:ring-ring/50"
       >
-        {course.title}
+        <span className="text-base font-semibold">{course.title}</span>
+        {course.subtitle && (
+          <span className="mt-1 flex-1 text-sm leading-relaxed text-muted-foreground">
+            {course.subtitle}
+          </span>
+        )}
+        <span className="mt-4 text-xs text-subtle-foreground tabular-nums">
+          {course.completedChapters} of {course.totalChapters} chapters complete
+          {course.estimatedHours > 0 && ` · about ${course.estimatedHours} h`}
+        </span>
+        <span
+          role="progressbar"
+          aria-label={`${course.title} progress`}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={percent}
+          className="mt-2 block h-1.5 overflow-hidden rounded-full bg-muted"
+        >
+          <span className="block h-full bg-primary" style={{ width: `${percent}%` }} />
+        </span>
+        <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand-300">
+          {action}
+          <ArrowRight
+            className="size-3.5 transition-transform group-hover:translate-x-0.5"
+            aria-hidden="true"
+          />
+        </span>
       </Link>
-      {course.subtitle && (
-        <p className="mt-1 text-sm text-muted-foreground">{course.subtitle}</p>
-      )}
-      <p className="mt-3 text-xs text-muted-foreground tabular-nums">
-        {course.completedChapters} of {course.totalChapters} chapters complete
-        {course.estimatedHours > 0 && ` · about ${course.estimatedHours} h`}
-      </p>
-      <div
-        role="progressbar"
-        aria-label={`${course.title} progress`}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={percent}
-        className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
-      >
-        <div className="h-full bg-primary" style={{ width: `${percent}%` }} />
-      </div>
     </li>
   );
 }
@@ -253,6 +272,7 @@ async function ChapterResults({
           total={result.total}
           baseQuery={baseQuery}
           pathname="/learn"
+          noun="chapter"
         />
       </div>
     </section>

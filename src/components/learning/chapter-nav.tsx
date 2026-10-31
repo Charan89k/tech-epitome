@@ -81,7 +81,7 @@ export function ChapterNav({
           aria-valuemax={100}
           aria-label={`${courseTitle} progress`}
         >
-          <div className="bg-ember-500 h-full rounded-full" style={{ width: `${percent}%` }} />
+          <div className="bg-brand-500 h-full rounded-full" style={{ width: `${percent}%` }} />
         </div>
       </div>
 
@@ -109,7 +109,7 @@ export function ChapterNav({
                     className={cn(
                       "flex size-6 shrink-0 items-center justify-center rounded-md font-mono text-[0.65rem] tabular-nums",
                       isActive
-                        ? "bg-ember-500/15 text-ember-300"
+                        ? "bg-brand-500/15 text-brand-300"
                         : complete
                           ? "bg-success/12 text-success"
                           : "bg-muted text-muted-foreground"
@@ -146,7 +146,7 @@ export function ChapterNav({
                         <li key={chapter.slug} className="relative">
                           {active && (
                             <span
-                              className="bg-ember-500 absolute top-1 bottom-1 left-0 w-[3px] rounded-full"
+                              className="bg-brand-500 absolute top-1 bottom-1 left-0 w-[3px] rounded-full"
                               aria-hidden="true"
                             />
                           )}
@@ -159,7 +159,7 @@ export function ChapterNav({
                             className={cn(
                               "ml-1.5 flex items-center gap-2.5 rounded-md py-1.5 pr-2 pl-[1.6rem] text-[0.8rem] transition-colors",
                               active
-                                ? "bg-ember-500/10 text-foreground font-medium"
+                                ? "bg-brand-500/10 text-foreground font-medium"
                                 : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                             )}
                           >
@@ -194,7 +194,7 @@ function ChapterStatusIcon({
   }
   if (status === "IN_PROGRESS" || active) {
     return (
-      <CircleDot className="text-ember-500 size-3.5 shrink-0" aria-label="In progress" />
+      <CircleDot className="text-brand-500 size-3.5 shrink-0" aria-label="In progress" />
     );
   }
   return (

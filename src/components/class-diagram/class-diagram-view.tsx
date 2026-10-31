@@ -39,13 +39,13 @@ import { cn } from "@/lib/utils";
 
 const KIND_STYLE: Record<TypeKind, { fill: string; stroke: string; dashed: boolean }> = {
   class: {
-    fill: "color-mix(in oklab, var(--ember-500) 10%, transparent)",
-    stroke: "color-mix(in oklab, var(--ember-500) 45%, transparent)",
+    fill: "color-mix(in oklab, var(--brand-500) 10%, transparent)",
+    stroke: "color-mix(in oklab, var(--brand-500) 45%, transparent)",
     dashed: false,
   },
   abstract: {
-    fill: "color-mix(in oklab, var(--ember-500) 6%, transparent)",
-    stroke: "color-mix(in oklab, var(--ember-500) 40%, transparent)",
+    fill: "color-mix(in oklab, var(--brand-500) 6%, transparent)",
+    stroke: "color-mix(in oklab, var(--brand-500) 40%, transparent)",
     dashed: true,
   },
   interface: {
@@ -131,7 +131,7 @@ function TypeBox({
         height={type.height}
         rx={4}
         fill={style.fill}
-        stroke={selected ? "var(--ember-500)" : style.stroke}
+        stroke={selected ? "var(--brand-500)" : style.stroke}
         strokeWidth={selected ? 2 : 1}
         strokeDasharray={style.dashed ? "6 3" : undefined}
       />

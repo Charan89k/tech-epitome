@@ -294,16 +294,16 @@ export function InterviewRoom({
               <span
                 className={cn(
                   "h-px flex-1",
-                  i === 0 ? "bg-transparent" : i <= current ? "bg-ember-500/60" : "bg-border"
+                  i === 0 ? "bg-transparent" : i <= current ? "bg-brand-500/60" : "bg-border"
                 )}
                 aria-hidden="true"
               />
               <span
                 className={cn(
                   "flex size-6 shrink-0 items-center justify-center rounded-full border font-mono text-[0.65rem] font-semibold transition-colors",
-                  state === "done" && "border-ember-500 bg-ember-500 text-primary-foreground",
+                  state === "done" && "border-brand-500 bg-brand-500 text-primary-foreground",
                   state === "current" &&
-                    "border-ember-500 bg-ember-500/15 text-ember-300 ring-ember-500/20 ring-4",
+                    "border-brand-500 bg-brand-500/15 text-brand-300 ring-brand-500/20 ring-4",
                   state === "todo" && "border-border text-muted-foreground/60"
                 )}
                 aria-hidden="true"
@@ -316,7 +316,7 @@ export function InterviewRoom({
                   i === stages.length - 1
                     ? "bg-transparent"
                     : i < current
-                      ? "bg-ember-500/60"
+                      ? "bg-brand-500/60"
                       : "bg-border"
                 )}
                 aria-hidden="true"
@@ -358,14 +358,14 @@ export function InterviewRoom({
       {turns.map((t) =>
         t.role === "USER" ? (
           <div key={t.id} className="flex justify-end">
-            <div className="bg-ember-500/10 border-ember-500/20 max-w-[85%] rounded-xl rounded-br-sm border px-3 py-2">
+            <div className="bg-brand-500/10 border-brand-500/20 max-w-[85%] rounded-xl rounded-br-sm border px-3 py-2">
               <p className="text-sm leading-relaxed whitespace-pre-wrap">{t.content}</p>
             </div>
           </div>
         ) : (
           <div key={t.id}>
             <div className="flex items-center gap-1.5">
-              <UserRound className="text-ember-400 size-3" aria-hidden="true" />
+              <UserRound className="text-brand-400 size-3" aria-hidden="true" />
               <span className="text-muted-foreground text-[0.65rem] font-medium tracking-wider uppercase">
                 Interviewer
               </span>
@@ -374,7 +374,7 @@ export function InterviewRoom({
               {t.content}
               {t.streaming && (
                 <span
-                  className="bg-ember-400 ml-0.5 inline-block h-3.5 w-1.5 animate-pulse align-text-bottom"
+                  className="bg-brand-400 ml-0.5 inline-block h-3.5 w-1.5 animate-pulse align-text-bottom"
                   aria-hidden="true"
                 />
               )}
@@ -526,7 +526,7 @@ export function InterviewRoom({
     <div className="bg-card border-border rounded-xl border p-4 sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="text-base font-semibold">{problemTitle}</h2>
-        <Badge className="bg-ember-500/12 text-ember-300 border-ember-500/30 border text-[0.65rem]">
+        <Badge className="bg-brand-500/12 text-brand-300 border-brand-500/30 border text-[0.65rem]">
           {STAGE_LABELS[stage]}
         </Badge>
       </div>

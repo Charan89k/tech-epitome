@@ -15,7 +15,7 @@ const COLUMNS = [
     ],
   },
   {
-    heading: "Code",
+    heading: "Practice",
     links: [
       { title: "Problems", href: "/problems" },
       { title: "Visualize", href: "/visualize" },
@@ -23,10 +23,10 @@ const COLUMNS = [
     ],
   },
   {
-    heading: "Career",
+    heading: "Campus",
     links: [
-      { title: "Interview preparation", href: "/prepare" },
-      { title: "Roadmaps", href: "/roadmaps" },
+      { title: "For colleges", href: "/#campus" },
+      { title: "Your college workspace", href: "/campus" },
     ],
   },
   {
@@ -45,7 +45,7 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-8 px-4 py-12 sm:px-6 md:grid-cols-[1.6fr_repeat(4,1fr)]">
         <div className="col-span-2 md:col-span-1">
           <div className="flex items-center gap-2">
-            <LogoMark gradient idSuffix="footer" className="size-5" />
+            <LogoMark brand className="size-5" />
             <span className="text-sm font-semibold tracking-tight">
               {site.name}
             </span>

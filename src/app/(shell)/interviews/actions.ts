@@ -13,7 +13,7 @@ import { fence } from "@/lib/tutor/policy";
 import { recordEvent } from "@/lib/analytics";
 import { notifyInterviewGraded } from "@/services/notifications";
 import { canAccess, FEATURES } from "@/lib/auth/access";
-import { requireUserOrThrow } from "@/lib/auth/session";
+import { requireCampusUserOrThrow } from "@/lib/campus-access";
 import {
   boundTranscript,
   buildFeedbackSystemPrompt,
@@ -68,7 +68,7 @@ const createSchema = z.object({
 export async function availableDifficultiesAction(
   rawType: unknown
 ): Promise<ActionResult<{ difficulties: Difficulty[] }>> {
-  await requireUserOrThrow();
+  await requireCampusUserOrThrow();
 
   const parsed = z.nativeEnum(InterviewType).safeParse(rawType);
   if (!parsed.success) {
@@ -86,7 +86,7 @@ export async function availableDifficultiesAction(
 export async function createInterviewAction(
   raw: unknown
 ): Promise<ActionResult<{ id: string; difficulty: Difficulty; substituted: boolean }>> {
-  const user = await requireUserOrThrow();
+  const user = await requireCampusUserOrThrow();
   if (!canAccess(user, FEATURES.AI_MOCK_INTERVIEW)) {
     return { ok: false, error: "Sign in to use mock interviews." };
   }
@@ -143,7 +143,7 @@ const codeSchema = z.object({
 export async function saveInterviewCodeAction(
   raw: unknown
 ): Promise<ActionResult> {
-  const user = await requireUserOrThrow();
+  const user = await requireCampusUserOrThrow();
 
   const parsed = codeSchema.safeParse(raw);
   if (!parsed.success) {
@@ -173,7 +173,7 @@ export async function saveInterviewCodeAction(
  * code and feedback. Another learner's id deletes nothing.
  */
 export async function deleteInterviewAction(sessionId: string): Promise<void> {
-  const user = await requireUserOrThrow();
+  const user = await requireCampusUserOrThrow();
   await deleteInterview(z.string().min(1).max(64).parse(sessionId), user.id);
   revalidatePath("/interviews");
   redirect("/interviews");
@@ -183,7 +183,7 @@ export async function deleteInterviewAction(sessionId: string): Promise<void> {
 export async function endInterviewAction(
   sessionId: string
 ): Promise<ActionResult> {
-  const user = await requireUserOrThrow();
+  const user = await requireCampusUserOrThrow();
   await setStage({ sessionId, userId: user.id, stage: "ENDED" });
   revalidatePath(`/interviews/${sessionId}`);
   revalidatePath("/interviews");
@@ -285,7 +285,7 @@ async function requestFeedback(
 export async function generateFeedbackAction(
   sessionId: string
 ): Promise<ActionResult<{ generated: true }>> {
-  const user = await requireUserOrThrow();
+  const user = await requireCampusUserOrThrow();
   if (!canAccess(user, FEATURES.AI_MOCK_INTERVIEW)) {
     return { ok: false, error: "Sign in to use mock interviews." };
   }

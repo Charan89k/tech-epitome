@@ -9,24 +9,17 @@ import { cn } from "@/lib/utils";
  * 16px, which is the only size a favicon really has to work at.
  *
  * Drawn with currentColor by default so it inherits from context; pass
- * `gradient` for the ember treatment used in the header and on the hero.
+ * `brand` for the flat indigo used in the header, footer and favicon.
  */
 
 type LogoMarkProps = {
   className?: string;
-  /** Use the ember gradient instead of currentColor. */
-  gradient?: boolean;
-  /** Unique id suffix - required when several gradient marks share a page. */
-  idSuffix?: string;
+  /** Use the brand indigo instead of currentColor. */
+  brand?: boolean;
 };
 
-export function LogoMark({
-  className,
-  gradient = false,
-  idSuffix = "default",
-}: LogoMarkProps) {
-  const gradientId = `cf-ember-${idSuffix}`;
-  const stroke = gradient ? `url(#${gradientId})` : "currentColor";
+export function LogoMark({ className, brand = false }: LogoMarkProps) {
+  const stroke = brand ? "var(--brand-400)" : "currentColor";
 
   return (
     <svg
@@ -36,16 +29,6 @@ export function LogoMark({
       aria-hidden="true"
       className={cn("size-6", className)}
     >
-      {gradient && (
-        <defs>
-          <linearGradient id={gradientId} x1="4" y1="3" x2="20" y2="21">
-            <stop offset="0%" stopColor="var(--ember-300)" />
-            <stop offset="55%" stopColor="var(--ember-500)" />
-            <stop offset="100%" stopColor="var(--ember-700)" />
-          </linearGradient>
-        </defs>
-      )}
-
       {/* Edges: spine top-to-bottom, then the two arms. */}
       <path
         d="M7 4.5V19.5M7 4.5H16.5M7 11.8H14"
@@ -87,7 +70,7 @@ export function Wordmark({ className, responsive = false }: WordmarkProps) {
         className
       )}
     >
-      Tech <span className="text-ember-500">Epitome</span>
+      Tech <span className="text-brand-500">Epitome</span>
     </span>
   );
 }
@@ -96,9 +79,8 @@ type LogoProps = {
   className?: string;
   markClassName?: string;
   wordmarkClassName?: string;
-  gradient?: boolean;
+  brand?: boolean;
   responsive?: boolean;
-  idSuffix?: string;
 };
 
 /** Mark plus wordmark, the standard lockup. */
@@ -106,17 +88,12 @@ export function Logo({
   className,
   markClassName,
   wordmarkClassName,
-  gradient = true,
+  brand = true,
   responsive = false,
-  idSuffix = "lockup",
 }: LogoProps) {
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
-      <LogoMark
-        gradient={gradient}
-        idSuffix={idSuffix}
-        className={cn("size-6 shrink-0", markClassName)}
-      />
+      <LogoMark brand={brand} className={cn("size-6 shrink-0", markClassName)} />
       <Wordmark responsive={responsive} className={wordmarkClassName} />
       <span className="sr-only">Tech Epitome</span>
     </span>

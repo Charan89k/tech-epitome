@@ -30,18 +30,18 @@ const KIND_STYLE: Record<NodeKind, { fill: string; stroke: string; text: string 
   client: { fill: "var(--muted)", stroke: "var(--border)", text: "var(--foreground)" },
   cdn: { fill: "var(--muted)", stroke: "var(--border)", text: "var(--foreground)" },
   load_balancer: {
-    fill: "color-mix(in oklab, var(--ember-500) 12%, transparent)",
-    stroke: "color-mix(in oklab, var(--ember-500) 45%, transparent)",
+    fill: "color-mix(in oklab, var(--brand-500) 12%, transparent)",
+    stroke: "color-mix(in oklab, var(--brand-500) 45%, transparent)",
     text: "var(--foreground)",
   },
   api: {
-    fill: "color-mix(in oklab, var(--ember-500) 16%, transparent)",
-    stroke: "color-mix(in oklab, var(--ember-500) 55%, transparent)",
+    fill: "color-mix(in oklab, var(--brand-500) 16%, transparent)",
+    stroke: "color-mix(in oklab, var(--brand-500) 55%, transparent)",
     text: "var(--foreground)",
   },
   service: {
-    fill: "color-mix(in oklab, var(--ember-500) 10%, transparent)",
-    stroke: "color-mix(in oklab, var(--ember-500) 40%, transparent)",
+    fill: "color-mix(in oklab, var(--brand-500) 10%, transparent)",
+    stroke: "color-mix(in oklab, var(--brand-500) 40%, transparent)",
     text: "var(--foreground)",
   },
   worker: { fill: "var(--muted)", stroke: "var(--border)", text: "var(--foreground)" },
@@ -133,7 +133,7 @@ function NodeBox({
         height={node.height}
         rx={8}
         fill={style.fill}
-        stroke={selected ? "var(--ember-500)" : style.stroke}
+        stroke={selected ? "var(--brand-500)" : style.stroke}
         strokeWidth={selected ? 2 : 1}
         strokeDasharray={node.kind === "external" ? "4 3" : undefined}
       />

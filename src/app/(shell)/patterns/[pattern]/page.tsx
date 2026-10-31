@@ -136,11 +136,11 @@ export default async function PatternPage({
           {/* The most important section on the page, so it comes first. */}
           <section
             aria-labelledby="recognition"
-            className="border-ember-500/30 bg-ember-500/6 rounded-xl border p-5 sm:p-6"
+            className="border-brand-500/30 bg-brand-500/6 rounded-xl border p-5 sm:p-6"
           >
             <h2
               id="recognition"
-              className="text-ember-400 text-[0.68rem] font-medium tracking-wider uppercase"
+              className="text-brand-400 text-[0.68rem] font-medium tracking-wider uppercase"
             >
               How do I recognise this pattern?
             </h2>
@@ -148,7 +148,7 @@ export default async function PatternPage({
             <ul className="mt-3 space-y-2.5">
               {pattern.recognitionClues.map((clue) => (
                 <li key={clue} className="flex gap-3 text-[0.95rem]">
-                  <Check className="text-ember-400 mt-1 size-4 shrink-0" aria-hidden="true" />
+                  <Check className="text-brand-400 mt-1 size-4 shrink-0" aria-hidden="true" />
                   <span className="text-foreground leading-relaxed">{clue}</span>
                 </li>
               ))}
@@ -156,7 +156,7 @@ export default async function PatternPage({
 
             {pattern.antiPatterns.length > 0 && (
               <>
-                <h3 className="text-muted-foreground border-ember-500/15 mt-5 border-t pt-4 text-[0.68rem] font-medium tracking-wider uppercase">
+                <h3 className="text-muted-foreground border-brand-500/15 mt-5 border-t pt-4 text-[0.68rem] font-medium tracking-wider uppercase">
                   When it is the wrong tool
                 </h3>
                 <ul className="mt-2.5 space-y-2">
@@ -185,7 +185,7 @@ export default async function PatternPage({
             <h2 id="core" className="tracking-headline text-lg font-semibold">
               The core idea
             </h2>
-            <div className="border-border bg-card border-l-ember-500 mt-3 rounded-xl border border-l-[3px] p-4 sm:p-5">
+            <div className="border-border bg-card border-l-brand-500 mt-3 rounded-xl border border-l-[3px] p-4 sm:p-5">
               <p className="text-foreground text-[0.95rem] leading-relaxed">{pattern.coreIdea}</p>
             </div>
           </section>
@@ -258,13 +258,13 @@ export default async function PatternPage({
               <dl className="mt-3 space-y-2">
                 <div className="bg-muted/40 rounded-lg p-3">
                   <dt className="text-muted-foreground text-xs">Time</dt>
-                  <dd className="text-ember-300 mt-1 font-mono text-[0.8rem] leading-snug break-words">
+                  <dd className="text-brand-300 mt-1 font-mono text-[0.8rem] leading-snug break-words">
                     {pattern.timeComplexity ?? "—"}
                   </dd>
                 </div>
                 <div className="bg-muted/40 rounded-lg p-3">
                   <dt className="text-muted-foreground text-xs">Space</dt>
-                  <dd className="text-ember-300 mt-1 font-mono text-[0.8rem] leading-snug break-words">
+                  <dd className="text-brand-300 mt-1 font-mono text-[0.8rem] leading-snug break-words">
                     {pattern.spaceComplexity ?? "—"}
                   </dd>
                 </div>
@@ -294,7 +294,7 @@ export default async function PatternPage({
                       )}
                       className="text-muted-foreground hover:bg-accent/40 hover:text-foreground flex items-center gap-2.5 rounded-md px-2 py-2 text-sm transition-colors"
                     >
-                      <BookOpen className="text-ember-400/80 size-4 shrink-0" aria-hidden="true" />
+                      <BookOpen className="text-brand-400/80 size-4 shrink-0" aria-hidden="true" />
                       <span className="truncate">{chapter.title}</span>
                     </Link>
                   </li>
@@ -346,7 +346,7 @@ function PatternProblemsTable({
               aria-valuemax={100}
               aria-label={`${title} progress`}
             >
-              <div className="bg-ember-500 h-full rounded-full" style={{ width: `${percent}%` }} />
+              <div className="bg-brand-500 h-full rounded-full" style={{ width: `${percent}%` }} />
             </div>
           </div>
         )}
@@ -386,7 +386,7 @@ function PatternProblemsTable({
                   <Link
                     href={route(`/problems/${problem.slug}`)}
                     className={cn(
-                      "hover:text-ember-300 font-medium transition-colors",
+                      "hover:text-brand-300 font-medium transition-colors",
                       problem.status === "SOLVED" ? "text-muted-foreground" : "text-info"
                     )}
                   >
@@ -401,7 +401,7 @@ function PatternProblemsTable({
                 </td>
                 <td className="text-muted-foreground px-4 py-3 text-xs sm:px-5">
                   {problem.isPrimary ? (
-                    <span className="text-ember-300">Primary</span>
+                    <span className="text-brand-300">Primary</span>
                   ) : (
                     "Related"
                   )}

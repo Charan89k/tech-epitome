@@ -32,7 +32,7 @@ export function BeforeAfterCard({
   return (
     <figure className="not-prose border-border bg-card surface-edge my-5 rounded-xl border p-4">
       <figcaption>
-        <p className="text-ember-400 font-mono text-[0.7rem] tracking-wider uppercase">
+        <p className="text-brand-400 font-mono text-[0.7rem] tracking-wider uppercase">
           Before and after
         </p>
         {title && (

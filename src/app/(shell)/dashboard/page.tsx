@@ -21,6 +21,7 @@ import { StatTile } from "@/components/common/stat-tile";
 import { MiniDiagram } from "@/components/marketing/mini-diagrams";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/auth/session";
+import { hasCampusAccess } from "@/lib/campus-access";
 import { cn, route } from "@/lib/utils";
 import { getDashboardData } from "@/services/dashboard";
 import { getProgressSummary } from "@/services/progress";
@@ -57,9 +58,10 @@ const LANGUAGE_LABEL: Record<string, string> = {
 
 export default async function DashboardPage() {
   const user = await requireUser("/dashboard");
-  const [data, summary] = await Promise.all([
+  const [data, summary, campusMember] = await Promise.all([
     getDashboardData(user.id),
     getProgressSummary(user.id),
+    hasCampusAccess(user),
   ]);
 
   const firstName = user.name?.split(" ")[0] ?? null;
@@ -120,7 +122,7 @@ export default async function DashboardPage() {
             hint={`best ${summary.longestStreak}d`}
             className={
               summary.currentStreak > 0
-                ? "border-ember-500/30 bg-ember-500/6"
+                ? "border-brand-500/30 bg-brand-500/6"
                 : undefined
             }
           />
@@ -145,7 +147,7 @@ export default async function DashboardPage() {
         <div className="min-w-0 space-y-6">
           <WeakPatternsCard patterns={data.weakPatterns} />
           <QuizPerformanceCard performance={data.quizPerformance} />
-          <TracksCard tracks={data.tracks} />
+          <TracksCard tracks={data.tracks} campusMember={campusMember} />
         </div>
       </div>
     </div>
@@ -167,11 +169,11 @@ function FeatureLink({
   return (
     <Link
       href={href}
-      className="group flex overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-ember-500/40"
+      className="group flex overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-brand-500/40"
     >
       <MiniDiagram kind={diagram} className="w-32 shrink-0 border-r sm:w-40" />
       <div className="min-w-0 flex-1 p-4">
-        <h2 className="flex items-center gap-1.5 font-semibold transition-colors group-hover:text-ember-200">
+        <h2 className="flex items-center gap-1.5 font-semibold transition-colors group-hover:text-brand-200">
           {title}
           <ArrowUpRight className="size-3.5 text-muted-foreground" aria-hidden="true" />
         </h2>
@@ -195,23 +197,23 @@ function DueForReviewCard({ count }: { count: number }) {
   return (
     <Link
       href="/review"
-      className="group flex overflow-hidden rounded-xl border border-ember-500/35 bg-ember-500/6 transition-colors hover:border-ember-500/60"
+      className="group flex overflow-hidden rounded-xl border border-brand-500/35 bg-brand-500/6 transition-colors hover:border-brand-500/60"
     >
       <MiniDiagram
         kind="stack"
-        className="w-32 shrink-0 border-r border-ember-500/20 sm:w-40"
+        className="w-32 shrink-0 border-r border-brand-500/20 sm:w-40"
       />
       <div className="relative min-w-0 flex-1 p-4">
         <div className="flex items-center gap-2">
-          <Repeat2 className="size-4 shrink-0 text-ember-400" aria-hidden="true" />
+          <Repeat2 className="size-4 shrink-0 text-brand-400" aria-hidden="true" />
           <h2 className="font-semibold">Due for review</h2>
           <ArrowRight
-            className="ml-auto size-4 shrink-0 text-ember-400 transition-transform group-hover:translate-x-0.5"
+            className="ml-auto size-4 shrink-0 text-brand-400 transition-transform group-hover:translate-x-0.5"
             aria-hidden="true"
           />
         </div>
         <p className="mt-1 text-sm leading-snug text-muted-foreground">
-          <span className="font-medium text-ember-200">
+          <span className="font-medium text-brand-200">
             <span className="tabular">{count}</span> item{count === 1 ? "" : "s"}
           </span>{" "}
           ready to recall. A few minutes now is worth an hour of re-reading later.
@@ -293,7 +295,7 @@ function WeeklyTargetCard({ target }: { target: Data["weeklyTarget"] }) {
       title="This week"
       action={
         met ? (
-          <span className="rounded-full bg-ember-500/15 px-2 py-0.5 text-[0.68rem] font-semibold text-ember-300">
+          <span className="rounded-full bg-brand-500/15 px-2 py-0.5 text-[0.68rem] font-semibold text-brand-300">
             Target met
           </span>
         ) : undefined
@@ -302,7 +304,7 @@ function WeeklyTargetCard({ target }: { target: Data["weeklyTarget"] }) {
     >
       <p className="text-sm">
         <span
-          className={cn("text-lg font-semibold tabular-nums", met && "text-ember-300")}
+          className={cn("text-lg font-semibold tabular-nums", met && "text-brand-300")}
         >
           {target.done}
         </span>
@@ -321,7 +323,7 @@ function WeeklyTargetCard({ target }: { target: Data["weeklyTarget"] }) {
         className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted"
       >
         <div
-          className="h-full rounded-full bg-ember-500 transition-all"
+          className="h-full rounded-full bg-brand-500 transition-all"
           style={{ width: `${percent}%` }}
         />
       </div>
@@ -348,7 +350,7 @@ function ViewAll({
   return (
     <Link
       href={href}
-      className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-ember-300"
+      className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-brand-300"
     >
       {children}
       <ArrowRight className="size-3.5" aria-hidden="true" />
@@ -402,7 +404,7 @@ function TodaysPracticeCard({ problems }: { problems: Data["recommendedProblems"
                 <td className="min-w-0 px-2 py-3">
                   <Link
                     href={route(`/problems/${problem.slug}`)}
-                    className="font-medium text-info transition-colors hover:text-ember-300"
+                    className="font-medium text-info transition-colors hover:text-brand-300"
                   >
                     {problem.title}
                   </Link>
@@ -477,7 +479,7 @@ function RecentActivityCard({
                   <td className="px-4 py-2.5 sm:px-5">
                     <Link
                       href={route(`/problems/${submission.problemSlug}`)}
-                      className="text-info transition-colors hover:text-ember-300"
+                      className="text-info transition-colors hover:text-brand-300"
                     >
                       {submission.problemTitle}
                     </Link>
@@ -551,7 +553,7 @@ function WeakPatternsCard({ patterns }: { patterns: Data["weakPatterns"] }) {
                   aria-label={`Mastery ${pattern.score} out of 100`}
                 >
                   <div
-                    className="h-full rounded-full bg-ember-600"
+                    className="h-full rounded-full bg-brand-600"
                     style={{ width: `${Math.max(3, pattern.score)}%` }}
                   />
                 </div>
@@ -592,7 +594,7 @@ function QuizPerformanceCard({
             aria-label={`Average quiz score ${performance.averagePercent} percent`}
           >
             <div
-              className="h-full rounded-full bg-ember-500"
+              className="h-full rounded-full bg-brand-500"
               style={{ width: `${Math.max(2, performance.averagePercent)}%` }}
             />
           </div>
@@ -613,7 +615,13 @@ function QuizPerformanceCard({
  * Rendered even at zero: "0 of 3 design exercises submitted" is a true
  * statement and a useful prompt, unlike a fabricated score.
  */
-function TracksCard({ tracks }: { tracks: Data["tracks"] }) {
+function TracksCard({
+  tracks,
+  campusMember,
+}: {
+  tracks: Data["tracks"];
+  campusMember: boolean;
+}) {
   const rows = [
     {
       label: "System design",
@@ -630,13 +638,16 @@ function TracksCard({ tracks }: { tracks: Data["tracks"] }) {
   ];
 
   return (
-    <Panel title="Design and interviews" bodyClassName="space-y-4 p-4 sm:px-5">
+    <Panel
+      title={campusMember ? "Design and interviews" : "Design exercises"}
+      bodyClassName="space-y-4 p-4 sm:px-5"
+    >
       {rows.map((row) => (
         <div key={row.label}>
           <div className="flex items-baseline justify-between gap-3">
             <Link
               href={route(row.href)}
-              className="text-sm transition-colors hover:text-ember-300"
+              className="text-sm transition-colors hover:text-brand-300"
             >
               {row.label}
             </Link>
@@ -652,18 +663,21 @@ function TracksCard({ tracks }: { tracks: Data["tracks"] }) {
         </div>
       ))}
 
-      <div className="flex items-baseline justify-between gap-3 border-t border-border pt-3">
-        <Link
-          href={route("/interviews")}
-          className="shrink-0 text-sm whitespace-nowrap transition-colors hover:text-ember-300"
-        >
-          Mock interviews
-        </Link>
-        <span className="text-right text-xs text-muted-foreground tabular-nums">
-          {tracks.interviews.completed} completed · {tracks.interviews.withFeedback}{" "}
-          with feedback
-        </span>
-      </div>
+      {/* Mock interviews are part of Campus. */}
+      {campusMember && (
+        <div className="flex items-baseline justify-between gap-3 border-t border-border pt-3">
+          <Link
+            href={route("/interviews")}
+            className="shrink-0 text-sm whitespace-nowrap transition-colors hover:text-brand-300"
+          >
+            Mock interviews
+          </Link>
+          <span className="text-right text-xs text-muted-foreground tabular-nums">
+            {tracks.interviews.completed} completed · {tracks.interviews.withFeedback}{" "}
+            with feedback
+          </span>
+        </div>
+      )}
     </Panel>
   );
 }

@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { CampusNotice } from "@/components/campus/notice";
+import { CampusTrail } from "@/components/campus/campus-trail";
 import { PageHeader } from "@/components/common/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { NativeSelect } from "@/components/ui/native-select";
 import { orRefuse } from "@/lib/campus/guard";
 import { requireMember } from "@/lib/tenancy/context";
-import { route } from "@/lib/utils";
 import { getBank, type BankQuestionRow } from "@/services/campus-banks";
 
 import {
@@ -28,7 +28,7 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 const selectClass =
-  "mt-1 block h-8 w-full rounded-lg border border-input bg-background px-2 text-sm";
+  "mt-1 w-full";
 
 export default async function BankPage({
   params,
@@ -41,15 +41,11 @@ export default async function BankPage({
   const add = addQuestionAction.bind(null, ctx.institution.slug, bank.id);
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <PageHeader
         title={bank.name}
         description="Editing a question here never changes an assessment that is already published."
-        actions={
-          <Button asChild variant="outline" size="sm">
-            <Link href={route(`/campus/${ctx.institution.slug}/banks`)}>All banks</Link>
-          </Button>
-        }
+        eyebrow={<CampusTrail items={[{ label: ctx.institution.name, href: `/campus/${ctx.institution.slug}` }, { label: "Question banks", href: `/campus/${ctx.institution.slug}/banks` }, { label: bank.name }]} />}
       />
       <div className="mt-6">
         <CampusNotice code={msg} />
@@ -81,13 +77,13 @@ export default async function BankPage({
                 <label htmlFor="c-type" className="text-sm font-medium">
                   Type
                 </label>
-                <select id="c-type" name="type" className={selectClass}>
+                <NativeSelect id="c-type" name="type" className={selectClass}>
                   {Object.entries(TYPE_LABEL).map(([value, label]) => (
                     <option key={value} value={value}>
                       {label}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
               <div>
                 <label htmlFor="c-category" className="text-sm font-medium">

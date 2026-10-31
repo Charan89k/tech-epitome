@@ -10,6 +10,7 @@ import {
   BEHAVIORAL_QUESTION_COUNT,
 } from "../src/data/behavioral/questions";
 import { DSA_COURSE } from "../src/data/curriculum";
+import { ARGON2_OPTIONS } from "../src/lib/auth/argon2";
 import type { CourseSeed } from "../src/data/curriculum/types";
 import { SYSTEM_DESIGN_COURSE } from "../src/data/system-design";
 import { SYSTEM_DESIGN_EXERCISES } from "../src/data/system-design/exercises";
@@ -66,7 +67,7 @@ const prisma = new PrismaClient({
 });
 
 /** Same parameters as the application's password hasher. */
-const ARGON2 = { memoryCost: 19456, timeCost: 2, parallelism: 1 } as const;
+const ARGON2 = ARGON2_OPTIONS;
 
 /** Turns a slug into a display name: "two-pointers" -> "Two Pointers". */
 async function seedUsers() {
@@ -415,7 +416,13 @@ async function main() {
 
   console.log("Seeding Tech Epitome…");
 
-  await seedUsers();
+  // The admin and demo accounts have public default passwords, so they never
+  // reach production; the first admin is promoted by hand (docs/DEPLOY.md).
+  if (process.env.NODE_ENV === "production") {
+    console.log("  users          skipped (production)");
+  } else {
+    await seedUsers();
+  }
   await seedAchievements();
 
   const patternIds = await seedPatterns();

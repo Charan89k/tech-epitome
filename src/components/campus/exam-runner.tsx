@@ -9,6 +9,7 @@ import {
 } from "@/app/(shell)/campus/learning-actions";
 import { CodeEditor } from "@/components/editor/code-editor";
 import { Button } from "@/components/ui/button";
+import { NativeSelect } from "@/components/ui/native-select";
 import type { Language } from "@/generated/prisma/enums";
 import { EXAM_LANGUAGES } from "@/lib/campus/schemas";
 
@@ -376,7 +377,7 @@ function CodingInput({
         <label htmlFor={selectId} className="text-sm font-medium">
           Language
         </label>
-        <select
+        <NativeSelect
           id={selectId}
           value={language}
           onChange={(e) => {
@@ -388,14 +389,14 @@ function CodingInput({
               code: untouched ? (question.starterCode[next] ?? "") : code,
             });
           }}
-          className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+          
         >
           {languages.map((l) => (
             <option key={l} value={l}>
               {LANGUAGE_LABELS[l]}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
       <div className="h-80 overflow-hidden rounded-md border border-border">
         <CodeEditor

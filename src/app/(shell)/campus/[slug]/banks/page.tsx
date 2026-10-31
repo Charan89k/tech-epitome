@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CampusNotice } from "@/components/campus/notice";
+import { CampusTrail } from "@/components/campus/campus-trail";
 import { PageHeader } from "@/components/common/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,15 +26,11 @@ export default async function BanksPage({
   const base = `/campus/${ctx.institution.slug}`;
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <PageHeader
         title="Question banks"
         description={`Reusable questions for ${ctx.institution.name}'s assessments. Shared with all staff; students never see them.`}
-        actions={
-          <Button asChild variant="outline" size="sm">
-            <Link href={route(base)}>{ctx.institution.name}</Link>
-          </Button>
-        }
+        eyebrow={<CampusTrail items={[{ label: ctx.institution.name, href: `/campus/${ctx.institution.slug}` }, { label: "Question banks" }]} />}
       />
       <div className="mt-6">
         <CampusNotice code={msg} />

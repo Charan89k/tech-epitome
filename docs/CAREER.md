@@ -4,6 +4,18 @@ What Phase 6 added on top of the existing mock interviews (DSA, behavioural,
 system design, low-level design), preparation tracks and AI layer. Nothing
 here is paid, and nothing here claims to predict hiring.
 
+## Who can use it
+
+Since 2026-10-30 interviews, interview insights, preparation tracks and
+roadmaps are part of **Campus**, the college offering. An individual learner
+without a college keeps courses, patterns, problems, design exercises and the
+tutor (the **Learn** section) and never sees these links. The server enforces
+the split, not just the navigation: `requireCampusUser` on the pages,
+`requireCampusUserOrThrow` in `interviews/actions.ts` and a 403 from
+`/api/interview/stream` (`src/lib/campus-access.ts`). Access needs an active
+membership of an active college; platform admins pass. Non-members are sent
+to `/campus?need=membership`, which explains how to join.
+
 ## Feedback: rubric and grounding
 
 Feedback is written by the configured AI provider (`getAIProvider`) after an

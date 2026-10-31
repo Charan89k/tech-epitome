@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
-import { Geist_Mono, Inter, Source_Serif_4 } from "next/font/google";
+import { IBM_Plex_Sans, JetBrains_Mono } from "next/font/google";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -10,22 +10,19 @@ import { site } from "@/lib/site";
 
 import "./globals.css";
 
-// Inter for everything a learner reads and operates. Source Serif 4 is the
-// display face: page titles and marketing headlines only, never UI or body.
-const inter = Inter({
-  variable: "--font-inter",
+// IBM Plex Sans for everything a learner reads and operates, headings
+// included; JetBrains Mono for code, numbers and the mono section labels.
+// The developer-tool pairing UI UX Pro Max recommends for documentation and
+// code products. Self-hosted by next/font at build time.
+const plexSans = IBM_Plex_Sans({
+  variable: "--font-plex-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
-const sourceSerif = Source_Serif_4({
-  variable: "--font-source-serif",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
   display: "swap",
 });
@@ -73,8 +70,8 @@ export const viewport: Viewport = {
   // Matches --background in the dark theme so the mobile browser chrome does
   // not flash white before first paint.
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#1b1d21" },
-    { media: "(prefers-color-scheme: light)", color: "#fcfcfd" },
+    { media: "(prefers-color-scheme: dark)", color: "#060c19" },
+    { media: "(prefers-color-scheme: light)", color: "#f9fafd" },
   ],
   colorScheme: "dark light",
 };
@@ -96,7 +93,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${sourceSerif.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${plexSans.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body
         className="flex min-h-full flex-col"
@@ -104,8 +101,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
-          enableSystem={false}
+          defaultTheme="system"
+          enableSystem
           disableTransitionOnChange
           nonce={nonce}
         >

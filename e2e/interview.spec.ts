@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { closeDb } from "./db";
+import { closeDb, joinTestCollege } from "./db";
 import { finishSignup } from "./helpers";
 
 /**
@@ -29,6 +29,8 @@ async function signUpAsLearner(page: Page, tag: string): Promise<string> {
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
   await finishSignup(page);
+  // Mock interviews are part of Campus: the candidate is a college member.
+  await joinTestCollege(email);
   await page.reload();
   return email;
 }
@@ -68,16 +70,12 @@ test.afterAll(async () => {
 
 // ---------------------------------------------------------------------------
 
-test("an ordinary account can start an interview, with nothing to buy", async ({
+test("a college member can start an interview, with nothing to buy", async ({
   page,
 }) => {
-  // Tech Epitome is free: a plain account reaches the interviewer directly.
-  await page.goto("/signup");
-  await page.getByLabel("Name").fill("Plain");
-  await page.getByLabel("Email").fill(uniqueEmail("plain"));
-  await page.getByLabel("Password").fill(PASSWORD);
-  await page.getByRole("button", { name: "Create account" }).click();
-  await finishSignup(page);
+  // Interviews are part of Campus: a student reaches the interviewer
+  // through their college, never through a payment.
+  await signUpAsLearner(page, "plain");
 
   await page.goto("/interviews");
   await expect(
@@ -440,6 +438,7 @@ test("preparation tracks describe loop shapes, never an employer", async ({
   // The whole feature rests on not claiming what any company asks. A
   // named employer on this page would be an unsupported assertion about
   // a real organisation.
+  await signUpAsLearner(page, "shapes");
   await page.goto("/prepare");
   await expect(
     page.getByRole("heading", { name: "Interview Preparation" })
@@ -469,13 +468,12 @@ test("preparation tracks describe loop shapes, never an employer", async ({
   await expect(page.getByText(/confidence/).first()).toBeVisible();
 });
 
-test("a track shows real progress for the learner, and none when signed out", async ({
+test("a track shows real progress for a member, and asks a signed-out visitor to sign in", async ({
   page,
 }) => {
+  // Campus is not public: a signed-out visitor is asked to sign in first.
   await page.goto("/prepare");
-  // Signed out: no progress claim at all, rather than a fabricated zero.
-  await expect(page.getByText(/\d+ solved/)).toHaveCount(0);
-  await expect(page.getByText("Sign in to track which of these")).toBeVisible();
+  await page.waitForURL(/\/login/, { timeout: 30_000 });
 
   await signUpAsLearner(page, "prep");
   await page.goto("/prepare");

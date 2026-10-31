@@ -1,11 +1,36 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import {
+  ArrowRight,
+  BookOpen,
+  Brain,
+  ClipboardCheck,
+  Code2,
+  Eye,
+  FlaskConical,
+  GraduationCap,
+  LineChart,
+  ListChecks,
+  Map as MapIcon,
+  MessageSquare,
+  Repeat,
+  ShieldCheck,
+  Shapes,
+  Sparkles,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 
 import { CodeReplayDemo } from "@/components/marketing/code-replay-demo";
 import { CourseCards } from "@/components/marketing/course-cards";
 import { Button } from "@/components/ui/button";
+import { DSA_COURSE } from "@/data/curriculum";
+import { LLD_COURSE } from "@/data/lld";
+import { PATTERNS } from "@/data/patterns";
+import { PROBLEMS } from "@/data/problems";
+import { SYSTEM_DESIGN_COURSE } from "@/data/system-design";
 import { site } from "@/lib/site";
-import { route } from "@/lib/utils";
+import { cn, route } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: `${site.name} — ${site.tagline}`,
@@ -14,199 +39,206 @@ export const metadata: Metadata = {
 };
 
 /**
- * The landing page is laid out like the contents page of a book: a title
- * spread, then one ruled section per product area. Every link goes to a
- * route that exists today; Campus is described honestly as unbuilt and has
- * no call to action.
+ * The public landing page. Every figure is counted from the seeded content
+ * in src/data (the same source the database is seeded from), every link goes
+ * to a route that exists, and the code panel is a labelled preview that
+ * replays a fixed example in the browser; it never runs visitor code.
+ * Campus has no sign-up call to action because a college is set up by the
+ * platform team, not self-served.
  */
 
-type Entry = { title: string; href: string; note: string };
-
-const CONTENTS: { area: string; entries: Entry[] }[] = [
+const COURSES = [DSA_COURSE, SYSTEM_DESIGN_COURSE, LLD_COURSE];
+const FACTS = [
+  { value: COURSES.length, label: "courses" },
   {
-    area: "Learn",
-    entries: [
-      { title: "Data Structures & Algorithms", href: "/learn/dsa", note: "Course" },
-      { title: "System Design", href: "/learn/system-design", note: "Course" },
-      { title: "Low-Level Design", href: "/learn/lld", note: "Course" },
-    ],
+    value: COURSES.reduce(
+      (n, c) => n + c.sections.reduce((m, s) => m + s.chapters.length, 0),
+      0
+    ),
+    label: "chapters",
   },
-  {
-    area: "Code",
-    entries: [
-      { title: "Problems", href: "/problems", note: "Editor and tests" },
-      { title: "Visualize", href: "/visualize", note: "Step-through" },
-    ],
-  },
-  {
-    area: "Career",
-    entries: [
-      { title: "Interview preparation", href: "/prepare", note: "Tracks" },
-      { title: "Roadmaps", href: "/roadmaps", note: "Study plans" },
-    ],
-  },
+  { value: PROBLEMS.length, label: "problems" },
+  { value: PATTERNS.length, label: "patterns" },
 ];
 
-/** The learning loop every chapter runs. A real sequence, so it is numbered. */
-const LOOP = [
-  { label: "See", detail: "A worked example, stepped one frame at a time." },
-  { label: "Recognise", detail: "The clues that tell you which pattern applies." },
-  { label: "Attempt", detail: "A guided problem, then one with no scaffolding." },
-  { label: "Explain", detail: "Say why it works, and what it costs." },
-  { label: "Recall", detail: "Spaced revision, timed to just before you forget." },
-] as const;
+type Feature = { icon: LucideIcon; title: string; body: string; href?: string };
 
-const CODE_POINTS = [
+const CODE_POINTS: Feature[] = [
   {
+    icon: Eye,
     title: "Every problem draws its input",
     body: "The array, list or grid from the sample is on screen before you write a line.",
   },
   {
+    icon: Repeat,
     title: "Your own solution, replayed",
-    body: "Run Python or JavaScript and the picture steps through your code with the current line marked.",
+    body: "Run Python or JavaScript and the picture steps through your code with the current line marked. Tracing runs in your browser.",
   },
   {
-    title: "Real tests in a sandbox",
-    body: "Python, JavaScript, Java and C++ run against the problem's tests in isolation. A failure shows the case that broke.",
+    icon: FlaskConical,
+    title: "Real tests on an isolated service",
+    body: "Python, JavaScript, Java and C++ run against the problem's tests away from the web server. A failure shows the case that broke; if the service is off, the editor says so.",
   },
   {
+    icon: Sparkles,
     title: "A tutor that asks, not tells",
     body: "It reads the chapter and the code in your editor, and walks you toward the answer instead of handing it over.",
   },
-] as const;
+];
 
-const CAREER_ITEMS = [
+const CAMPUS_ITEMS: Feature[] = [
   {
-    title: "Interview preparation",
-    href: "/prepare",
-    body: "Track-by-track preparation that ties each topic back to the chapters and problems behind it.",
+    icon: BookOpen,
+    title: "Classes and assignments",
+    body: "Assign chapters, courses or problems with a due date. Progress comes from the work itself.",
   },
   {
-    title: "Roadmaps",
-    href: "/roadmaps",
-    body: "Ordered study plans, so you always know what to work on next and why.",
+    icon: ClipboardCheck,
+    title: "Assessments",
+    body: "Multiple-choice and coding questions from reusable banks, with server-enforced time windows and autosave.",
   },
   {
+    icon: ShieldCheck,
+    title: "Grading and records",
+    body: "Grade and release results; every change to grades and membership is kept in an audit trail.",
+  },
+  {
+    icon: LineChart,
+    title: "Analytics",
+    body: "Participation and median scores per class from real attempts. No data shows a dash, never a zero.",
+  },
+  {
+    icon: MessageSquare,
     title: "Mock interviews",
-    href: "/interviews",
-    body: "Practise talking through a problem with an AI interviewer. Its feedback is a practice signal, not a hiring assessment.",
+    body: "Students talk a problem through with an AI interviewer. Its feedback quotes their answers and is a practice signal, not a hiring assessment.",
   },
-] as const;
+  {
+    icon: ListChecks,
+    title: "Interview preparation",
+    body: "Preparation tracks for the shapes interview loops come in, tied back to the chapters and problems behind each topic.",
+  },
+  {
+    icon: MapIcon,
+    title: "Roadmaps",
+    body: "Ordered study plans built from the courses, so students always know what to work on next.",
+  },
+  {
+    icon: Shapes,
+    title: "Practice from Learn",
+    body: "Faculty assign the same courses, patterns and problems individual learners use, so nothing is duplicated.",
+  },
+];
+
+/** The learning loop every chapter runs. A real sequence, so it is numbered. */
+const LOOP: { icon: LucideIcon; label: string; detail: string }[] = [
+  { icon: Eye, label: "See", detail: "A worked example, stepped one frame at a time." },
+  {
+    icon: Brain,
+    label: "Recognise",
+    detail: "The clues that tell you which pattern applies.",
+  },
+  {
+    icon: Code2,
+    label: "Practise",
+    detail: "A guided problem, then one with no scaffolding.",
+  },
+  {
+    icon: MessageSquare,
+    label: "Explain",
+    detail: "Say why it works, and what it costs.",
+  },
+  {
+    icon: Repeat,
+    label: "Recall",
+    detail: "Spaced revision, scheduled from how well you remembered.",
+  },
+];
 
 export default function LandingPage() {
   return (
     <>
       <Hero />
 
-      <Section id="learn" label="Learn" title="Three courses, written to be understood">
-        <p className="max-w-2xl text-base leading-relaxed text-pretty text-muted-foreground">
-          Each course runs in dependency order and draws what it explains. Solved
-          problems come back on a widening schedule, and how well you recall them sets
-          the next interval.
-        </p>
-        <CourseCards className="mt-10" />
-        <p className="mt-8 text-sm text-muted-foreground">
+      <Section
+        id="learn"
+        index={1}
+        label="Learn"
+        title="Three courses, written to be understood"
+        intro="Each course runs in dependency order and draws what it explains. Chapters end with a quick check, and the problems you solve come back for revision."
+        action={{ href: "/learn", text: "All courses" }}
+      >
+        <CourseCards />
+        <p className="mt-6 text-sm text-muted-foreground">
           Prefer to start from a pattern?{" "}
-          <TextLink href="/patterns">Browse the algorithm patterns</TextLink>.
-        </p>
-      </Section>
-
-      <Section id="code" label="Code" title="Watch your code run, line by line">
-        <p className="max-w-2xl text-base leading-relaxed text-pretty text-muted-foreground">
-          The visualizer is built into every problem. Write a solution, press Run, and
-          see what it actually does to the data.
-        </p>
-        <CodeReplayDemo className="mt-10" />
-        <dl className="mt-10 grid border-t border-border sm:grid-cols-2">
-          {CODE_POINTS.map((point) => (
-            <div
-              key={point.title}
-              className="border-b border-border py-5 sm:odd:pr-8 sm:even:border-l sm:even:pl-8"
-            >
-              <dt className="text-sm font-semibold">{point.title}</dt>
-              <dd className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                {point.body}
-              </dd>
-            </div>
-          ))}
-        </dl>
-        <p className="mt-8 text-sm">
-          <TextLink href="/problems">Open the problem set</TextLink>
+          <TextLink href="/patterns">
+            Browse the {PATTERNS.length} algorithm patterns
+          </TextLink>
         </p>
       </Section>
 
       <Section
-        id="career"
-        label="Career"
-        title="Walk into the interview asking “what shape is this?”"
+        id="code"
+        index={2}
+        label="Practice"
+        title="Write it, run it, watch it work"
+        intro="The editor, the tests and the visualizer sit side by side on every problem."
+        action={{ href: "/problems", text: "Open the problem set" }}
       >
-        <p className="max-w-2xl text-base leading-relaxed text-pretty text-muted-foreground">
-          Not “have I seen this exact problem before?” Preparation here is built on the
-          same chapters and problems you learn from.
-        </p>
-        <ul className="mt-10 border-t border-border">
-          {CAREER_ITEMS.map((item) => (
-            <li key={item.href} className="border-b border-border">
-              <Link
-                href={route(item.href)}
-                className="group grid gap-1 rounded-sm px-1 py-5 transition-colors outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50 sm:grid-cols-[14rem_1fr] sm:gap-8"
-              >
-                <span className="font-display text-xl transition-colors group-hover:text-primary">
-                  {item.title}
-                </span>
-                <span className="text-sm leading-relaxed text-muted-foreground">
-                  {item.body}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <FeatureGrid items={CODE_POINTS} columns={2} />
       </Section>
 
-      <Section id="campus" label="Campus" title="For colleges, later">
-        <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-start">
-          <p className="max-w-2xl text-base leading-relaxed text-pretty text-muted-foreground">
-            We are designing tools for colleges: a shared view of a cohort&rsquo;s
-            progress for faculty and placement cells. None of it is available yet, so
-            there is nothing to sign up for. Everything an individual learner gets today
-            stays free.
+      <Section
+        id="campus"
+        index={3}
+        label="Campus"
+        title="Campus: the college edition"
+        intro="Everything in Learn, run by your college: faculty assign courses and problems, set timed exams and grade them, and students prepare for placements with mock interviews, preparation tracks and roadmaps. Personal notes and highlights stay private; the college only sees the work it assigns."
+      >
+        <FeatureGrid items={CAMPUS_ITEMS} columns={4} />
+        <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-md border border-border text-brand-300">
+            <GraduationCap className="size-5" aria-hidden="true" />
+          </span>
+          <p className="flex-1 text-sm leading-relaxed text-muted-foreground">
+            Colleges are set up by the Tech Epitome team. Faculty and students join by
+            invitation or by verifying a college email.
           </p>
-          <p className="w-fit rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground">
-            In development
-          </p>
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="self-start sm:self-auto"
+          >
+            <Link href="/campus">
+              <Users className="size-4" aria-hidden="true" />
+              Open your college workspace
+            </Link>
+          </Button>
         </div>
       </Section>
 
-      <section aria-labelledby="loop-heading" className="border-t border-border">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
-          <h2 id="loop-heading" className="display text-3xl sm:text-4xl">
-            The loop every chapter runs you through
-          </h2>
-          <ol className="mt-10 grid border-t border-border sm:grid-cols-5">
-            {LOOP.map((step, index) => (
-              <li
-                key={step.label}
-                className="border-b border-border py-5 sm:border-b-0 sm:px-4 sm:first:pl-0 sm:[&+li]:border-l"
-              >
-                <span className="text-sm text-primary tabular-nums">{index + 1}</span>
-                <h3 className="mt-1 text-base font-semibold">{step.label}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                  {step.detail}
-                </p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
+      <LearningLoop />
 
       <section className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl flex-col items-start gap-6 px-4 py-16 sm:px-6 sm:py-20 md:flex-row md:items-end md:justify-between">
-          <h2 className="display max-w-xl text-3xl sm:text-4xl">
-            Every track, every exercise, both AI features. Free.
-          </h2>
-          <Button asChild className="h-11 rounded-full px-6 text-base">
-            <Link href="/signup">Create your account</Link>
-          </Button>
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+          <div className="flex flex-col items-start gap-6 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="label-mono tracking-wider uppercase">05 / Start</p>
+              <h2 className="display mt-3 text-3xl sm:text-4xl">
+                Every course, every problem. Free.
+              </h2>
+              <p className="mt-3 max-w-xl text-muted-foreground">
+                No paid tier, no card. Create an account to save your progress, notes
+                and revision schedule.
+              </p>
+            </div>
+            <Button asChild size="lg" className="h-11 shrink-0 px-5 text-base">
+              <Link href="/signup">
+                Create your account
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Link>
+            </Button>
+          </div>
         </div>
       </section>
     </>
@@ -215,87 +247,57 @@ export default function LandingPage() {
 
 function Hero() {
   return (
-    <section aria-labelledby="hero-heading">
-      <div className="mx-auto grid max-w-6xl gap-12 px-4 pt-14 pb-16 sm:px-6 sm:pt-20 sm:pb-20 lg:grid-cols-[1.7fr_1fr] lg:gap-16">
+    <section aria-labelledby="hero-heading" className="overflow-hidden">
+      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pt-12 pb-16 sm:px-6 sm:pt-20 sm:pb-24 lg:grid-cols-[1fr_1.15fr] lg:gap-12">
         <div>
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="size-1.5 rounded-full bg-primary" aria-hidden="true" />
+          <p className="flex items-center gap-2 label-mono">
+            <span className="size-1.5 bg-primary" aria-hidden="true" />
             Free for every learner. No paid tier.
           </p>
           <h1
             id="hero-heading"
-            className="display mt-6 text-5xl sm:text-6xl lg:text-7xl"
+            className="display mt-6 text-5xl sm:text-6xl lg:text-5xl xl:text-[3.25rem]"
           >
             Master technology.
             <br />
-            Build with confidence.
+            <span className="text-brand-300">Build with confidence.</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground">
             Learn data structures, algorithms and system design from explanations that
             draw what they describe, then practise in an editor that replays your own
-            code.
+            code. Colleges get Campus: exams, assignments and interview preparation on
+            top.
           </p>
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button asChild className="h-11 rounded-full px-6 text-base">
-              <Link href="/signup">Start learning</Link>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Button asChild size="lg" className="h-11 px-5 text-base">
+              <Link href="/signup">
+                Start learning
+                <ArrowRight className="size-4" aria-hidden="true" />
+              </Link>
             </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="h-11 rounded-full px-6 text-base"
-            >
-              <Link href="/learn/dsa">Browse the DSA course</Link>
+            <Button asChild variant="outline" size="lg" className="h-11 px-5 text-base">
+              <Link href="/learn">Explore the courses</Link>
             </Button>
           </div>
+          <dl className="mt-10 grid max-w-md grid-cols-4 gap-4 border-t border-border pt-6">
+            {FACTS.map((fact) => (
+              <div key={fact.label}>
+                <dt className="label-mono">{fact.label}</dt>
+                <dd className="mt-1 font-mono text-2xl font-medium tabular-nums">
+                  {fact.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
         </div>
 
-        <nav aria-label="Contents" className="lg:pt-2">
-          <p className="border-b border-border pb-3 text-sm text-muted-foreground">
-            Contents
-          </p>
-          {CONTENTS.map((group) => (
-            <div key={group.area} className="border-b border-border py-3">
-              <p className="font-display text-lg">
-                <a
-                  href={`#${group.area.toLowerCase()}`}
-                  className="rounded-sm transition-colors hover:text-primary"
-                >
-                  {group.area}
-                </a>
-              </p>
-              <ul className="mt-1.5 space-y-1">
-                {group.entries.map((entry) => (
-                  <li key={entry.href}>
-                    <Link
-                      href={route(entry.href)}
-                      className="group flex items-baseline gap-3 rounded-sm text-sm text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      <span className="group-hover:underline group-hover:underline-offset-4">
-                        {entry.title}
-                      </span>
-                      <span
-                        aria-hidden="true"
-                        className="mb-1 flex-1 border-b border-dotted border-border"
-                      />
-                      <span className="text-xs">{entry.note}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-          <div className="py-3">
-            <p className="font-display text-lg">
-              <a
-                href="#campus"
-                className="rounded-sm transition-colors hover:text-primary"
-              >
-                Campus
-              </a>
-            </p>
-            <p className="mt-1.5 text-sm text-muted-foreground">In development</p>
-          </div>
-        </nav>
+        <figure className="min-w-0">
+          <CodeReplayDemo className="shadow-raised" />
+          <figcaption className="mt-3 text-xs text-subtle-foreground">
+            A preview of the visualizer: a fixed example replayed in your browser. On a
+            problem, it replays the code you wrote.
+          </figcaption>
+        </figure>
       </div>
     </section>
   );
@@ -303,13 +305,19 @@ function Hero() {
 
 function Section({
   id,
+  index,
   label,
   title,
+  intro,
+  action,
   children,
 }: {
   id: string;
+  index: number;
   label: string;
   title: string;
+  intro: string;
+  action?: { href: string; text: string };
   children: React.ReactNode;
 }) {
   const headingId = `${id}-heading`;
@@ -319,14 +327,128 @@ function Section({
       aria-labelledby={headingId}
       className="scroll-mt-20 border-t border-border"
     >
-      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[10rem_1fr] lg:gap-12">
-        <p className="text-sm font-medium text-primary lg:pt-3">{label}</p>
-        <div className="min-w-0">
-          <h2 id={headingId} className="display text-3xl sm:text-4xl">
-            {title}
-          </h2>
-          <div className="mt-5">{children}</div>
+      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-2xl">
+            <p className="label-mono tracking-wider uppercase">
+              <span className="text-brand-300">{String(index).padStart(2, "0")}</span> /{" "}
+              {label}
+            </p>
+            <h2 id={headingId} className="display mt-3 text-3xl sm:text-4xl">
+              {title}
+            </h2>
+            <p className="mt-4 text-base leading-relaxed text-pretty text-muted-foreground">
+              {intro}
+            </p>
+          </div>
+          {action && (
+            <Link
+              href={route(action.href)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-sm text-sm font-medium text-foreground transition-colors outline-none hover:text-brand-300 focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              {action.text}
+              <ArrowRight className="size-4" aria-hidden="true" />
+            </Link>
+          )}
         </div>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function FeatureGrid({ items, columns }: { items: Feature[]; columns: 2 | 4 }) {
+  return (
+    <ul
+      className={cn(
+        "grid gap-x-8 gap-y-8",
+        columns === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-4"
+      )}
+    >
+      {items.map((item) => (
+        <li key={item.title}>
+          <FeatureCard item={item} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function FeatureCard({ item }: { item: Feature }) {
+  const Icon = item.icon;
+  const body = (
+    <>
+      <h3 className="flex items-center gap-2 text-base font-semibold">
+        <Icon className="size-4 shrink-0 text-brand-300" aria-hidden="true" />
+        {item.title}
+      </h3>
+      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+        {item.body}
+      </p>
+      {item.href && (
+        <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand-300">
+          Open
+          <ArrowRight
+            className="size-3.5 transition-transform group-hover:translate-x-0.5"
+            aria-hidden="true"
+          />
+        </span>
+      )}
+    </>
+  );
+  const frame = "flex h-full flex-col border-t border-border pt-4";
+  if (!item.href) return <div className={frame}>{body}</div>;
+  return (
+    <Link
+      href={route(item.href)}
+      className={cn(
+        frame,
+        "group transition-colors outline-none hover:border-brand-500/50 focus-visible:ring-3 focus-visible:ring-ring/50"
+      )}
+    >
+      {body}
+    </Link>
+  );
+}
+
+function LearningLoop() {
+  return (
+    <section aria-labelledby="loop-heading" className="border-t border-border">
+      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
+        <p className="label-mono tracking-wider uppercase">
+          <span className="text-brand-300">04</span> / How a chapter works
+        </p>
+        <h2 id="loop-heading" className="display mt-3 text-3xl sm:text-4xl">
+          The loop every chapter runs you through
+        </h2>
+        <ol className="relative mt-10 grid gap-6 md:grid-cols-5 md:gap-4">
+          {/* The connecting rail: vertical on small screens, horizontal from md. */}
+          <span
+            aria-hidden="true"
+            className="absolute top-5 bottom-5 left-5 w-px bg-border md:top-5 md:right-[10%] md:bottom-auto md:left-[10%] md:h-px md:w-auto"
+          />
+          {LOOP.map(({ icon: Icon, label, detail }, index) => (
+            <li
+              key={label}
+              className="relative flex gap-4 md:flex-col md:items-center md:text-center"
+            >
+              <span className="relative flex size-10 shrink-0 items-center justify-center rounded-md border border-border bg-background text-brand-300">
+                <Icon className="size-[18px]" aria-hidden="true" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold">
+                  <span className="mr-1.5 font-mono text-subtle-foreground tabular-nums">
+                    {index + 1}
+                  </span>
+                  {label}
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  {detail}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
       </div>
     </section>
   );

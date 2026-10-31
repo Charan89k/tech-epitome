@@ -26,6 +26,7 @@ import {
 } from "@/lib/tutor/types";
 import { loadContextBundle } from "@/services/tutor";
 import { getCurrentUser } from "@/lib/auth/session";
+import { isLikelyMobileRequest } from "@/lib/request-context";
 import { prisma } from "@/lib/db";
 import { parseContent } from "@/lib/validation/content";
 import type { Signature } from "@/lib/code-execution/signature";
@@ -166,7 +167,7 @@ export default async function ProblemPage({
               <Link
                 key={pattern.slug}
                 href={route(`/patterns/${pattern.slug}`)}
-                className="border-border text-muted-foreground hover:border-ember-500/40 hover:text-ember-300 rounded-md border px-2 py-0.5 text-xs transition-colors"
+                className="border-border text-muted-foreground hover:border-brand-500/40 hover:text-brand-300 rounded-md border px-2 py-0.5 text-xs transition-colors"
               >
                 {pattern.name}
               </Link>
@@ -282,7 +283,7 @@ export default async function ProblemPage({
             <Target className="size-3" aria-hidden="true" />
             Target complexity
           </h2>
-          <p className="text-ember-300 mt-1.5 font-mono text-xs">
+          <p className="text-brand-300 mt-1.5 font-mono text-xs">
             {problem.expectedTime ?? "—"} time · {problem.expectedSpace ?? "—"} space
           </p>
         </section>
@@ -325,6 +326,7 @@ export default async function ProblemPage({
 
   return (
     <ProblemWorkspace
+      likelyMobile={await isLikelyMobileRequest()}
       slug={problem.slug}
       starterCode={problem.starterCode}
       defaultLanguage="PYTHON"

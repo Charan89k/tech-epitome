@@ -38,7 +38,7 @@ export default async function AdminAIPage() {
       </p>
 
       {rows.length === 0 ? (
-        <div className="bg-card border-border mt-4 rounded-xl border">
+        <div className="bg-card border-border mt-4 rounded-lg border">
           <EmptyState
             icon={Sparkles}
             title="No AI calls in the last 30 days"
@@ -46,13 +46,13 @@ export default async function AdminAIPage() {
           />
         </div>
       ) : (
-        <div className="bg-card border-border mt-4 overflow-x-auto rounded-xl border">
+        <div className="bg-card border-border mt-4 overflow-x-auto rounded-lg border">
           <table className="w-full min-w-[28rem] text-sm">
             <caption className="sr-only">
               AI calls, cost and failures by feature over the last 30 days
             </caption>
             <thead>
-              <tr className="border-border text-muted-foreground bg-muted/20 border-b text-left text-xs">
+              <tr className="border-b border-border bg-muted/40 text-left [&>th]:label-mono [&>th]:font-normal">
                 <th scope="col" className="px-4 py-2.5 font-medium">
                   Feature
                 </th>

@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { QuestionPrompt } from "@/components/campus/question-prompt";
+import { CampusTrail } from "@/components/campus/campus-trail";
 import { PageHeader } from "@/components/common/page-header";
-import { Button } from "@/components/ui/button";
 import { orRefuse } from "@/lib/campus/guard";
 import { requireMember } from "@/lib/tenancy/context";
-import { route } from "@/lib/utils";
 import { previewAssessment } from "@/services/campus-assessments";
 
 export const metadata: Metadata = { title: "Preview" };
@@ -32,11 +30,7 @@ export default async function PreviewPage({
             ? "This is the published, frozen version."
             : "Draft: this changes until you publish."
         }`}
-        actions={
-          <Button asChild variant="outline" size="sm">
-            <Link href={route(back)}>Back</Link>
-          </Button>
-        }
+        eyebrow={<CampusTrail items={[{ label: ctx.institution.name, href: `/campus/${ctx.institution.slug}` }, { label: "Assessment", href: back }, { label: "Preview" }]} />}
       />
       <ol className="mt-6 space-y-6">
         {paper.questions.map((q, i) => {

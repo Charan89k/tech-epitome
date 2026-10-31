@@ -27,7 +27,7 @@ export default async function PatternsPage() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <header className="max-w-3xl">
-        <p className="text-ember-400 text-[0.68rem] font-medium tracking-wider uppercase">
+        <p className="text-brand-400 text-[0.68rem] font-medium tracking-wider uppercase">
           Practice
         </p>
         <h1 className="tracking-headline mt-2 text-2xl font-bold sm:text-3xl">
@@ -67,7 +67,7 @@ export default async function PatternsPage() {
               <li key={pattern.id}>
                 <Link
                   href={route(`/patterns/${pattern.slug}`)}
-                  className="border-border bg-card hover:border-ember-500/40 group flex h-full overflow-hidden rounded-xl border transition-colors sm:flex-col"
+                  className="border-border bg-card hover:border-brand-500/40 group flex h-full overflow-hidden rounded-xl border transition-colors sm:flex-col"
                 >
                   <MiniDiagram
                     kind={diagramFor(pattern.slug, index)}
@@ -75,7 +75,7 @@ export default async function PatternsPage() {
                   />
                   <div className="flex min-w-0 flex-1 flex-col p-4">
                     <div className="flex items-start justify-between gap-3">
-                      <h2 className="group-hover:text-ember-200 text-base font-semibold transition-colors">
+                      <h2 className="group-hover:text-brand-200 text-base font-semibold transition-colors">
                         {pattern.name}
                       </h2>
                       <DifficultyBadge difficulty={pattern.difficulty} className="mt-1 shrink-0" />
@@ -109,7 +109,7 @@ export default async function PatternsPage() {
                     {signedIn && (
                       <div className="bg-muted mt-2 h-1.5 w-full overflow-hidden rounded-full">
                         <div
-                          className="bg-ember-500 h-full rounded-full"
+                          className="bg-brand-500 h-full rounded-full"
                           style={{ width: `${solvedPercent}%` }}
                         />
                       </div>

@@ -21,7 +21,7 @@ and realistic interview practice.
 ---
 
 > [!NOTE]
-> **Live at [tech-epitome.vercel.app](https://tech-epitome.vercel.app).** You can
+> **Live at [tech-epitome.cloude5.tech](https://tech-epitome.cloude5.tech).** You can
 > also [run it locally](#-run-locally) in a few minutes, or
 > [deploy your own](#️-deploy-your-own) — everything needed is in the repo.
 
@@ -129,9 +129,11 @@ after the rungs before it.
 > **Anthropic**, and a deterministic mock used by the test suite. Nothing above
 > the adapter layer names a vendor.
 
-### 🎤 Mock interviews
+### 🎤 Mock interviews (Campus)
 
-Four interviewers, each with its own server-owned state machine:
+Part of Campus: students reach mock interviews, interview insights, preparation
+tracks and roadmaps through their college (an active membership). Four
+interviewers, each with its own server-owned state machine:
 
 | Mode | Shape |
 |---|---|
@@ -236,10 +238,10 @@ pointing at a paywall.
 ![A problem statement beside the Monaco editor and test results](docs/screenshots/problem-workspace.png)
 
 ### AI Tutor
-![The AI tutor answering a question about recognising sliding-window problems](docs/screenshots/ai-tutor.png)
+![The AI tutor, ready for a question, with its quick actions](docs/screenshots/ai-tutor.png)
 
-### Mock interview
-![A system design mock interview with its stage stepper and transcript](docs/screenshots/interview-room.png)
+### Mock interview (Campus)
+![A system design mock interview (Campus) with its brief and stage stepper, before it begins](docs/screenshots/interview-room.png)
 
 ### System design workspace
 ![The architecture workspace for a design brief](docs/screenshots/system-design-workspace.png)
@@ -254,7 +256,7 @@ pointing at a paywall.
 ### Notes
 ![The notes library with a saved note attached to a problem](docs/screenshots/notes.png)
 
-### Interview preparation
+### Interview preparation (Campus)
 ![A preparation track describing an interview loop and its recommended practice](docs/screenshots/prepare.png)
 
 ### Achievements & profile
@@ -270,7 +272,7 @@ pointing at a paywall.
 ![A gallery of stepped algorithm visualizations](docs/screenshots/visualize.png)
 
 ### Admin
-![The admin overview with user, content, activity and AI-usage counts](docs/screenshots/admin.png)
+![The admin overview with user, content, activity and AI-usage counts (figures from a local test database, not real usage)](docs/screenshots/admin.png)
 
 ---
 
@@ -315,7 +317,7 @@ next request rather than their next sign-in.
    Press **Visualize** to watch your own code move through the example.
 6. **Ask the AI Tutor** when you are stuck on the idea rather than the syntax.
 7. **Submit a design exercise** before looking at the reference.
-8. **Run a mock interview** and read the feedback against your transcript.
+8. **Run a mock interview** (Campus members) and read the feedback against your transcript.
 9. **Come back to `/review`** when the scheduler brings material back.
 10. **Watch the dashboard** — mastery is computed from your own history.
 
@@ -488,6 +490,11 @@ Never commit `.env`. It is gitignored.
 ---
 
 ## ☁️ Deploy your own
+
+The production deployment is a self-hosted Docker stack (app, its own
+Postgres, encrypted backups, health-checked releases with automatic rollback)
+behind an existing Caddy. See **[docs/DEPLOY.md](docs/DEPLOY.md)**. The
+Vercel route below still works for a personal copy.
 
 Tech Epitome is a standard Next.js application and deploys to Vercel without
 modification. You will need a hosted PostgreSQL database — Neon, Supabase and

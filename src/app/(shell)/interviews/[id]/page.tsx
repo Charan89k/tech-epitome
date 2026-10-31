@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, Info } from "lucide-react";
 
 import { InterviewRoom } from "@/components/interview/interview-room";
-import { requireUser } from "@/lib/auth/session";
+import { requireCampusUser } from "@/lib/campus-access";
 import {
   BAND_LABELS,
   DIMENSION_LABELS,
@@ -28,13 +28,13 @@ export const metadata: Metadata = {
 const BAND_STYLE: Record<RatingBand, string> = {
   not_demonstrated: "border-border text-muted-foreground",
   developing: "border-warning/35 bg-warning/10 text-warning",
-  solid: "border-ember-500/35 bg-ember-500/10 text-ember-300",
+  solid: "border-brand-500/35 bg-brand-500/10 text-brand-300",
   strong: "border-success/35 bg-success/10 text-success",
 };
 
 export default async function InterviewPage({ params }: PageProps<"/interviews/[id]">) {
   const { id } = await params;
-  const user = await requireUser(`/interviews/${id}`);
+  const user = await requireCampusUser(`/interviews/${id}`);
 
   // Scoped read: another learner's session id matches no row and 404s,
   // which is indistinguishable from one that never existed.
@@ -153,7 +153,7 @@ export default async function InterviewPage({ params }: PageProps<"/interviews/[
               {session.feedback.strengths.length > 0 && (
                 <div>
                   <h3 className="mt-6 text-sm font-semibold">What went well</h3>
-                  <ul className="mt-2 list-disc space-y-1 pl-5 marker:text-ember-500/60">
+                  <ul className="mt-2 list-disc space-y-1 pl-5 marker:text-brand-500/60">
                     {session.feedback.strengths.map((s) => (
                       <li
                         key={s}
@@ -169,7 +169,7 @@ export default async function InterviewPage({ params }: PageProps<"/interviews/[
               {session.feedback.improvements.length > 0 && (
                 <div>
                   <h3 className="mt-6 text-sm font-semibold">What to work on</h3>
-                  <ul className="mt-2 list-disc space-y-1 pl-5 marker:text-ember-500/60">
+                  <ul className="mt-2 list-disc space-y-1 pl-5 marker:text-brand-500/60">
                     {session.feedback.improvements.map((s) => (
                       <li
                         key={s}

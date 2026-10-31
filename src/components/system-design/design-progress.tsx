@@ -44,7 +44,7 @@ export function DesignProgress({
             aria-label="Exercises submitted"
           >
             <div
-              className="h-full rounded-full bg-ember-500"
+              className="h-full rounded-full bg-brand-500"
               style={{ width: `${percent}%` }}
             />
           </div>
@@ -73,7 +73,7 @@ export function DesignProgress({
           </p>
           <Link
             href="/signup"
-            className="mt-3 inline-block text-xs font-medium text-ember-300 hover:underline"
+            className="mt-3 inline-block text-xs font-medium text-brand-300 hover:underline"
           >
             Create a free account
           </Link>

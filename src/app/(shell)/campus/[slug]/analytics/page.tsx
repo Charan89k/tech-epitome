@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { z } from "zod";
 
+import { CampusTrail } from "@/components/campus/campus-trail";
 import { PageHeader } from "@/components/common/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,11 +82,7 @@ export default async function AnalyticsPage({
             ? `${ctx.institution.name}: every class.`
             : `${ctx.institution.name}: the classes you teach.`
         }
-        actions={
-          <Button asChild variant="outline" size="sm">
-            <Link href={route(base)}>Back</Link>
-          </Button>
-        }
+        eyebrow={<CampusTrail items={[{ label: ctx.institution.name, href: `/campus/${ctx.institution.slug}` }, { label: "Analytics" }]} />}
       />
 
       <form method="get" className="mt-6 flex flex-wrap items-end gap-3">
@@ -140,7 +137,7 @@ export default async function AnalyticsPage({
           <table className="mt-3 w-full max-w-xl text-sm">
             <caption className="sr-only">Members by role and status</caption>
             <thead>
-              <tr className="border-b border-border text-left text-xs text-muted-foreground">
+              <tr className="border-b border-border bg-muted/40 text-left [&>th]:label-mono [&>th]:font-normal">
                 <th scope="col" className="py-2 font-medium">
                   Role
                 </th>
@@ -240,7 +237,7 @@ export default async function AnalyticsPage({
                     Assessment outcomes for {c.name}
                   </caption>
                   <thead>
-                    <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                    <tr className="border-b border-border bg-muted/40 text-left [&>th]:label-mono [&>th]:font-normal">
                       <th scope="col" className="py-2 font-medium">
                         Assessment
                       </th>

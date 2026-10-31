@@ -33,7 +33,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { navForViewer } from "@/lib/navigation";
+import { navForViewer, type NavViewer } from "@/lib/navigation";
 import { route } from "@/lib/utils";
 
 /**
@@ -92,7 +92,7 @@ export function CommandPaletteProvider({
 }: {
   children: ReactNode;
   /** Decides which navigation groups are listed; staff links are admin-only. */
-  viewer: { role: "USER" | "ADMIN" } | null;
+  viewer: NavViewer;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");

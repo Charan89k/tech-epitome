@@ -51,7 +51,7 @@ export function MiniDiagram({
 }
 
 const CELL = "var(--viz-compare)";
-const ACTIVE = "var(--ember-500)";
+const ACTIVE = "var(--brand-500)";
 const DONE = "var(--viz-done)";
 const TEXT = "var(--foreground)";
 
@@ -80,7 +80,7 @@ function Cells({
             strokeWidth="1.2"
             fill={
               active.includes(i)
-                ? "color-mix(in oklch, var(--ember-500) 22%, transparent)"
+                ? "color-mix(in oklch, var(--brand-500) 22%, transparent)"
                 : "transparent"
             }
           />
@@ -311,7 +311,7 @@ function ArchitectureArt() {
         rx="3"
         stroke={ACTIVE}
         strokeWidth="1.3"
-        fill="color-mix(in oklch, var(--ember-500) 18%, transparent)"
+        fill="color-mix(in oklch, var(--brand-500) 18%, transparent)"
       />
       <text
         x="61"
@@ -447,7 +447,7 @@ function ScheduleArt() {
             strokeWidth="1.3"
             fill={
               i === days.length - 1
-                ? "color-mix(in oklch, var(--ember-500) 22%, transparent)"
+                ? "color-mix(in oklch, var(--brand-500) 22%, transparent)"
                 : "var(--background)"
             }
           />

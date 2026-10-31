@@ -113,7 +113,7 @@ export default async function SystemDesignExercisePage({
             <h2 id="functional" className="text-sm font-semibold">
               Functional requirements
             </h2>
-            <ul className="marker:text-ember-500/60 mt-2 list-disc space-y-1 pl-5">
+            <ul className="marker:text-brand-500/60 mt-2 list-disc space-y-1 pl-5">
               {problem.functionalRequirements.map((item) => (
                 <li key={item} className="text-muted-foreground text-sm leading-relaxed">
                   {item}
@@ -126,7 +126,7 @@ export default async function SystemDesignExercisePage({
             <h2 id="nonfunctional" className="text-sm font-semibold">
               Non-functional requirements
             </h2>
-            <ul className="marker:text-ember-500/60 mt-2 list-disc space-y-1 pl-5">
+            <ul className="marker:text-brand-500/60 mt-2 list-disc space-y-1 pl-5">
               {problem.nonFunctionalRequirements.map((item) => (
                 <li key={item} className="text-muted-foreground text-sm leading-relaxed">
                   {item}
@@ -138,7 +138,7 @@ export default async function SystemDesignExercisePage({
           {scaleRows.length > 0 && (
             <section aria-labelledby="scale">
               <h2 id="scale" className="flex items-center gap-1.5 text-sm font-semibold">
-                <TrendingUp className="text-ember-400 size-3.5" aria-hidden="true" />
+                <TrendingUp className="text-brand-400 size-3.5" aria-hidden="true" />
                 Scale assumptions
               </h2>
               <p className="text-muted-foreground/70 mt-1 text-xs">
@@ -165,7 +165,7 @@ export default async function SystemDesignExercisePage({
                 {problem.apiDesign.map((entry) => (
                   <li key={`${entry.method}-${entry.path}`} className="px-3 py-2">
                     <p className="font-mono text-xs break-words">
-                      <span className="bg-ember-500/12 text-ember-300 mr-1.5 rounded px-1.5 py-0.5 text-[0.65rem] font-semibold">
+                      <span className="bg-brand-500/12 text-brand-300 mr-1.5 rounded px-1.5 py-0.5 text-[0.65rem] font-semibold">
                         {entry.method}
                       </span>
                       {entry.path}
@@ -181,10 +181,10 @@ export default async function SystemDesignExercisePage({
 
           <section aria-labelledby="discuss">
             <h2 id="discuss" className="flex items-center gap-1.5 text-sm font-semibold">
-              <Target className="text-ember-400 size-3.5" aria-hidden="true" />
+              <Target className="text-brand-400 size-3.5" aria-hidden="true" />
               Decisions you should be able to defend
             </h2>
-            <ul className="marker:text-ember-500/60 mt-2 list-disc space-y-1 pl-5">
+            <ul className="marker:text-brand-500/60 mt-2 list-disc space-y-1 pl-5">
               {problem.discussionAreas.map((item) => (
                 <li key={item} className="text-muted-foreground text-sm leading-relaxed">
                   {item}
@@ -217,7 +217,7 @@ export default async function SystemDesignExercisePage({
             />
           ) : (
             <div className="viz-canvas border-border flex flex-col items-center rounded-lg border px-6 py-12 text-center">
-              <PenTool className="text-ember-400 size-5" aria-hidden="true" />
+              <PenTool className="text-brand-400 size-5" aria-hidden="true" />
               <p className="text-muted-foreground mt-3 text-sm">
                 Sign in to draw and save a design.
               </p>
@@ -235,7 +235,7 @@ export default async function SystemDesignExercisePage({
           aria-labelledby="reference"
           className="bg-card border-border mt-8 min-w-0 rounded-xl border p-4 sm:p-6"
         >
-          <p className="text-ember-300 text-[0.68rem] font-medium tracking-wider uppercase">
+          <p className="text-brand-300 text-[0.68rem] font-medium tracking-wider uppercase">
             Unlocked by your submission
           </p>
           <h2 id="reference" className="tracking-headline mt-1 text-lg font-semibold">
@@ -252,7 +252,7 @@ export default async function SystemDesignExercisePage({
           />
 
           <h3 className="mt-6 flex items-center gap-1.5 text-sm font-semibold">
-            <Scale className="text-ember-400 size-3.5" aria-hidden="true" />
+            <Scale className="text-brand-400 size-3.5" aria-hidden="true" />
             Trade-offs behind it
           </h3>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -260,7 +260,7 @@ export default async function SystemDesignExercisePage({
               <div key={t.decision} className="border-border bg-background/40 rounded-lg border p-3.5">
                 <p className="text-sm font-medium">{t.decision}</p>
                 <p className="text-muted-foreground mt-1 text-xs">
-                  Chose <span className="text-ember-300">{t.chose}</span> over{" "}
+                  Chose <span className="text-brand-300">{t.chose}</span> over{" "}
                   {t.over}.
                 </p>
                 <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
@@ -276,7 +276,7 @@ export default async function SystemDesignExercisePage({
               <ol className="border-border mt-3 divide-y divide-[var(--border)] overflow-hidden rounded-lg border">
                 {problem.reference.scalingNotes.map((note, index) => (
                   <li key={note.stage} className="flex gap-3 p-3 text-sm">
-                    <span className="text-ember-400/70 font-mono text-xs tabular-nums">
+                    <span className="text-brand-400/70 font-mono text-xs tabular-nums">
                       {String(index + 1).padStart(2, "0")}
                     </span>
                     <div className="min-w-0">
@@ -294,7 +294,7 @@ export default async function SystemDesignExercisePage({
           {problem.followUps.length > 0 && (
             <>
               <h3 className="mt-6 text-sm font-semibold">Follow-up questions</h3>
-              <ul className="marker:text-ember-500/60 mt-2 list-disc space-y-1 pl-5">
+              <ul className="marker:text-brand-500/60 mt-2 list-disc space-y-1 pl-5">
                 {problem.followUps.map((q) => (
                   <li key={q} className="text-muted-foreground text-sm leading-relaxed">
                     {q}

@@ -25,14 +25,14 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
         {/* Mobile nav */}
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-9 md:hidden" aria-label="Open menu">
+            <Button variant="ghost" size="icon" className="size-9 lg:hidden" aria-label="Open menu">
               <MenuGlyph />
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-72">
             <SheetHeader>
               <SheetTitle>
-                <Logo idSuffix="mobile-nav" />
+                <Logo />
               </SheetTitle>
             </SheetHeader>
             <nav aria-label="Mobile" className="px-4">
@@ -63,10 +63,10 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
         </Sheet>
 
         <Link href="/" className="mr-2 flex shrink-0 items-center rounded-md px-1 py-1">
-          <Logo idSuffix="site-header" wordmarkClassName="text-[1.05rem]" />
+          <Logo wordmarkClassName="text-[1.05rem]" />
         </Link>
 
-        <nav aria-label="Main" className="hidden md:block">
+        <nav aria-label="Main" className="hidden lg:block">
           <ul className="flex items-center gap-0.5">
             {marketingNav.map((item) => (
               <li key={item.href}>
@@ -84,7 +84,7 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
           <ThemeToggle />
           {signedIn ? (
-            <Button asChild size="sm" className="rounded-full px-4">
+            <Button asChild size="sm">
               <Link href="/dashboard">Dashboard</Link>
             </Button>
           ) : (
@@ -92,7 +92,7 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
               <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
                 <Link href="/login">Sign in</Link>
               </Button>
-              <Button asChild size="sm" className="rounded-full px-4">
+              <Button asChild size="sm">
                 <Link href="/signup">Start learning</Link>
               </Button>
             </>

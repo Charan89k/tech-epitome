@@ -45,6 +45,8 @@ export type NavItem = {
   description?: string;
   /** Match child routes for active state. Defaults to true. */
   matchNested?: boolean;
+  /** Part of the college offering: shown only to Campus members. */
+  campusOnly?: boolean;
 };
 
 export type NavGroup = {
@@ -69,15 +71,10 @@ export const primaryNav: NavGroup[] = [
         icon: Repeat2,
         description: "Recall what you have learned, before you forget it",
       },
-      {
-        title: "Campus",
-        href: "/campus",
-        icon: Building2,
-        description: "Colleges you belong to, and joining one",
-      },
     ],
   },
   {
+    // Individual learning: concepts, patterns and problems in one section.
     label: "Learn",
     items: [
       {
@@ -94,13 +91,6 @@ export const primaryNav: NavGroup[] = [
         description: "Structured data structures and algorithms curriculum",
       },
       {
-        title: "Patterns",
-        href: "/patterns",
-        icon: Shapes,
-        feature: FEATURES.PATTERNS,
-        description: "Recognise the shape of a problem",
-      },
-      {
         title: "System Design",
         href: "/learn/system-design",
         icon: Network,
@@ -113,10 +103,17 @@ export const primaryNav: NavGroup[] = [
         description: "Responsibilities, SOLID, and the patterns worth knowing",
       },
       {
-        title: "Roadmaps",
-        href: "/roadmaps",
-        icon: Route,
-        description: "What to learn, in what order, and where to practise it",
+        title: "Patterns",
+        href: "/patterns",
+        icon: Shapes,
+        feature: FEATURES.PATTERNS,
+        description: "Recognise the shape of a problem",
+      },
+      {
+        title: "Problems",
+        href: "/problems",
+        icon: ListChecks,
+        description: "Solve, run tests, track attempts",
       },
       {
         title: "Visualize",
@@ -125,11 +122,6 @@ export const primaryNav: NavGroup[] = [
         feature: FEATURES.VISUALIZE,
         description: "Step through algorithms frame by frame",
       },
-    ],
-  },
-  {
-    label: "Practice",
-    items: [
       {
         title: "Design Exercises",
         href: "/system-design",
@@ -143,12 +135,6 @@ export const primaryNav: NavGroup[] = [
         description: "Design the classes, defend the trade-offs",
       },
       {
-        title: "Problems",
-        href: "/problems",
-        icon: ListChecks,
-        description: "Solve, run tests, track attempts",
-      },
-      {
         title: "AI Tutor",
         href: "/ai-tutor",
         icon: Sparkles,
@@ -159,20 +145,38 @@ export const primaryNav: NavGroup[] = [
     ],
   },
   {
-    label: "Interview",
+    // The college offering. Everyone sees the workspace link (to join or
+    // accept an invitation); the rest only for members, who are also the
+    // only ones the server lets in (src/lib/campus-access.ts).
+    label: "Campus",
     items: [
       {
-        title: "Preparation",
-        href: "/prepare",
-        icon: Compass,
-        description: "Plans for the shapes interview loops come in",
+        title: "Campus",
+        href: "/campus",
+        icon: Building2,
+        description: "Your college: classes, assignments and exams",
       },
       {
         title: "Mock Interviews",
         href: "/interviews",
         icon: MessagesSquare,
         feature: FEATURES.AI_MOCK_INTERVIEW,
+        campusOnly: true,
         description: "Practise an interview, then read feedback with evidence",
+      },
+      {
+        title: "Interview Prep",
+        href: "/prepare",
+        icon: Compass,
+        campusOnly: true,
+        description: "Plans for the shapes interview loops come in",
+      },
+      {
+        title: "Roadmaps",
+        href: "/roadmaps",
+        icon: Route,
+        campusOnly: true,
+        description: "What to learn, in what order, and where to practise it",
       },
     ],
   },
@@ -217,17 +221,21 @@ export const primaryNav: NavGroup[] = [
 ];
 
 /**
- * The groups a given viewer should see: staff-only items are dropped for
- * everyone but admins. Other gated items stay visible (signed-out visitors
- * are sent to sign in), matching the existing rail behaviour. This only
- * hides links; every admin page still enforces `requireAdmin` itself.
+ * The groups a given viewer should see: staff items only for admins, Campus
+ * items only for members of a college (and admins). This only hides links;
+ * admin pages call `requireAdmin` and Campus pages `requireCampusUser`.
  */
-export function navForViewer(viewer: { role: "USER" | "ADMIN" } | null): NavGroup[] {
+export type NavViewer = { role: "USER" | "ADMIN"; campusMember?: boolean } | null;
+
+export function navForViewer(viewer: NavViewer): NavGroup[] {
+  const campus = viewer?.role === "ADMIN" || Boolean(viewer?.campusMember);
   return primaryNav
     .map((group) => ({
       ...group,
       items: group.items.filter(
-        (item) => item.feature !== FEATURES.ADMIN || canAccess(viewer, item.feature)
+        (item) =>
+          (item.feature !== FEATURES.ADMIN || canAccess(viewer, item.feature)) &&
+          (!item.campusOnly || campus)
       ),
     }))
     .filter((group) => group.items.length > 0);
@@ -237,11 +245,12 @@ export function navForViewer(viewer: { role: "USER" | "ADMIN" } | null): NavGrou
 export const allNavItems: NavItem[] = primaryNav.flatMap((g) => g.items);
 
 /** Public marketing navigation. */
+/** Campus needs a college account, so a visitor gets the explanation instead. */
 export const marketingNav = [
   { title: "Learn", href: "/learn" },
   { title: "Patterns", href: "/patterns" },
   { title: "Problems", href: "/problems" },
-  { title: "Features", href: "/features" },
+  { title: "Campus", href: "/#campus" },
 ] as const;
 
 /**

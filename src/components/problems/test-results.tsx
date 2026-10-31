@@ -64,7 +64,7 @@ export function TestResults({
   if (pending) {
     return (
       <div className="text-muted-foreground flex h-full items-center justify-center gap-2 text-sm">
-        <span className="bg-ember-500 size-1.5 animate-pulse rounded-full" />
+        <span className="bg-brand-500 size-1.5 animate-pulse rounded-full" />
         {mode === "submit"
           ? "Running every test…"
           : custom

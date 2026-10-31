@@ -33,7 +33,7 @@ export function StatusScreen({
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-5 py-16 text-center">
       <Link href="/" aria-label="Tech Epitome home">
-        <LogoMark gradient idSuffix="status" className="size-8" />
+        <LogoMark brand className="size-8" />
       </Link>
 
       {code && (

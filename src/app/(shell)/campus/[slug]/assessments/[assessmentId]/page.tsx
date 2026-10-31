@@ -4,11 +4,13 @@ import Link from "next/link";
 import { CampusNotice } from "@/components/campus/notice";
 import { DateTimeField } from "@/components/campus/datetime-field";
 import { When } from "@/components/campus/when";
+import { CampusTrail } from "@/components/campus/campus-trail";
 import { PageHeader } from "@/components/common/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { NativeSelect } from "@/components/ui/native-select";
 import { orRefuse } from "@/lib/campus/guard";
 import { PHASE_LABEL } from "@/lib/campus/rules";
 import {
@@ -40,7 +42,7 @@ import {
 export const metadata: Metadata = { title: "Assessment" };
 
 const selectClass =
-  "mt-1 block h-8 w-full rounded-lg border border-input bg-background px-2 text-sm";
+  "mt-1 w-full";
 
 /**
  * One assessment. The class's instructors get the authoring and grading
@@ -63,7 +65,7 @@ export default async function AssessmentPage({
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       {staff ? (
         <StaffView ctx={ctx} a={staff} msg={msg} />
       ) : (
@@ -152,11 +154,7 @@ function StudentView({
       <PageHeader
         title={a.title}
         description={PHASE_LABEL[a.phase]}
-        actions={
-          <Button asChild variant="outline" size="sm">
-            <Link href={route(`${base}/classes/${a.cohortId}`)}>Back to class</Link>
-          </Button>
-        }
+        eyebrow={<CampusTrail items={[{ label: ctx.institution.name, href: `/campus/${ctx.institution.slug}` }, { label: "Class", href: `${base}/classes/${a.cohortId}` }, { label: a.title }]} />}
       />
       <div className="mt-6">
         <CampusNotice code={msg} />
@@ -280,15 +278,19 @@ async function StaffView({
       <PageHeader
         title={a.title}
         description={`${PHASE_LABEL[a.phase]}${a.publishedAt && !draft ? " · questions frozen" : ""}`}
+        eyebrow={
+          <CampusTrail
+            items={[
+              { label: ctx.institution.name, href: base },
+              { label: "Class", href: `${base}/classes/${a.cohortId}` },
+              { label: a.title },
+            ]}
+          />
+        }
         actions={
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link href={route(`${base}/classes/${a.cohortId}`)}>Back to class</Link>
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href={route(`${base}/assessments/${a.id}/preview`)}>Preview</Link>
-            </Button>
-          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link href={route(`${base}/assessments/${a.id}/preview`)}>Preview</Link>
+          </Button>
         }
       />
       <div className="mt-6">
@@ -463,7 +465,7 @@ async function StaffView({
                 <label htmlFor="s-policy" className="text-sm font-medium">
                   Which attempt counts
                 </label>
-                <select
+                <NativeSelect
                   id="s-policy"
                   name="scorePolicy"
                   defaultValue={s.scorePolicy}
@@ -471,7 +473,7 @@ async function StaffView({
                 >
                   <option value="BEST">Best</option>
                   <option value="LATEST">Latest</option>
-                </select>
+                </NativeSelect>
               </div>
               <label className="flex items-start gap-2 text-sm sm:col-span-2">
                 <input
@@ -549,7 +551,7 @@ async function StaffView({
               <label htmlFor="add-question" className="text-sm font-medium">
                 Add from a question bank
               </label>
-              <select
+              <NativeSelect
                 id="add-question"
                 name="questionId"
                 required
@@ -561,7 +563,7 @@ async function StaffView({
                     {q.prompt.slice(0, 80)}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
             <div className="sm:w-28">
               <label htmlFor="add-points" className="text-sm font-medium">
@@ -603,7 +605,7 @@ async function StaffView({
               <table className="w-full min-w-[40rem] text-sm">
                 <caption className="sr-only">Attempts for {a.title}</caption>
                 <thead>
-                  <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                  <tr className="border-b border-border bg-muted/40 text-left [&>th]:label-mono [&>th]:font-normal">
                     <th scope="col" className="px-4 py-2.5 font-medium">
                       Student
                     </th>

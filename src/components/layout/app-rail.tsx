@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, LogIn } from "lucide-react";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { canAccess } from "@/lib/auth/access";
-import { isNavItemActive, navForViewer } from "@/lib/navigation";
+import { isNavItemActive, navForViewer, type NavViewer } from "@/lib/navigation";
 import { cn, route } from "@/lib/utils";
 
 /**
@@ -32,7 +32,7 @@ function readExpanded(): boolean {
   }
 }
 
-export function AppRail({ user }: { user: { role: "USER" | "ADMIN" } | null }) {
+export function AppRail({ user }: { user: NavViewer }) {
   const pathname = usePathname();
   // Read once on the client; the server renders collapsed.
   const stored = useSyncExternalStore(
@@ -85,7 +85,7 @@ export function AppRail({ user }: { user: { role: "USER" | "ADMIN" } | null }) {
               )}
             >
               {expanded && (
-                <p className="px-2.5 pt-1 pb-1 text-xs font-medium text-muted-foreground">
+                <p className="label-mono px-2.5 pt-1 pb-1 uppercase tracking-wider">
                   {label}
                 </p>
               )}
@@ -100,10 +100,10 @@ export function AppRail({ user }: { user: { role: "USER" | "ADMIN" } | null }) {
                       href={route(item.href)}
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "flex h-9 items-center gap-2.5 rounded-md text-sm transition-colors",
+                        "relative flex h-9 items-center gap-2.5 rounded-md text-sm transition-colors",
                         expanded ? "px-2.5" : "w-9 justify-center",
                         active
-                          ? "bg-accent font-medium text-foreground ring-1 ring-border ring-inset"
+                          ? "bg-accent font-medium text-foreground before:absolute before:inset-y-2 before:-left-1.5 before:w-0.5 before:rounded-full before:bg-primary"
                           : "text-muted-foreground hover:bg-accent hover:text-foreground"
                       )}
                     >

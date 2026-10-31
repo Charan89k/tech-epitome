@@ -7,8 +7,7 @@ import {
   ChevronDown,
   Library,
   Menu,
-  MessagesSquare,
-  Target,
+  Building2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -32,7 +31,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { isNavItemActive, navForViewer, primaryNav, type NavGroup } from "@/lib/navigation";
+import { isNavItemActive, navForViewer, type NavGroup, type NavViewer } from "@/lib/navigation";
 import { cn, route } from "@/lib/utils";
 
 /**
@@ -48,22 +47,21 @@ import { cn, route } from "@/lib/utils";
 
 const MENU_ICON: Record<string, LucideIcon> = {
   Learn: BookOpen,
-  Practice: Target,
-  Interview: MessagesSquare,
+  Campus: Building2,
   Library: Library,
 };
 
-const HEADER_GROUPS = ["Learn", "Practice", "Interview", "Library"];
+const HEADER_GROUPS = ["Learn", "Campus", "Library"];
 
 type Props = {
-  user: (UserMenuUser & { role: "USER" | "ADMIN" }) | null;
+  user: (UserMenuUser & { role: "USER" | "ADMIN"; campusMember?: boolean }) | null;
   streak: number;
   unreadNotifications: number;
 };
 
 export function SiteHeader({ user, streak, unreadNotifications }: Props) {
   const pathname = usePathname();
-  const groups = primaryNav.filter((group) => HEADER_GROUPS.includes(group.label));
+  const groups = navForViewer(user).filter((group) => HEADER_GROUPS.includes(group.label));
 
   return (
     <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-3 sm:px-4">
@@ -73,7 +71,7 @@ export function SiteHeader({ user, streak, unreadNotifications }: Props) {
         href={user ? "/dashboard" : "/"}
         className="mr-2 flex items-center rounded-md px-1 py-1"
       >
-        <Logo idSuffix="header" wordmarkClassName="text-[1.05rem]" />
+        <Logo responsive wordmarkClassName="text-[1.05rem]" />
       </Link>
 
       <nav aria-label="Sections" className="hidden items-center gap-0.5 lg:flex">
@@ -92,7 +90,9 @@ export function SiteHeader({ user, streak, unreadNotifications }: Props) {
         <ThemeToggle />
         {user ? (
           <>
-            <StreakPill days={streak} />
+            <div className="hidden sm:block">
+              <StreakPill days={streak} />
+            </div>
             <NotificationBell initialUnread={unreadNotifications} />
             <UserMenu user={user} />
           </>
@@ -101,7 +101,7 @@ export function SiteHeader({ user, streak, unreadNotifications }: Props) {
             <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
               <Link href="/login">Sign in</Link>
             </Button>
-            <Button asChild size="sm" className="rounded-full px-4">
+            <Button asChild size="sm">
               <Link href="/signup">Start learning</Link>
             </Button>
           </>
@@ -119,8 +119,10 @@ function SectionMenu({ group, pathname }: { group: NavGroup; pathname: string })
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger
         className={cn(
-          "flex h-9 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors outline-none hover:bg-accent/60 data-[state=open]:bg-accent/60",
-          active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+          "relative flex h-9 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors outline-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:bg-accent/60",
+          active
+            ? "text-foreground after:absolute after:inset-x-2.5 after:-bottom-[0.6875rem] after:h-0.5 after:bg-primary"
+            : "text-muted-foreground hover:text-foreground"
         )}
       >
         <Icon className={cn("size-4", active && "text-primary")} aria-hidden="true" />
@@ -170,7 +172,7 @@ function MobileNav({
   user,
   pathname,
 }: {
-  user: { role: "USER" | "ADMIN" } | null;
+  user: NavViewer;
   pathname: string;
 }) {
   return (
@@ -188,7 +190,7 @@ function MobileNav({
       <SheetContent side="left" className="w-80 overflow-y-auto">
         <SheetHeader>
           <SheetTitle>
-            <Logo idSuffix="sheet" />
+            <Logo />
           </SheetTitle>
         </SheetHeader>
         <nav aria-label="All sections" className="space-y-5 px-4 pb-8">

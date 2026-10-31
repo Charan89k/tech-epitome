@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { PageHeader } from "@/components/common/page-header";
 import { DesignThumb, type DesignThumbKind } from "@/components/system-design/design-thumb";
 import { Button } from "@/components/ui/button";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireCampusUser } from "@/lib/campus-access";
 import { route } from "@/lib/utils";
 import { listPrepTracks } from "@/services/prep";
 
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 const THUMBS: DesignThumbKind[] = ["stages", "roadmap", "layers"];
 
 export default async function PrepareIndexPage() {
-  const user = await getCurrentUser();
+  const user = await requireCampusUser("/prepare");
   const tracks = await listPrepTracks(user?.id);
 
   return (
@@ -65,7 +65,7 @@ export default async function PrepareIndexPage() {
               <li key={track.slug}>
                 <Link
                   href={route(`/prepare/${track.slug}`)}
-                  className="group bg-card border-border hover:border-ember-500/40 focus-visible:ring-ring/50 flex h-full flex-col overflow-hidden rounded-xl border transition-colors focus-visible:ring-3 focus-visible:outline-none"
+                  className="group bg-card border-border hover:border-brand-500/40 focus-visible:ring-ring/50 flex h-full flex-col overflow-hidden rounded-xl border transition-colors focus-visible:ring-3 focus-visible:outline-none"
                 >
                   <DesignThumb
                     kind={THUMBS[index % THUMBS.length]!}
@@ -73,11 +73,11 @@ export default async function PrepareIndexPage() {
                   />
                   <div className="flex flex-1 flex-col p-4">
                     <div className="flex items-start gap-2">
-                      <h2 className="group-hover:text-ember-200 min-w-0 flex-1 text-base font-semibold transition-colors">
+                      <h2 className="group-hover:text-brand-200 min-w-0 flex-1 text-base font-semibold transition-colors">
                         {track.name}
                       </h2>
                       <ArrowUpRight
-                        className="text-muted-foreground group-hover:text-ember-400 mt-0.5 size-4 shrink-0 transition-colors"
+                        className="text-muted-foreground group-hover:text-brand-400 mt-0.5 size-4 shrink-0 transition-colors"
                         aria-hidden="true"
                       />
                     </div>
@@ -88,7 +88,7 @@ export default async function PrepareIndexPage() {
                     {track.focusAreas.length > 0 && (
                       <p className="text-muted-foreground/80 mt-3 flex items-start gap-1.5 text-xs leading-relaxed">
                         <Target
-                          className="text-ember-400 mt-0.5 size-3 shrink-0"
+                          className="text-brand-400 mt-0.5 size-3 shrink-0"
                           aria-hidden="true"
                         />
                         {track.focusAreas[0]}
@@ -103,7 +103,7 @@ export default async function PrepareIndexPage() {
                         </span>
                         <span>{track.designCount} design exercises</span>
                         {track.solved !== null && (
-                          <span className="text-ember-300 ml-auto font-mono tabular-nums">
+                          <span className="text-brand-300 ml-auto font-mono tabular-nums">
                             {track.solved} solved
                           </span>
                         )}
@@ -118,7 +118,7 @@ export default async function PrepareIndexPage() {
                           aria-label={`${track.name} progress`}
                         >
                           <div
-                            className="bg-ember-500 h-full rounded-full"
+                            className="bg-brand-500 h-full rounded-full"
                             style={{ width: `${percent}%` }}
                           />
                         </div>

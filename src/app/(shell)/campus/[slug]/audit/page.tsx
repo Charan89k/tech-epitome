@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { CampusTrail } from "@/components/campus/campus-trail";
 import { PageHeader } from "@/components/common/page-header";
 import { requireMember } from "@/lib/tenancy/context";
 import { listInstitutionAudit } from "@/services/institutions";
@@ -15,8 +16,9 @@ export default async function InstitutionAuditPage({
   const rows = await listInstitutionAudit(ctx);
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <PageHeader
+        eyebrow={<CampusTrail items={[{ label: ctx.institution.name, href: `/campus/${ctx.institution.slug}` }, { label: "Audit log" }]} />}
         title="Audit log"
         description={`Administrative changes in ${ctx.institution.name}, newest first. Entries cannot be edited or deleted.`}
       />
@@ -24,7 +26,7 @@ export default async function InstitutionAuditPage({
         <table className="w-full min-w-[40rem] text-sm">
           <caption className="sr-only">Audit log for {ctx.institution.name}</caption>
           <thead>
-            <tr className="border-b border-border text-left text-xs text-muted-foreground">
+            <tr className="border-b border-border bg-muted/40 text-left [&>th]:label-mono [&>th]:font-normal">
               <th scope="col" className="px-4 py-2.5 font-medium">
                 When (UTC)
               </th>

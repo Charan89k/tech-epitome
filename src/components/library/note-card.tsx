@@ -69,7 +69,7 @@ export function NoteCard({
       <div className="flex items-start gap-3">
         <Link
           href={route(href)}
-          className="min-w-0 flex-1 truncate text-xs font-medium text-info transition-colors hover:text-ember-300"
+          className="min-w-0 flex-1 truncate text-xs font-medium text-info transition-colors hover:text-brand-300"
         >
           {title}
           {subtitle ? ` · ${subtitle}` : ""}
@@ -106,7 +106,7 @@ export function NoteCard({
         </time>
         <Link
           href={route(href)}
-          className="text-[0.68rem] text-muted-foreground underline underline-offset-2 hover:text-ember-300"
+          className="text-[0.68rem] text-muted-foreground underline underline-offset-2 hover:text-brand-300"
         >
           Edit where you wrote it
         </Link>

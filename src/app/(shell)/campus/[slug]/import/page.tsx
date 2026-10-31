@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { RosterImport } from "@/components/campus/roster-import";
+import { CampusTrail } from "@/components/campus/campus-trail";
 import { PageHeader } from "@/components/common/page-header";
-import { Button } from "@/components/ui/button";
 import { requireMember } from "@/lib/tenancy/context";
-import { route } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Import roster" };
 
@@ -17,15 +15,11 @@ export default async function ImportPage({
   const ctx = await requireMember(slug, "members.invite");
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <PageHeader
         title="Import roster"
         description={`Invite many people to ${ctx.institution.name} from a CSV.`}
-        actions={
-          <Button asChild variant="outline" size="sm">
-            <Link href={route(`/campus/${ctx.institution.slug}`)}>Back</Link>
-          </Button>
-        }
+        eyebrow={<CampusTrail items={[{ label: ctx.institution.name, href: `/campus/${ctx.institution.slug}` }, { label: "Import roster" }]} />}
       />
       <div className="mt-6 space-y-2 text-sm text-muted-foreground">
         <p>

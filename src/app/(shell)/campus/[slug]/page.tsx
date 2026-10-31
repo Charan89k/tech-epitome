@@ -1,14 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import {
+  ChevronRight,
+  Download,
+  Library,
+  LineChart,
+  ScrollText,
+  Upload,
+} from "lucide-react";
 
 import { CampusNotice } from "@/components/campus/notice";
+import { CampusTrail } from "@/components/campus/campus-trail";
 import { PageHeader } from "@/components/common/page-header";
+import { SectionHeading } from "@/components/common/section-heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 import { requireMember } from "@/lib/tenancy/context";
 import { can, canInviteRole } from "@/lib/tenancy/permissions";
-import { route } from "@/lib/utils";
+import { cn, route } from "@/lib/utils";
 import { listClasses } from "@/services/campus-classes";
 import {
   listMembers,
@@ -57,209 +68,266 @@ export default async function InstitutionPage({
   const invitableRoles = ROLES.filter((r) => canInviteRole(ctx, r.value));
   const manage = can(ctx, "members.manage");
 
+  const activeMembers = members?.filter((m) => m.status === "ACTIVE").length;
+  const summary = [
+    { label: "Classes", value: classes.length },
+    ...(activeMembers !== undefined
+      ? [{ label: "Active members", value: activeMembers }]
+      : []),
+    ...(invitations
+      ? [{ label: "Pending invitations", value: invitations.length }]
+      : []),
+    { label: "Your role", value: ctx.role ? roleLabel(ctx.role) : "Operator" },
+  ];
+  // Each tool shows only for the roles allowed to use it; the pages enforce
+  // the same permissions on the server.
+  const tools = (
+    [
+      ["analytics.view", "analytics", "Analytics", LineChart],
+      ["members.invite", "import", "Import roster", Upload],
+      ["banks.manage", "banks", "Question banks", Library],
+      ["audit.view", "audit", "Audit log", ScrollText],
+    ] as const
+  ).filter(([permission]) => can(ctx, permission));
+
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <PageHeader
+        eyebrow={<CampusTrail items={[{ label: ctx.institution.name }]} />}
         title={ctx.institution.name}
         description={
           ctx.role
-            ? `You are ${roleLabel(ctx.role).toLowerCase()} here.`
+            ? `Your role here is ${roleLabel(ctx.role).toLowerCase()}.`
             : "Platform operator view."
         }
         actions={
-          <div className="flex flex-wrap gap-2">
-            {can(ctx, "members.export") && (
-              <Button asChild variant="outline" size="sm">
-                <a href={`/campus/${ctx.institution.slug}/members.csv`}>
-                  Export roster
-                </a>
-              </Button>
-            )}
-            {can(ctx, "analytics.view") && (
-              <Button asChild variant="outline" size="sm">
-                <Link href={route(`/campus/${ctx.institution.slug}/analytics`)}>
-                  Analytics
-                </Link>
-              </Button>
-            )}
-            {can(ctx, "members.invite") && (
-              <Button asChild variant="outline" size="sm">
-                <Link href={route(`/campus/${ctx.institution.slug}/import`)}>
-                  Import roster
-                </Link>
-              </Button>
-            )}
-            {can(ctx, "banks.manage") && (
-              <Button asChild variant="outline" size="sm">
-                <Link href={route(`/campus/${ctx.institution.slug}/banks`)}>
-                  Question banks
-                </Link>
-              </Button>
-            )}
-            {can(ctx, "audit.view") && (
-              <Button asChild variant="outline" size="sm">
-                <Link href={route(`/campus/${ctx.institution.slug}/audit`)}>
-                  Audit log
-                </Link>
-              </Button>
-            )}
-          </div>
+          can(ctx, "members.export") && (
+            <Button asChild variant="outline" size="sm">
+              <a href={`/campus/${ctx.institution.slug}/members.csv`}>
+                <Download className="size-4" aria-hidden="true" />
+                Export roster
+              </a>
+            </Button>
+          )
         }
       />
+
+      <dl className="mt-6 grid grid-cols-2 border-y border-border sm:grid-cols-4">
+        {summary.map((item, index) => (
+          <div
+            key={item.label}
+            className={cn(
+              "flex flex-col-reverse gap-0.5 py-3 pr-4",
+              index % 2 === 1 && "pl-4 max-sm:border-l max-sm:border-border",
+              index > 0 && "sm:border-l sm:border-border sm:pl-4",
+              index > 1 && "max-sm:border-t max-sm:border-border"
+            )}
+          >
+            <dt className="label-mono">{item.label}</dt>
+            <dd className="font-mono text-xl font-medium tabular-nums">{item.value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {tools.length > 0 && (
+        <nav aria-label="Workspace tools" className="mt-4 flex flex-wrap gap-2">
+          {tools.map(([, path, label, Icon]) => (
+            <Link
+              key={path}
+              href={route(`/campus/${ctx.institution.slug}/${path}`)}
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm font-medium text-muted-foreground transition-colors outline-none hover:border-brand-500/50 hover:bg-accent/50 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              <Icon className="size-4 text-brand-300" aria-hidden="true" />
+              {label}
+            </Link>
+          ))}
+        </nav>
+      )}
       <div className="mt-6">
         <CampusNotice code={msg} />
       </div>
 
-      <section aria-labelledby="classes-heading" className="mb-8">
-        <h2 id="classes-heading" className="text-base font-semibold">
-          Classes
-        </h2>
-        {classes.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">
-            {can(ctx, "classes.create")
-              ? "No classes yet. Create one to assign content and run assessments."
-              : "You are not in any class here yet. Your instructor adds you."}
-          </p>
-        ) : (
-          <ul className="mt-3 divide-y divide-border rounded-lg border border-border">
-            {classes.map((c) => (
-              <li
-                key={c.id}
-                className="flex items-center justify-between gap-3 px-4 py-3"
-              >
-                <div className="min-w-0">
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <section aria-labelledby="classes-heading" className="min-w-0">
+          <SectionHeading
+            id="classes-heading"
+            title="Classes"
+            count={classes.length}
+            description="Assignments, assessments and progress live inside each class."
+          />
+          {classes.length === 0 ? (
+            <p className="py-6 text-sm text-muted-foreground">
+              {can(ctx, "classes.create")
+                ? "No classes yet. Create one to assign content and run assessments."
+                : "You are not in any class here yet. Your instructor adds you."}
+            </p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {classes.map((c) => (
+                <li key={c.id}>
                   <Link
                     href={route(`/campus/${ctx.institution.slug}/classes/${c.id}`)}
-                    className="font-medium hover:underline"
+                    className="group flex items-center justify-between gap-3 py-3.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                   >
-                    {c.name}
-                  </Link>
-                  {c.description && (
-                    <p className="truncate text-xs text-muted-foreground">
-                      {c.description}
-                    </p>
-                  )}
-                </div>
-                {c.teaching && (
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    Teaching · {c.students} {c.students === 1 ? "student" : "students"}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-        {can(ctx, "classes.create") && (
-          <form
-            action={createClassAction.bind(null, ctx.institution.slug)}
-            className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end"
-          >
-            <div className="flex-1">
-              <label htmlFor="class-name" className="text-sm font-medium">
-                New class name
-              </label>
-              <Input
-                id="class-name"
-                name="name"
-                required
-                maxLength={120}
-                className="mt-1"
-              />
-            </div>
-            <Button type="submit">Create class</Button>
-          </form>
-        )}
-      </section>
-
-      {invitations && invitableRoles.length > 0 && (
-        <section
-          aria-labelledby="invite-heading"
-          className="rounded-lg border border-border p-4"
-        >
-          <h2 id="invite-heading" className="text-base font-semibold">
-            Invite someone
-          </h2>
-          <form
-            action={inviteAction.bind(null, ctx.institution.slug)}
-            className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end"
-          >
-            <div className="flex-1">
-              <label htmlFor="invite-email" className="text-sm font-medium">
-                Email
-              </label>
-              <Input
-                id="invite-email"
-                name="email"
-                type="email"
-                required
-                maxLength={254}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label htmlFor="invite-role" className="text-sm font-medium">
-                Role
-              </label>
-              <select
-                id="invite-role"
-                name="role"
-                className="mt-1 block h-8 rounded-lg border border-input bg-background px-2 text-sm"
-              >
-                {invitableRoles.map((r) => (
-                  <option key={r.value} value={r.value}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <Button type="submit">Send invitation</Button>
-          </form>
-
-          {invitations.length > 0 && (
-            <ul className="mt-4 divide-y divide-border text-sm">
-              {invitations.map((inv) => (
-                <li
-                  key={inv.id}
-                  className="flex items-center justify-between gap-3 py-2"
-                >
-                  <span className="min-w-0 truncate">
-                    {inv.email}{" "}
-                    <span className="text-muted-foreground">
-                      ({roleLabel(inv.role)})
-                    </span>
-                    {inv.emailStatus && inv.emailStatus !== "accepted" && (
-                      <Badge variant="warning" className="ml-2">
-                        Email not delivered: invite again to resend
-                      </Badge>
-                    )}
-                  </span>
-                  {canInviteRole(ctx, inv.role) && (
-                    <form
-                      action={revokeInvitationAction.bind(
-                        null,
-                        ctx.institution.slug,
-                        inv.id
+                    <div className="min-w-0">
+                      <span className="font-medium group-hover:text-brand-300">
+                        {c.name}
+                      </span>
+                      {c.description && (
+                        <p className="truncate text-xs text-muted-foreground">
+                          {c.description}
+                        </p>
                       )}
-                    >
-                      <Button type="submit" variant="ghost" size="sm">
-                        Revoke
-                      </Button>
-                    </form>
-                  )}
+                    </div>
+                    <span className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
+                      {c.teaching && (
+                        <span>
+                          Teaching ·{" "}
+                          <span className="font-mono tabular-nums">{c.students}</span>{" "}
+                          {c.students === 1 ? "student" : "students"}
+                        </span>
+                      )}
+                      <ChevronRight
+                        className="size-4 transition-transform group-hover:translate-x-0.5"
+                        aria-hidden="true"
+                      />
+                    </span>
+                  </Link>
                 </li>
               ))}
             </ul>
           )}
+          {can(ctx, "classes.create") && (
+            <form
+              action={createClassAction.bind(null, ctx.institution.slug)}
+              className="mt-2 flex flex-col gap-3 rounded-lg border border-dashed border-border p-4 sm:flex-row sm:items-end"
+            >
+              <div className="flex-1">
+                <label htmlFor="class-name" className="text-sm font-medium">
+                  New class name
+                </label>
+                <Input
+                  id="class-name"
+                  name="name"
+                  required
+                  maxLength={120}
+                  className="mt-1"
+                />
+              </div>
+              <Button type="submit">Create class</Button>
+            </form>
+          )}
         </section>
-      )}
+
+        <aside className="space-y-8">
+          {invitations && invitableRoles.length > 0 && (
+            <section aria-labelledby="invite-heading">
+              <SectionHeading
+                id="invite-heading"
+                title="Invite someone"
+                description="They join with the role you choose."
+              />
+              <form
+                action={inviteAction.bind(null, ctx.institution.slug)}
+                className="mt-3 space-y-3"
+              >
+                <div>
+                  <label htmlFor="invite-email" className="text-sm font-medium">
+                    Email
+                  </label>
+                  <Input
+                    id="invite-email"
+                    name="email"
+                    type="email"
+                    required
+                    maxLength={254}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="invite-role" className="text-sm font-medium">
+                    Role
+                  </label>
+                  <NativeSelect id="invite-role" name="role" className="mt-1 w-full">
+                    {invitableRoles.map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </div>
+                <Button type="submit" className="w-full">
+                  Send invitation
+                </Button>
+              </form>
+
+              {invitations.length > 0 && (
+                <>
+                  <h3 className="mt-6 label-mono tracking-wider uppercase">
+                    Pending · {invitations.length}
+                  </h3>
+                  <ul className="mt-2 divide-y divide-border border-y border-border text-sm">
+                    {invitations.map((inv) => (
+                      <li
+                        key={inv.id}
+                        className="flex items-start justify-between gap-3 py-2"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate">{inv.email}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {roleLabel(inv.role)}
+                          </span>
+                          {inv.emailStatus && inv.emailStatus !== "accepted" && (
+                            <Badge variant="warning" className="mt-1">
+                              Email not delivered: invite again to resend
+                            </Badge>
+                          )}
+                        </span>
+                        {canInviteRole(ctx, inv.role) && (
+                          <form
+                            action={revokeInvitationAction.bind(
+                              null,
+                              ctx.institution.slug,
+                              inv.id
+                            )}
+                          >
+                            <Button type="submit" variant="ghost" size="sm">
+                              Revoke
+                            </Button>
+                          </form>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </section>
+          )}
+
+          {ctx.membershipId && (
+            <section aria-labelledby="leave-heading">
+              <SectionHeading id="leave-heading" title="Leave this college" />
+              <p className="mt-3 text-xs text-muted-foreground">
+                Your own learning stays with your account after you leave.
+              </p>
+              <form
+                action={leaveAction.bind(null, ctx.institution.slug)}
+                className="mt-3"
+              >
+                <Button type="submit" variant="destructive" size="sm">
+                  Leave {ctx.institution.name}
+                </Button>
+              </form>
+            </section>
+          )}
+        </aside>
+      </div>
 
       {members && (
-        <section aria-labelledby="members-heading" className="mt-8">
-          <h2 id="members-heading" className="text-base font-semibold">
-            Members
-          </h2>
+        <section aria-labelledby="members-heading" className="mt-10">
+          <SectionHeading id="members-heading" title="Members" count={members.length} />
           {manage && (
-            <details className="mt-2 text-xs text-muted-foreground">
+            <details className="mt-3 text-xs text-muted-foreground">
               <summary className="cursor-pointer">
                 What suspending and revoking do
               </summary>
@@ -285,18 +353,18 @@ export default async function InstitutionPage({
             <table className="w-full min-w-[40rem] text-sm">
               <caption className="sr-only">Members of {ctx.institution.name}</caption>
               <thead>
-                <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                  <th scope="col" className="px-4 py-2.5 font-medium">
+                <tr className="border-b border-border bg-muted/40 text-left [&>th]:label-mono [&>th]:font-normal">
+                  <th scope="col" className="px-4 py-2.5">
                     Member
                   </th>
-                  <th scope="col" className="px-2 py-2.5 font-medium">
+                  <th scope="col" className="px-2 py-2.5">
                     Role
                   </th>
-                  <th scope="col" className="px-2 py-2.5 font-medium">
+                  <th scope="col" className="px-2 py-2.5">
                     Status
                   </th>
                   {manage && (
-                    <th scope="col" className="px-4 py-2.5 text-right font-medium">
+                    <th scope="col" className="px-4 py-2.5 text-right">
                       Actions
                     </th>
                   )}
@@ -315,19 +383,6 @@ export default async function InstitutionPage({
               </tbody>
             </table>
           </div>
-        </section>
-      )}
-
-      {ctx.membershipId && (
-        <section className="mt-10 border-t border-border pt-6">
-          <form action={leaveAction.bind(null, ctx.institution.slug)}>
-            <Button type="submit" variant="destructive" size="sm">
-              Leave {ctx.institution.name}
-            </Button>
-          </form>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Your own learning stays with your account after you leave.
-          </p>
         </section>
       )}
     </div>
@@ -369,18 +424,18 @@ function MemberTableRow({
             <label htmlFor={`role-${member.id}`} className="sr-only">
               Role for {member.user.email}
             </label>
-            <select
+            <NativeSelect
               id={`role-${member.id}`}
               name="role"
               defaultValue={member.role}
-              className="h-7 rounded-md border border-input bg-background px-1.5 text-xs"
+              size="sm"
             >
               {ROLES.map((r) => (
                 <option key={r.value} value={r.value}>
                   {r.label}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             <Button type="submit" variant="ghost" size="xs">
               Save
             </Button>

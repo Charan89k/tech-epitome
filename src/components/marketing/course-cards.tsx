@@ -3,6 +3,10 @@ import {
   MiniDiagram,
   type MiniDiagramKind,
 } from "@/components/marketing/mini-diagrams";
+import { DSA_COURSE } from "@/data/curriculum";
+import type { CourseSeed } from "@/data/curriculum/types";
+import { LLD_COURSE } from "@/data/lld";
+import { SYSTEM_DESIGN_COURSE } from "@/data/system-design";
 import { cn } from "@/lib/utils";
 
 /**
@@ -16,20 +20,28 @@ type Course = {
   title: string;
   description: string;
   panels: { kind: MiniDiagramKind; label: string }[];
+  /** The seeded course, so the counts on the card are the real ones. */
+  seed: CourseSeed;
 };
+
+function outline(seed: CourseSeed): string {
+  const chapters = seed.sections.reduce((n, s) => n + s.chapters.length, 0);
+  return `${seed.sections.length} sections · ${chapters} chapters`;
+}
 
 const COURSES: Course[] = [
   {
     href: "/learn/dsa",
     title: "Data Structures & Algorithms",
     description:
-      "Complexity analysis through advanced dynamic programming, in dependency order, with every step drawn.",
+      "Complexity, arrays, hashing, pointers, windows, binary search, lists, stacks and recursion, in dependency order, with every step drawn.",
     panels: [
       { kind: "pointers", label: "Two pointers" },
       { kind: "window", label: "Sliding window" },
       { kind: "list", label: "Linked list" },
       { kind: "tree", label: "Trees" },
     ],
+    seed: DSA_COURSE,
   },
   {
     href: "/learn/system-design",
@@ -37,6 +49,7 @@ const COURSES: Course[] = [
     description:
       "Scale, latency, replication, partitioning and consistency — and the trade-offs between them.",
     panels: [{ kind: "architecture", label: "Load balancing" }],
+    seed: SYSTEM_DESIGN_COURSE,
   },
   {
     href: "/learn/lld",
@@ -44,6 +57,7 @@ const COURSES: Course[] = [
     description:
       "Responsibilities, relationships, SOLID and the design patterns that actually come up, with their costs stated.",
     panels: [{ kind: "classes", label: "Interfaces" }],
+    seed: LLD_COURSE,
   },
 ];
 
@@ -61,7 +75,10 @@ export function CourseCards({ className }: { className?: string }) {
               <h3 className="font-display text-xl transition-colors group-hover:text-primary">
                 {course.title}
               </h3>
-              <p className="mt-1.5 flex-1 text-sm leading-relaxed text-muted-foreground">
+              <p className="mt-1 font-mono text-xs text-subtle-foreground">
+                {outline(course.seed)}
+              </p>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
                 {course.description}
               </p>
               <span className="mt-4 text-sm font-medium text-foreground underline decoration-primary/60 underline-offset-4 group-hover:decoration-primary">

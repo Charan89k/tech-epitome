@@ -177,7 +177,7 @@ export default async function ProblemsPage({
                   <SlidersHorizontal className="size-4" aria-hidden="true" />
                   Filters
                   {activeFilterCount > 0 && (
-                    <span className="bg-ember-500 text-primary-foreground rounded-full px-1.5 text-[0.65rem] font-semibold">
+                    <span className="bg-brand-500 text-primary-foreground rounded-full px-1.5 text-[0.65rem] font-semibold">
                       {activeFilterCount}
                     </span>
                   )}
@@ -278,16 +278,16 @@ function FeatureCard({
   return (
     <Link
       href={href}
-      className="group bg-card border-border hover:border-ember-500/40 flex overflow-hidden rounded-xl border transition-colors"
+      className="group bg-card border-border hover:border-brand-500/40 flex overflow-hidden rounded-xl border transition-colors"
     >
       <MiniDiagram kind={diagram} className="h-24 w-36 shrink-0 border-r sm:w-40" />
       <div className="relative min-w-0 flex-1 p-4">
         {badge && (
-          <span className="bg-ember-500/15 text-ember-300 absolute top-3 right-3 rounded-full px-2 py-0.5 text-[0.65rem] font-semibold">
+          <span className="bg-brand-500/15 text-brand-300 absolute top-3 right-3 rounded-full px-2 py-0.5 text-[0.65rem] font-semibold">
             {badge}
           </span>
         )}
-        <h2 className="group-hover:text-ember-200 font-semibold transition-colors">{title}</h2>
+        <h2 className="group-hover:text-brand-200 font-semibold transition-colors">{title}</h2>
         <p className="text-muted-foreground mt-1 text-sm leading-snug">{description}</p>
       </div>
     </Link>
@@ -351,7 +351,7 @@ function ProgressCard({
       </div>
       {!signedIn && (
         <p className="text-muted-foreground border-border mt-4 border-t pt-3 text-xs">
-          <Link href="/signup" className="text-ember-300 hover:underline">
+          <Link href="/signup" className="text-brand-300 hover:underline">
             Create a free account
           </Link>{" "}
           to track what you solve.

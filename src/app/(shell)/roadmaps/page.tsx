@@ -12,7 +12,7 @@ import {
 import { PageHeader } from "@/components/common/page-header";
 import { MiniDiagram } from "@/components/marketing/mini-diagrams";
 import type { Track } from "@/generated/prisma/enums";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireCampusUser } from "@/lib/campus-access";
 import { segmentForTrack } from "@/lib/tracks";
 import { cn, route } from "@/lib/utils";
 import { getCourse, listCourses, type CourseDetail } from "@/services/curriculum";
@@ -100,7 +100,7 @@ async function loadCourse(track: Track, userId?: string): Promise<CourseDetail |
 }
 
 export default async function RoadmapsPage() {
-  const user = await getCurrentUser();
+  const user = await requireCampusUser("/roadmaps");
   const courses = await Promise.all(ROADMAPS.map((r) => loadCourse(r.track, user?.id)));
 
   return (
@@ -119,14 +119,14 @@ export default async function RoadmapsPage() {
             <a
               key={roadmap.anchor}
               href={`#${roadmap.anchor}`}
-              className="group flex overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-ember-500/40"
+              className="group flex overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-brand-500/40"
             >
               <MiniDiagram
                 kind={roadmap.diagram}
                 className="h-20 w-24 shrink-0 border-r"
               />
               <span className="min-w-0 p-3">
-                <span className="block text-sm font-semibold transition-colors group-hover:text-ember-200">
+                <span className="block text-sm font-semibold transition-colors group-hover:text-brand-200">
                   {roadmap.title}
                 </span>
                 <span className="mt-0.5 block text-xs text-muted-foreground">
@@ -185,7 +185,7 @@ export default async function RoadmapsPage() {
                           complete
                             ? "border-success/50 text-success"
                             : started
-                              ? "border-ember-500/60 text-ember-300"
+                              ? "border-brand-500/60 text-brand-300"
                               : "border-border text-muted-foreground"
                         )}
                         aria-hidden="true"
@@ -211,7 +211,7 @@ export default async function RoadmapsPage() {
                               href={route(
                                 `/learn/${segment}/${course.slug}/${section.slug}/${next.slug}`
                               )}
-                              className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-ember-300 hover:text-ember-200"
+                              className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-brand-300 hover:text-brand-200"
                             >
                               {complete ? "Revisit" : started ? "Continue" : "Start"}
                               <ArrowRight className="size-3.5" aria-hidden="true" />
@@ -226,7 +226,7 @@ export default async function RoadmapsPage() {
                                 href={route(
                                   `/learn/${segment}/${course.slug}/${section.slug}/${chapter.slug}`
                                 )}
-                                className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-ember-500/40 hover:text-foreground"
+                                className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-brand-500/40 hover:text-foreground"
                               >
                                 {chapter.status === "COMPLETED" ? (
                                   <CheckCircle2
@@ -253,7 +253,7 @@ export default async function RoadmapsPage() {
                           <div className="mt-3 flex items-center gap-2">
                             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                               <div
-                                className="h-full rounded-full bg-ember-500"
+                                className="h-full rounded-full bg-brand-500"
                                 style={{ width: `${percent}%` }}
                               />
                             </div>
@@ -270,16 +270,16 @@ export default async function RoadmapsPage() {
                 {roadmap.practice.map((step) => (
                   <li key={step.href} className="relative flex gap-4">
                     <span
-                      className="relative z-10 flex size-9 shrink-0 items-center justify-center rounded-full border border-ember-500/40 bg-background text-ember-300"
+                      className="relative z-10 flex size-9 shrink-0 items-center justify-center rounded-full border border-brand-500/40 bg-background text-brand-300"
                       aria-hidden="true"
                     >
                       <Flag className="size-4" />
                     </span>
                     <Link
                       href={route(step.href)}
-                      className="group min-w-0 flex-1 rounded-xl border border-ember-500/25 bg-ember-500/5 p-4 transition-colors hover:border-ember-500/50"
+                      className="group min-w-0 flex-1 rounded-xl border border-brand-500/25 bg-brand-500/5 p-4 transition-colors hover:border-brand-500/50"
                     >
-                      <span className="font-semibold transition-colors group-hover:text-ember-200">
+                      <span className="font-semibold transition-colors group-hover:text-brand-200">
                         {step.label}
                       </span>
                       <span className="mt-1 block text-sm text-muted-foreground">
@@ -298,9 +298,9 @@ export default async function RoadmapsPage() {
                   </span>
                   <Link
                     href="/interviews"
-                    className="group min-w-0 flex-1 rounded-xl border border-border bg-card p-4 transition-colors hover:border-ember-500/40"
+                    className="group min-w-0 flex-1 rounded-xl border border-border bg-card p-4 transition-colors hover:border-brand-500/40"
                   >
-                    <span className="font-semibold transition-colors group-hover:text-ember-200">
+                    <span className="font-semibold transition-colors group-hover:text-brand-200">
                       Rehearse it in a mock interview
                     </span>
                     <span className="mt-1 block text-sm text-muted-foreground">

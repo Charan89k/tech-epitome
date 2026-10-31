@@ -167,3 +167,23 @@ describe("the email and password flow is unaffected", () => {
     expect(form).not.toBe(githubButton()!.closest("form"));
   });
 });
+
+describe("a failed attempt", () => {
+  it("keeps the email that was typed, and clears the password", async () => {
+    // Regression: React resets uncontrolled fields after a form action, so
+    // a wrong password used to wipe the email too.
+    signInAction.mockResolvedValue({
+      error: "That email and password combination is not correct.",
+    });
+    const user = userEvent.setup();
+    renderForm({ mode: "signin" });
+
+    await user.type(screen.getByLabelText("Email"), "ada@example.com");
+    await user.type(screen.getByLabelText("Password"), "wrong-password-123");
+    await user.click(screen.getByRole("button", { name: /^Sign in$/ }));
+
+    expect(await screen.findByText(/not correct/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Email")).toHaveValue("ada@example.com");
+    expect(screen.getByLabelText("Password")).toHaveValue("");
+  });
+});

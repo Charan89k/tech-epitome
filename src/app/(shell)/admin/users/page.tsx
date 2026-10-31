@@ -9,7 +9,9 @@ import { requireAdmin } from "@/lib/auth/session";
 import { listUsers } from "@/services/admin";
 
 import { setUserSuspendedAction } from "../institutions/actions";
-import { Users } from "lucide-react";
+import { Search, Users } from "lucide-react";
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 
 export const metadata: Metadata = { title: "Users" };
 
@@ -20,10 +22,7 @@ export default async function AdminUsersPage({
   const params = await searchParams;
 
   const query = typeof params.q === "string" ? params.q : undefined;
-  const page = Number.parseInt(
-    typeof params.page === "string" ? params.page : "1",
-    10
-  );
+  const page = Number.parseInt(typeof params.page === "string" ? params.page : "1", 10);
 
   const result = await listUsers({
     query,
@@ -35,10 +34,10 @@ export default async function AdminUsersPage({
 
   return (
     <div>
-      <div className="bg-card border-border flex flex-wrap items-center gap-3 rounded-xl border p-2">
+      <div className="flex flex-wrap items-center gap-3">
         {/* A GET form, so a filtered list is a shareable URL and the back
             button behaves. No client JS needed for it. */}
-        <form className="min-w-0 flex-1 sm:max-w-sm">
+        <form role="search" className="flex min-w-0 flex-1 gap-2 sm:max-w-md">
           <label htmlFor="q" className="sr-only">
             Search users by name or email
           </label>
@@ -49,33 +48,40 @@ export default async function AdminUsersPage({
             defaultValue={query}
             placeholder="Search by name or email…"
           />
+          <Button type="submit" variant="outline">
+            <Search className="size-4" aria-hidden="true" />
+            Search
+          </Button>
+          {query && (
+            <Button asChild variant="ghost">
+              <Link href="/admin/users">Clear</Link>
+            </Button>
+          )}
         </form>
-        <p className="text-muted-foreground ml-auto pr-2 text-xs tabular-nums">
+        <p className="ml-auto label-mono tabular-nums">
           {result.total} {result.total === 1 ? "account" : "accounts"}
         </p>
       </div>
 
       {result.rows.length === 0 ? (
-        <div className="bg-card border-border mt-4 rounded-xl border">
+        <div className="mt-4 rounded-lg border border-border bg-card">
           <EmptyState
             icon={Users}
             title="No accounts match"
             description={
-              query
-                ? "Try a different name or email."
-                : "Nobody has signed up yet."
+              query ? "Try a different name or email." : "Nobody has signed up yet."
             }
           />
         </div>
       ) : (
         <>
-          <div className="bg-card border-border mt-4 overflow-x-auto rounded-xl border">
+          <div className="mt-4 overflow-x-auto rounded-lg border border-border bg-card">
             <table className="w-full min-w-[44rem] text-sm">
               <caption className="sr-only">
                 Accounts, newest first, with their role
               </caption>
               <thead>
-                <tr className="border-border text-muted-foreground bg-muted/20 border-b text-left text-xs">
+                <tr className="border-b border-border bg-muted/40 text-left [&>th]:label-mono [&>th]:font-normal">
                   <th scope="col" className="px-4 py-2.5 font-medium">
                     Account
                   </th>
@@ -93,31 +99,31 @@ export default async function AdminUsersPage({
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-border divide-y">
+              <tbody className="divide-y divide-border">
                 {result.rows.map((row) => (
-                  <tr key={row.id} className="hover:bg-accent/25 align-top transition-colors">
+                  <tr
+                    key={row.id}
+                    className="align-top transition-colors hover:bg-accent/25"
+                  >
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium">
-                          {row.name ?? "Unnamed"}
-                        </span>
-                        {row.id === admin.id && (
-                          <span className="bg-ember-500/12 text-ember-300 rounded-full px-2 py-0.5 text-[0.65rem] font-medium">
-                            You
-                          </span>
+                        <span className="font-medium">{row.name ?? "Unnamed"}</span>
+                        {row.id === admin.id && <Badge variant="outline">You</Badge>}
+                        {row.status !== "ACTIVE" && (
+                          <Badge variant="warning">{row.status.toLowerCase()}</Badge>
                         )}
                       </div>
-                      <span className="text-muted-foreground block text-xs">
+                      <span className="block text-xs text-muted-foreground">
                         {row.email}
                       </span>
                     </td>
-                    <td className="text-muted-foreground px-3 py-2 text-xs whitespace-nowrap">
+                    <td className="px-4 py-3 font-mono text-xs whitespace-nowrap text-muted-foreground">
                       {row.createdAt.toLocaleDateString()}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
+                    <td className="px-4 py-3 text-right font-mono tabular-nums">
                       {row.problemsSolved}
                     </td>
-                    <td className="px-4 py-3 text-right tabular-nums">
+                    <td className="px-4 py-3 text-right font-mono tabular-nums">
                       {row.interviews}
                     </td>
                     <td className="px-4 py-3">
@@ -140,7 +146,9 @@ export default async function AdminUsersPage({
                             <Button
                               type="submit"
                               size="xs"
-                              variant={row.status === "ACTIVE" ? "outline" : "secondary"}
+                              variant={
+                                row.status === "ACTIVE" ? "outline" : "secondary"
+                              }
                             >
                               {row.status === "ACTIVE" ? "Suspend" : "Reactivate"}
                             </Button>
@@ -161,6 +169,7 @@ export default async function AdminUsersPage({
               total={result.total}
               baseQuery={baseQuery.toString()}
               pathname="/admin/users"
+              noun="account"
             />
           </div>
         </>

@@ -77,11 +77,11 @@ export default async function BookmarksPage() {
                   className="group flex min-w-0 flex-1 items-center gap-3 py-3 pl-4 sm:pl-5"
                 >
                   <Bookmark
-                    className="size-4 shrink-0 fill-current text-ember-500"
+                    className="size-4 shrink-0 fill-current text-brand-500"
                     aria-hidden="true"
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-info transition-colors group-hover:text-ember-300">
+                    <span className="block truncate text-sm font-medium text-info transition-colors group-hover:text-brand-300">
                       {item.title}
                     </span>
                     {item.subtitle && (

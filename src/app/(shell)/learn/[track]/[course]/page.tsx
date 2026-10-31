@@ -155,7 +155,7 @@ export default async function CoursePage({
                       >
                         <Link
                           href={route(`/learn/${segment}/${course.slug}/${section.slug}`)}
-                          className="hover:text-ember-300 transition-colors"
+                          className="hover:text-brand-300 transition-colors"
                         >
                           {section.title}
                         </Link>
@@ -179,7 +179,7 @@ export default async function CoursePage({
                         aria-label={`${section.title} progress`}
                       >
                         <div
-                          className="bg-ember-500 h-full rounded-full"
+                          className="bg-brand-500 h-full rounded-full"
                           style={{ width: `${sectionPercent}%` }}
                         />
                       </div>
@@ -200,7 +200,7 @@ export default async function CoursePage({
                           <div className="min-w-0 flex-1">
                             <span
                               className={cn(
-                                "group-hover:text-ember-300 block truncate text-sm font-medium transition-colors",
+                                "group-hover:text-brand-300 block truncate text-sm font-medium transition-colors",
                                 chapter.status === "COMPLETED"
                                   ? "text-muted-foreground"
                                   : "text-info"
@@ -247,7 +247,7 @@ export default async function CoursePage({
               </span>
             </div>
             <div className="bg-muted mt-2.5 h-1.5 overflow-hidden rounded-full">
-              <div className="bg-ember-500 h-full rounded-full" style={{ width: `${percent}%` }} />
+              <div className="bg-brand-500 h-full rounded-full" style={{ width: `${percent}%` }} />
             </div>
 
             <ol className="border-border mt-4 space-y-0.5 border-t pt-3">
@@ -291,7 +291,7 @@ function ChapterStatusIcon({
   if (status === "IN_PROGRESS") {
     return (
       <CircleDot
-        className="text-ember-500 size-4 shrink-0"
+        className="text-brand-500 size-4 shrink-0"
         aria-label="In progress"
       />
     );

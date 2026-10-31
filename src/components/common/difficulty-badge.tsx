@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Difficulty is coloured text in its own colour family, deliberately
- * separate from the ember brand accent and never a filled pill, so a
+ * separate from the indigo brand accent and never a filled pill, so a
  * "Medium" can never read as a button or a call to action. Colour is never
  * the only signal - the label is always present.
  */

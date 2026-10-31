@@ -38,11 +38,11 @@ export function WorkedExample({
           {steps.map((step, index) => (
             <li key={index} className="relative">
               <span
-                className="bg-ember-500/50 absolute top-2 -left-[1.28rem] size-1.5 rounded-full"
+                className="bg-brand-500/50 absolute top-2 -left-[1.28rem] size-1.5 rounded-full"
                 aria-hidden="true"
               />
               <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3">
-                <code className="text-ember-300 shrink-0 font-mono text-xs">
+                <code className="text-brand-300 shrink-0 font-mono text-xs">
                   {step.state}
                 </code>
                 <span className="text-muted-foreground text-xs leading-relaxed">

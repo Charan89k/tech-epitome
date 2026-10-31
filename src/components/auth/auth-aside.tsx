@@ -22,7 +22,7 @@ export function AuthAside() {
               </span>
             )}
             <span>
-              <span className="text-ember-400 mr-1 font-mono tabular-nums">
+              <span className="text-brand-400 mr-1 font-mono tabular-nums">
                 {String(index + 1).padStart(2, "0")}
               </span>
               {step}

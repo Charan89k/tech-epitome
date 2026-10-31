@@ -27,6 +27,7 @@ export type Highlightable = (typeof HIGHLIGHTABLE)[number];
  * class name or a style attribute, and a fixed set means the renderer can
  * map to Tailwind classes that actually exist in the build.
  */
+// "ember" is the stored key for amber highlights; renaming it would orphan saved rows.
 export const HIGHLIGHT_COLORS = ["ember", "sky", "mint", "violet"] as const;
 export type HighlightColor = (typeof HIGHLIGHT_COLORS)[number];
 

@@ -1,0 +1,22 @@
+# Tech Epitome behind the existing DPDP Caddy (container dpdptool-caddy-1,
+# config bind-mounted from /opt/dpdptool/deploy/Caddyfile). Append this block;
+# leave the DPDP block untouched. The hostname is literal, so Caddy needs no
+# new environment variable and no container recreate.
+#
+# Prerequisite, once: docker network connect tech-epitome-edge dpdptool-caddy-1
+# Validate, then reload gracefully (no restart, DPDP keeps serving):
+#   docker exec dpdptool-caddy-1 caddy validate --config /etc/caddy/Caddyfile
+#   docker exec dpdptool-caddy-1 caddy reload --config /etc/caddy/Caddyfile
+# Caddy obtains and renews the certificate for this name itself (HTTP-01 on
+# port 80, which it already serves for DPDP).
+tech-epitome.cloude5.tech {
+	encode zstd gzip
+	request_body {
+		max_size 5MB
+	}
+	@cron path /api/cron/*
+	respond @cron 404
+	reverse_proxy tech-epitome-app:3000 {
+		flush_interval -1
+	}
+}

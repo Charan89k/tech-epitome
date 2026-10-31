@@ -35,8 +35,8 @@ export default function GlobalError({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#1b1d21",
-          color: "#e9e9ec",
+          background: "#060c19",
+          color: "#f1f3f9",
           fontFamily:
             "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
           padding: "1.5rem",
@@ -51,7 +51,7 @@ export default function GlobalError({
               marginTop: "0.75rem",
               fontSize: "0.875rem",
               lineHeight: 1.6,
-              color: "#a0a0aa",
+              color: "#9ba5b8",
             }}
           >
             Something failed before the page could be built. Reloading often
@@ -64,8 +64,8 @@ export default function GlobalError({
               marginTop: "1.5rem",
               padding: "0.5rem 1rem",
               borderRadius: "0.375rem",
-              border: "1px solid #3a3d44",
-              background: "#26282d",
+              border: "1px solid #242d42",
+              background: "#11192a",
               color: "inherit",
               font: "inherit",
               fontSize: "0.875rem",
@@ -80,7 +80,7 @@ export default function GlobalError({
                 marginTop: "1.5rem",
                 fontSize: "0.75rem",
                 fontFamily: "ui-monospace, monospace",
-                color: "#6f7079",
+                color: "#9ba5b8",
               }}
             >
               reference: {error.digest}

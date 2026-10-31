@@ -78,7 +78,7 @@ export function PatternGroupTable({
         {group.pattern && (
           <Link
             href={route(`/patterns/${group.pattern.slug}`)}
-            className="hidden shrink-0 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-ember-300 sm:flex"
+            className="hidden shrink-0 items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-brand-300 sm:flex"
           >
             Learn the pattern
             <ArrowUpRight className="size-3.5" aria-hidden="true" />
@@ -98,7 +98,7 @@ export function PatternGroupTable({
               aria-label={`${title} progress`}
             >
               <div
-                className="h-full rounded-full bg-ember-500"
+                className="h-full rounded-full bg-brand-500"
                 style={{ width: `${percent}%` }}
               />
             </div>
@@ -144,7 +144,7 @@ export function PatternGroupTable({
                     <Link
                       href={route(`/problems/${problem.slug}`)}
                       className={cn(
-                        "font-medium transition-colors hover:text-ember-300",
+                        "font-medium transition-colors hover:text-brand-300",
                         problem.status === "SOLVED"
                           ? "text-muted-foreground"
                           : "text-info"
@@ -163,7 +163,7 @@ export function PatternGroupTable({
                     {ShapeIcon && (
                       <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                         <ShapeIcon
-                          className="size-3.5 text-ember-400/80"
+                          className="size-3.5 text-brand-400/80"
                           aria-hidden="true"
                         />
                         {problem.inputShape}
@@ -173,7 +173,7 @@ export function PatternGroupTable({
                   <td className="hidden px-4 py-3 sm:table-cell sm:px-5">
                     {problem.bookmarked && (
                       <Bookmark
-                        className="size-3.5 fill-current text-ember-500"
+                        className="size-3.5 fill-current text-brand-500"
                         aria-label="Bookmarked"
                       />
                     )}

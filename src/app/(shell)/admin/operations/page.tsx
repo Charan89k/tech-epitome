@@ -29,41 +29,43 @@ export default async function OperationsPage() {
         {ops.jobs.length === 0 ? (
           <p className="mt-2 text-muted-foreground">No runs recorded.</p>
         ) : (
-          <table className="mt-3 w-full">
-            <caption className="sr-only">Latest run of each job</caption>
-            <thead>
-              <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                <th scope="col" className="py-2 font-medium">
-                  Job
-                </th>
-                <th scope="col" className="py-2 font-medium">
-                  Last run
-                </th>
-                <th scope="col" className="py-2 font-medium">
-                  Status
-                </th>
-                <th scope="col" className="py-2 font-medium">
-                  Result
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {ops.jobs.map((r) => (
-                <tr key={r.id}>
-                  <td className="py-2">{r.job}</td>
-                  <td className="py-2">{when(r.startedAt)}</td>
-                  <td
-                    className={`py-2 ${r.status === "FAILED" || r.status === "STALE" ? "text-destructive" : ""}`}
-                  >
-                    {r.status.toLowerCase()}
-                  </td>
-                  <td className="py-2 font-mono text-xs">
-                    {r.error ?? (r.summary ? JSON.stringify(r.summary) : "")}
-                  </td>
+          <div className="mt-3 overflow-x-auto rounded-lg border border-border bg-card">
+            <table className="w-full min-w-[48rem]">
+              <caption className="sr-only">Latest run of each job</caption>
+              <thead>
+                <tr className="border-b border-border bg-muted/40 text-left [&>th]:label-mono [&>th]:font-normal">
+                  <th scope="col" className="px-4 py-2.5 font-medium">
+                    Job
+                  </th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">
+                    Last run
+                  </th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">
+                    Status
+                  </th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">
+                    Result
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {ops.jobs.map((r) => (
+                  <tr key={r.id}>
+                    <td className="px-4 py-2.5 align-top">{r.job}</td>
+                    <td className="px-4 py-2.5 align-top">{when(r.startedAt)}</td>
+                    <td
+                      className={`px-4 py-2.5 align-top ${r.status === "FAILED" || r.status === "STALE" ? "text-destructive" : ""}`}
+                    >
+                      {r.status.toLowerCase()}
+                    </td>
+                    <td className="px-4 py-2.5 align-top font-mono text-xs break-all">
+                      {r.error ?? (r.summary ? JSON.stringify(r.summary) : "")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 
@@ -95,39 +97,41 @@ export default async function OperationsPage() {
           .
         </p>
         {ops.recentFailures.length > 0 && (
-          <table className="mt-3 w-full">
-            <caption className="sr-only">Recent failed sends</caption>
-            <thead>
-              <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                <th scope="col" className="py-2 font-medium">
-                  When
-                </th>
-                <th scope="col" className="py-2 font-medium">
-                  Kind
-                </th>
-                <th scope="col" className="py-2 font-medium">
-                  Status
-                </th>
-                <th scope="col" className="py-2 font-medium">
-                  Attempts
-                </th>
-                <th scope="col" className="py-2 font-medium">
-                  Reason
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {ops.recentFailures.map((f) => (
-                <tr key={f.id}>
-                  <td className="py-2">{when(f.createdAt)}</td>
-                  <td className="py-2">{f.kind}</td>
-                  <td className="py-2">{f.status}</td>
-                  <td className="py-2 tabular-nums">{f.attempts}</td>
-                  <td className="py-2 text-xs">{f.reason}</td>
+          <div className="mt-3 overflow-x-auto rounded-lg border border-border bg-card">
+            <table className="w-full min-w-[48rem]">
+              <caption className="sr-only">Recent failed sends</caption>
+              <thead>
+                <tr className="border-b border-border bg-muted/40 text-left [&>th]:label-mono [&>th]:font-normal">
+                  <th scope="col" className="px-4 py-2.5 font-medium">
+                    When
+                  </th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">
+                    Kind
+                  </th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">
+                    Status
+                  </th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">
+                    Attempts
+                  </th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">
+                    Reason
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {ops.recentFailures.map((f) => (
+                  <tr key={f.id}>
+                    <td className="px-4 py-2.5 align-top">{when(f.createdAt)}</td>
+                    <td className="px-4 py-2.5 align-top">{f.kind}</td>
+                    <td className="px-4 py-2.5 align-top">{f.status}</td>
+                    <td className="px-4 py-2.5 align-top tabular-nums">{f.attempts}</td>
+                    <td className="px-4 py-2.5 align-top text-xs">{f.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </div>

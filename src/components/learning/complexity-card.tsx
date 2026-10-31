@@ -46,10 +46,10 @@ export function ComplexityCard({
                   </span>
                 )}
               </th>
-              <td className="text-ember-300 px-4 py-2 font-mono text-xs">
+              <td className="text-brand-300 px-4 py-2 font-mono text-xs">
                 {row.time}
               </td>
-              <td className="text-ember-300 px-4 py-2 font-mono text-xs">
+              <td className="text-brand-300 px-4 py-2 font-mono text-xs">
                 {row.space}
               </td>
             </tr>

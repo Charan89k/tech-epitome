@@ -71,6 +71,7 @@ let alice = "";
 let bob = "";
 let questionId = "";
 let categoryId: string | null = null;
+let collegeId = "";
 
 const SAID =
   "I led the migration myself and cut deploy time from forty minutes to six.";
@@ -124,6 +125,17 @@ beforeAll(async () => {
     ids.push(u.id);
   }
   [alice, bob] = ids as [string, string];
+  // Mock interviews are part of Campus: both candidates are college students.
+  const college = await prisma.institution.create({
+    data: { slug: `career-college-${S}`, name: "Career College" },
+    select: { id: true },
+  });
+  collegeId = college.id;
+  for (const userId of ids) {
+    await prisma.institutionMembership.create({
+      data: { institutionId: collegeId, userId, role: "STUDENT", source: "INVITATION" },
+    });
+  }
 
   const existing = await prisma.behavioralQuestion.findFirst({ select: { id: true } });
   if (existing) {
@@ -148,6 +160,8 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  await prisma.institutionMembership.deleteMany({ where: { institutionId: collegeId } });
+  await prisma.institution.deleteMany({ where: { id: collegeId } });
   await prisma.user.deleteMany({ where: { id: { in: ids } } });
   if (categoryId) {
     await prisma.behavioralCategory.deleteMany({ where: { id: categoryId } });
