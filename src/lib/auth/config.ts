@@ -89,6 +89,7 @@ export const authConfig = {
       if (user) {
         token.id = user.id as string;
         token.role = (user as { role?: string }).role ?? "USER";
+        token.sv = typeof user.sessionVersion === "number" ? user.sessionVersion : 0;
       }
       if (trigger === "update" && session?.name) {
         token.name = session.name as string;
@@ -100,6 +101,7 @@ export const authConfig = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = (token.role as "USER" | "ADMIN") ?? "USER";
+        session.user.sessionVersion = typeof token.sv === "number" ? token.sv : 0;
       }
       return session;
     },

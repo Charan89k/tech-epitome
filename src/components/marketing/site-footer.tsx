@@ -8,13 +8,29 @@ const COLUMNS = [
   {
     heading: "Learn",
     links: [
-      { title: "DSA curriculum", href: "/learn/dsa" },
+      { title: "Data Structures & Algorithms", href: "/learn/dsa" },
+      { title: "System Design", href: "/learn/system-design" },
+      { title: "Low-Level Design", href: "/learn/lld" },
       { title: "Algorithm patterns", href: "/patterns" },
-      { title: "Problems", href: "/problems" },
     ],
   },
   {
-    heading: "Product",
+    heading: "Practice",
+    links: [
+      { title: "Problems", href: "/problems" },
+      { title: "Visualize", href: "/visualize" },
+      { title: "Design exercises", href: "/system-design" },
+    ],
+  },
+  {
+    heading: "Campus",
+    links: [
+      { title: "For colleges", href: "/#campus" },
+      { title: "Your college workspace", href: "/campus" },
+    ],
+  },
+  {
+    heading: "Account",
     links: [
       { title: "Everything included", href: "/features" },
       { title: "Sign in", href: "/login" },
@@ -26,22 +42,22 @@ const COLUMNS = [
 export function SiteFooter() {
   return (
     <footer className="border-border mt-auto border-t">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.5fr_1fr_1fr]">
-        <div>
+      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-8 px-4 py-12 sm:px-6 md:grid-cols-[1.6fr_repeat(4,1fr)]">
+        <div className="col-span-2 md:col-span-1">
           <div className="flex items-center gap-2">
-            <LogoMark gradient idSuffix="footer" className="size-5" />
+            <LogoMark brand className="size-5" />
             <span className="text-sm font-semibold tracking-tight">
               {site.name}
             </span>
           </div>
-          <p className="text-muted-foreground mt-3 max-w-xs text-xs leading-relaxed">
+          <p className="text-muted-foreground mt-3 max-w-xs text-sm leading-relaxed">
             {site.description}
           </p>
         </div>
 
         {COLUMNS.map((column) => (
           <nav key={column.heading} aria-label={column.heading}>
-            <h2 className="text-foreground text-xs font-medium tracking-wider uppercase">
+            <h2 className="font-display text-foreground text-base">
               {column.heading}
             </h2>
             <ul className="mt-3 space-y-2">
@@ -66,7 +82,7 @@ export function SiteFooter() {
             © {new Date().getFullYear()} {site.name}. All course content is
             original.
           </p>
-          <p className="font-mono">Built for people who want to understand.</p>
+          <p>Free for every learner. No paid tier.</p>
         </div>
       </div>
     </footer>

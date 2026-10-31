@@ -1,19 +1,31 @@
 "use client";
 
-import { AlertCircle, Check, Clock, MemoryStick, ShieldAlert, X } from "lucide-react";
+import {
+  AlertCircle,
+  Check,
+  Clock,
+  CornerDownRight,
+  Info,
+  MemoryStick,
+  ShieldAlert,
+  X,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/common/empty-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { EXECUTION_LIMITS } from "@/lib/code-execution/limits";
 import { cn } from "@/lib/utils";
-import type { RunOutcome } from "@/services/submissions";
+import type { RunOutcome, SubmitOutcome } from "@/services/submissions";
 
 const OUTCOME_LABEL: Record<string, string> = {
   PASSED: "Passed",
   WRONG_ANSWER: "Wrong answer",
+  COMPLETED: "Finished",
   TIMEOUT: "Timed out",
   RUNTIME_ERROR: "Runtime error",
   MEMORY_LIMIT: "Out of memory",
+  OUTPUT_LIMIT: "Output limit exceeded",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -21,6 +33,7 @@ const STATUS_LABEL: Record<string, string> = {
   WRONG_ANSWER: "Wrong answer",
   TIME_LIMIT_EXCEEDED: "Time limit exceeded",
   MEMORY_LIMIT_EXCEEDED: "Memory limit exceeded",
+  OUTPUT_LIMIT_EXCEEDED: "Output limit exceeded",
   RUNTIME_ERROR: "Runtime error",
   COMPILE_ERROR: "Compile error",
   INTERNAL_ERROR: "Something went wrong",
@@ -40,16 +53,23 @@ export function TestResults({
   outcome,
   pending,
   mode,
+  custom = false,
 }: {
-  outcome: RunOutcome | null;
+  outcome: (RunOutcome & Partial<SubmitOutcome>) | null;
   pending: boolean;
   mode: "run" | "submit" | null;
+  /** Whether the next Run uses the learner's custom input. */
+  custom?: boolean;
 }) {
   if (pending) {
     return (
       <div className="text-muted-foreground flex h-full items-center justify-center gap-2 text-sm">
-        <span className="bg-ember-500 size-1.5 animate-pulse rounded-full" />
-        {mode === "submit" ? "Running every test…" : "Running sample tests…"}
+        <span className="bg-brand-500 size-1.5 animate-pulse rounded-full" />
+        {mode === "submit"
+          ? "Running every test…"
+          : custom
+            ? "Running your input…"
+            : "Running sample tests…"}
       </div>
     );
   }
@@ -66,6 +86,12 @@ export function TestResults({
 
   const { result, executor } = outcome;
   const accepted = result.status === "ACCEPTED";
+  // A custom input has no expected answer, so a clean run is "Finished",
+  // never "Accepted" — nothing was judged.
+  const statusLabel =
+    outcome.custom && accepted
+      ? "Finished"
+      : (STATUS_LABEL[result.status] ?? result.status);
 
   return (
     <ScrollArea className="h-full">
@@ -79,12 +105,14 @@ export function TestResults({
                 : "border-destructive/35 bg-destructive/12 text-destructive"
             )}
           >
-            {STATUS_LABEL[result.status] ?? result.status}
+            {statusLabel}
           </Badge>
 
-          <span className="text-muted-foreground text-xs tabular-nums">
-            {result.passed}/{result.total} tests
-          </span>
+          {!outcome.custom && (
+            <span className="text-muted-foreground text-xs tabular-nums">
+              {result.passed}/{result.total} tests
+            </span>
+          )}
 
           <span className="text-muted-foreground flex items-center gap-1 text-xs tabular-nums">
             <Clock className="size-3" aria-hidden="true" />
@@ -98,6 +126,23 @@ export function TestResults({
             </span>
           )}
         </div>
+
+        {outcome.duplicate && (
+          <p className="border-border bg-muted/40 text-muted-foreground flex items-start gap-2 rounded-md border p-2.5 text-[0.7rem] leading-relaxed">
+            <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+            This is the same code you submitted a moment ago, so this is that
+            submission&apos;s result. Change the code to submit again.
+          </p>
+        )}
+
+        {result.status === "OUTPUT_LIMIT_EXCEEDED" && (
+          <p className="border-destructive/30 bg-destructive/6 text-destructive flex items-start gap-2 rounded-md border p-2.5 text-[0.7rem] leading-relaxed">
+            <CornerDownRight className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+            Your program printed or wrote more than the{" "}
+            {EXECUTION_LIMITS.maxOutputKb / 1024} MB limit and was stopped. Check
+            for a loop that prints on every iteration.
+          </p>
+        )}
 
         {!executor.sandboxed && (
           <p className="border-warning/30 bg-warning/6 text-warning flex items-start gap-2 rounded-md border p-2.5 text-[0.7rem] leading-relaxed">
@@ -121,7 +166,7 @@ export function TestResults({
 
         <ul className="space-y-2">
           {result.results.map((test, index) => {
-            const passed = test.outcome === "PASSED";
+            const passed = test.outcome === "PASSED" || test.outcome === "COMPLETED";
 
             return (
               <li
@@ -140,7 +185,11 @@ export function TestResults({
                     <X className="text-destructive size-3.5 shrink-0" aria-hidden="true" />
                   )}
                   <span className="text-xs font-medium">
-                    {test.isSample ? `Sample ${index + 1}` : `Hidden case ${index + 1}`}
+                    {outcome.custom
+                      ? "Custom input"
+                      : test.isSample
+                        ? `Sample ${index + 1}`
+                        : `Hidden case ${index + 1}`}
                   </span>
                   <span
                     className={cn(
@@ -159,9 +208,11 @@ export function TestResults({
                 {test.input !== undefined && (
                   <dl className="mt-2.5 space-y-1.5">
                     <Row label="Input" value={test.input} />
-                    <Row label="Expected" value={test.expected ?? ""} />
+                    {test.expected !== undefined && (
+                      <Row label="Expected" value={test.expected} />
+                    )}
                     <Row
-                      label="Your output"
+                      label={outcome.custom ? "Output" : "Your output"}
                       value={test.actual ?? ""}
                       tone={passed ? undefined : "bad"}
                     />

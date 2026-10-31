@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import Editor, { type OnMount } from "@monaco-editor/react";
+import Editor, { type BeforeMount, type OnMount } from "@monaco-editor/react";
 import { Loader2 } from "lucide-react";
+import { useTheme } from "next-themes";
 
 import type { Language } from "@/generated/prisma/enums";
 import { MONACO_LANGUAGE } from "@/lib/code-execution/signature";
@@ -70,26 +71,46 @@ export function CodeEditor({
     editor.revealLineInCenterIfOutsideViewport(highlightLine);
   }, [highlightLine, highlightKind]);
 
-  const onMount: OnMount = (editor, monaco) => {
-    editorRef.current = editor;
-    decorationsRef.current = editor.createDecorationsCollection();
+  const { resolvedTheme } = useTheme();
+  const editorTheme =
+    resolvedTheme === "light" ? "tech-epitome-light" : "tech-epitome-dark";
 
-    monaco.editor.defineTheme("tech-epitome", {
+  // Both themes match --card so the editor sits flush with its panel; the
+  // `theme` prop switches between them when the site theme changes.
+  const beforeMount: BeforeMount = (monaco) => {
+    monaco.editor.defineTheme("tech-epitome-dark", {
       base: "vs-dark",
       inherit: true,
       rules: [],
       colors: {
-        // Matches --card so the editor sits flush with the panel around it.
-        "editor.background": "#25272c",
-        "editorGutter.background": "#25272c",
-        "editorLineNumber.foreground": "#6b6f78",
-        "editorLineNumber.activeForeground": "#f2a35a",
-        "editor.lineHighlightBackground": "#2c2f35",
-        "editorCursor.foreground": "#f29b3f",
-        "editor.selectionBackground": "#f29b3f33",
+        "editor.background": "#0d1524",
+        "editorGutter.background": "#0d1524",
+        "editorLineNumber.foreground": "#7e8aa3",
+        "editorLineNumber.activeForeground": "#c7d2fe",
+        "editor.lineHighlightBackground": "#111b2e",
+        "editorCursor.foreground": "#818cf8",
+        "editor.selectionBackground": "#6557f555",
       },
     });
-    monaco.editor.setTheme("tech-epitome");
+    monaco.editor.defineTheme("tech-epitome-light", {
+      base: "vs",
+      inherit: true,
+      rules: [],
+      colors: {
+        "editor.background": "#ffffff",
+        "editorGutter.background": "#ffffff",
+        "editorLineNumber.foreground": "#5e6a82",
+        "editorLineNumber.activeForeground": "#312e81",
+        "editor.lineHighlightBackground": "#eef2fa",
+        "editorCursor.foreground": "#4f46e5",
+        "editor.selectionBackground": "#4f46e533",
+      },
+    });
+  };
+
+  const onMount: OnMount = (editor) => {
+    editorRef.current = editor;
+    decorationsRef.current = editor.createDecorationsCollection();
 
     // Tab moves focus instead of indenting, so the editor is not a trap.
     // Ctrl+M toggles it back for anyone who wants Tab to indent.
@@ -103,9 +124,11 @@ export function CodeEditor({
         language={MONACO_LANGUAGE[language]}
         value={value}
         onChange={(next) => onChange(next ?? "")}
+        beforeMount={beforeMount}
         onMount={onMount}
+        theme={editorTheme}
         loading={
-          <div className="text-muted-foreground flex h-full items-center justify-center gap-2 text-sm">
+          <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" aria-hidden="true" />
             Loading editor…
           </div>
@@ -113,7 +136,7 @@ export function CodeEditor({
         options={{
           readOnly,
           fontSize: 13,
-          fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
+          fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
           fontLigatures: false,
           minimap: { enabled: false },
           scrollBeyondLastLine: false,

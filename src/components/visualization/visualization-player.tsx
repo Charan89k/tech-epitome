@@ -231,7 +231,7 @@ export function VisualizationPlayer({
 
           {/* The narration. aria-live so a screen reader follows along. */}
           <div className="bg-muted/40 border-border flex items-start gap-2.5 rounded-lg border px-3 py-2.5">
-            <span className="bg-ember-500/15 text-ember-300 mt-px shrink-0 rounded px-1.5 py-0.5 font-mono text-[0.62rem] tabular-nums">
+            <span className="bg-brand-500/15 text-brand-300 mt-px shrink-0 rounded px-1.5 py-0.5 font-mono text-[0.62rem] tabular-nums">
               Step {index + 1}
             </span>
             <p
@@ -278,7 +278,7 @@ export function VisualizationPlayer({
                   className={cn(
                     "w-max min-w-full rounded px-1.5 py-0.5 font-mono text-[0.68rem] leading-snug whitespace-pre",
                     lineIndex === current.line
-                      ? "bg-ember-500/15 text-ember-200"
+                      ? "bg-brand-500/15 text-brand-200"
                       : "text-muted-foreground/70"
                   )}
                 >
@@ -368,7 +368,7 @@ export function VisualizationPlayer({
               className={cn(
                 "rounded px-1.5 py-1 font-mono text-[0.65rem] transition-colors",
                 speedIdx === speedIndex
-                  ? "bg-card text-ember-300 shadow-sm"
+                  ? "bg-card text-brand-300 shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >

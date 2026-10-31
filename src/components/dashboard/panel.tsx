@@ -61,7 +61,7 @@ export function Bar({
   percent,
   label,
   className,
-  fillClassName = "bg-ember-500",
+  fillClassName = "bg-brand-500",
 }: {
   percent: number;
   label: string;

@@ -19,7 +19,7 @@ export type CellTone =
 
 const TONE_CLASS: Record<CellTone, string> = {
   idle: "border-border bg-muted/30 text-muted-foreground",
-  active: "border-ember-500/55 bg-ember-500/15 text-ember-200",
+  active: "border-brand-500/55 bg-brand-500/15 text-brand-200",
   compare: "border-viz-compare/55 bg-viz-compare/15 text-viz-compare",
   visited: "border-viz-visited/45 bg-viz-visited/12 text-viz-visited",
   done: "border-success/50 bg-success/12 text-success",
@@ -55,7 +55,7 @@ export function Cell({
       {/* Fixed-height rails so nothing reflows as markers move. */}
       <div className="flex h-3.5 items-start justify-center">
         {label && (
-          <span className="text-ember-400 font-mono text-[0.6rem] leading-none">
+          <span className="text-brand-400 font-mono text-[0.6rem] leading-none">
             {label}
           </span>
         )}

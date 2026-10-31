@@ -28,24 +28,30 @@ export const metadata: Metadata = {
 const TABS = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/users", label: "Users" },
+  { href: "/admin/institutions", label: "Institutions" },
   { href: "/admin/content", label: "Content" },
+  { href: "/admin/contests", label: "Contests" },
   { href: "/admin/ai", label: "AI usage" },
   { href: "/admin/audit", label: "Audit log" },
+  { href: "/admin/operations", label: "Operations" },
 ] as const;
 
-export default async function AdminLayout({
-  children,
-}: LayoutProps<"/admin">) {
+export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   await requireAdmin();
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="tracking-headline text-2xl font-bold sm:text-3xl">Admin</h1>
-        <span className="bg-ember-500/12 text-ember-300 rounded-full px-2 py-0.5 text-[0.65rem] font-medium">
-          Staff only
-        </span>
-      </div>
+      <p className="flex items-center gap-2 label-mono tracking-wider uppercase">
+        <span className="size-1.5 bg-primary" aria-hidden="true" />
+        Staff only
+      </p>
+      <h1 className="tracking-headline mt-1.5 text-2xl font-semibold sm:text-3xl">
+        Platform admin
+      </h1>
+      <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
+        Accounts, institutions, content and operations. Every change made here is
+        written to the audit log.
+      </p>
 
       <AdminNav tabs={TABS} />
 

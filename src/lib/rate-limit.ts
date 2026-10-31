@@ -214,8 +214,7 @@ export function resetRateLimitStoreForTests(): void {
  */
 function limitsDisabled(): boolean {
   return (
-    process.env.RATE_LIMIT_DISABLED === "true" &&
-    process.env.NODE_ENV !== "production"
+    process.env.RATE_LIMIT_DISABLED === "true" && process.env.NODE_ENV !== "production"
   );
 }
 
@@ -285,4 +284,20 @@ export const RATE_LIMITS = {
    * only governs a well-behaved browser.
    */
   SEARCH: { limit: 60, windowMs: 60_000 },
+  /** Institution invitations sent, per inviter. Each one is an email. */
+  INSTITUTION_INVITE: { limit: 30, windowMs: 60 * 60_000 },
+  /** Invitations per institution, across all its inviters. */
+  INSTITUTION_INVITE_ORG: { limit: 300, windowMs: 60 * 60_000 },
+  /** Verification emails, per account. */
+  EMAIL_VERIFICATION: { limit: 5, windowMs: 60 * 60_000 },
+  /** Password reset requests, per address and per IP. */
+  PASSWORD_RESET: { limit: 5, windowMs: 60 * 60_000 },
+  /** Accepting invitations and domain enrolment, per account. */
+  INSTITUTION_JOIN: { limit: 20, windowMs: 60 * 60_000 },
+  /** Exam autosaves, per student. One per answer change after a debounce. */
+  CAMPUS_ANSWER_SAVE: { limit: 120, windowMs: 60_000 },
+  /** Exam attempt starts and submissions, per student. */
+  CAMPUS_ATTEMPT: { limit: 30, windowMs: 60 * 60_000 },
+  /** New public share links, per learner. */
+  SHARE_LINK: { limit: 10, windowMs: 60 * 60_000 },
 } as const;

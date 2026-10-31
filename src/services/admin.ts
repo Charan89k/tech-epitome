@@ -142,6 +142,7 @@ export type AdminUserRow = {
   email: string;
   name: string | null;
   role: Role;
+  status: "ACTIVE" | "SUSPENDED";
   createdAt: Date;
   problemsSolved: number;
   interviews: number;
@@ -180,6 +181,7 @@ export async function listUsers(params: {
         email: true,
         name: true,
         role: true,
+        status: true,
         createdAt: true,
         _count: { select: { interviews: true } },
         profile: { select: { problemsSolved: true } },
@@ -193,6 +195,7 @@ export async function listUsers(params: {
       email: row.email,
       name: row.name,
       role: row.role,
+      status: row.status,
       createdAt: row.createdAt,
       problemsSolved: row.profile?.problemsSolved ?? 0,
       interviews: row._count.interviews,

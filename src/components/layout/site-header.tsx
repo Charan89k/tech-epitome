@@ -4,11 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
+  BriefcaseBusiness,
   ChevronDown,
   Library,
+  ListChecks,
   Menu,
-  MessagesSquare,
-  Target,
+  Building2,
+  Presentation,
   type LucideIcon,
 } from "lucide-react";
 
@@ -32,8 +34,14 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { canAccess, FEATURES } from "@/lib/auth/access";
-import { isNavItemActive, primaryNav, type NavGroup } from "@/lib/navigation";
+import {
+  isNavItemActive,
+  navForViewer,
+  productForPath,
+  type NavCampus,
+  type NavGroup,
+  type NavViewer,
+} from "@/lib/navigation";
 import { cn, route } from "@/lib/utils";
 
 /**
@@ -47,35 +55,70 @@ import { cn, route } from "@/lib/utils";
  * four can never disagree about what exists.
  */
 
+const PRODUCTS = [
+  { id: "learn", label: "Learn", href: "/explore" },
+  { id: "campus", label: "Campus", href: "/campus" },
+] as const;
+
 const MENU_ICON: Record<string, LucideIcon> = {
   Learn: BookOpen,
-  Practice: Target,
-  Interview: MessagesSquare,
+  Practice: ListChecks,
+  Campus: Building2,
+  Teaching: Presentation,
+  Placement: BriefcaseBusiness,
   Library: Library,
 };
 
-const HEADER_GROUPS = ["Learn", "Practice", "Interview", "Library"];
+const HEADER_GROUPS = ["Practice", "Learn", "Teaching", "Placement", "Library"];
 
 type Props = {
-  user: (UserMenuUser & { role: "USER" | "ADMIN" }) | null;
+  user:
+    | (UserMenuUser & {
+        role: "USER" | "ADMIN";
+        campusMember?: boolean;
+        campus?: NavCampus | null;
+      })
+    | null;
   streak: number;
   unreadNotifications: number;
 };
 
 export function SiteHeader({ user, streak, unreadNotifications }: Props) {
   const pathname = usePathname();
-  const groups = primaryNav.filter((group) => HEADER_GROUPS.includes(group.label));
+  const product = productForPath(pathname);
+  const groups = navForViewer(user, product).filter((group) =>
+    HEADER_GROUPS.includes(group.label)
+  );
+  const home = !user ? "/" : product === "campus" ? "/campus" : "/dashboard";
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/85 px-3 backdrop-blur-md sm:px-4">
+    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-3 sm:px-4">
       <MobileNav user={user} pathname={pathname} />
 
-      <Link
-        href={user ? "/dashboard" : "/"}
-        className="mr-2 flex items-center rounded-md px-1 py-1"
-      >
-        <Logo idSuffix="header" wordmarkClassName="text-[1.05rem]" />
+      <Link href={route(home)} className="mr-1 flex items-center rounded-md px-1 py-1">
+        <Logo responsive wordmarkClassName="text-[1.05rem]" />
       </Link>
+
+      <nav
+        aria-label="Products"
+        className="mr-2 hidden items-center rounded-md border border-border p-0.5 sm:flex"
+      >
+        {PRODUCTS.map((p) => (
+          <Link
+            key={p.id}
+            href={route(p.id === "campus" && !user ? "/campus/login" : p.href)}
+            aria-current={product === p.id ? "true" : undefined}
+            className={cn(
+              "rounded-[3px] px-2 py-1 text-xs font-medium transition-colors",
+              product === p.id
+                ? "bg-accent text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {p.label}
+          </Link>
+        ))}
+      </nav>
 
       <nav aria-label="Sections" className="hidden items-center gap-0.5 lg:flex">
         {groups.map((group) => (
@@ -93,7 +136,9 @@ export function SiteHeader({ user, streak, unreadNotifications }: Props) {
         <ThemeToggle />
         {user ? (
           <>
-            <StreakPill days={streak} />
+            <div className="hidden sm:block">
+              <StreakPill days={streak} />
+            </div>
             <NotificationBell initialUnread={unreadNotifications} />
             <UserMenu user={user} />
           </>
@@ -102,7 +147,7 @@ export function SiteHeader({ user, streak, unreadNotifications }: Props) {
             <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
               <Link href="/login">Sign in</Link>
             </Button>
-            <Button asChild size="sm" className="rounded-full px-4">
+            <Button asChild size="sm">
               <Link href="/signup">Start learning</Link>
             </Button>
           </>
@@ -120,11 +165,13 @@ function SectionMenu({ group, pathname }: { group: NavGroup; pathname: string })
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger
         className={cn(
-          "flex h-9 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors outline-none hover:bg-accent/60 data-[state=open]:bg-accent/60",
-          active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+          "relative flex h-9 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors outline-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:bg-accent/60",
+          active
+            ? "text-foreground after:absolute after:inset-x-2.5 after:-bottom-[0.6875rem] after:h-0.5 after:bg-primary"
+            : "text-muted-foreground hover:text-foreground"
         )}
       >
-        <Icon className={cn("size-4", active && "text-ember-400")} aria-hidden="true" />
+        <Icon className={cn("size-4", active && "text-primary")} aria-hidden="true" />
         {group.label}
         <ChevronDown className="size-3.5 opacity-60" aria-hidden="true" />
       </DropdownMenuTrigger>
@@ -137,12 +184,15 @@ function SectionMenu({ group, pathname }: { group: NavGroup; pathname: string })
               asChild
               className="items-start gap-3 rounded-lg p-2.5"
             >
-              <Link href={route(item.href)}>
+              <Link
+                href={route(item.href)}
+                aria-current={itemActive ? "page" : undefined}
+              >
                 <span
                   className={cn(
                     "flex size-9 shrink-0 items-center justify-center rounded-xl border",
                     itemActive
-                      ? "border-ember-500/40 bg-ember-500/12 text-ember-300"
+                      ? "border-primary/40 bg-primary/10 text-primary"
                       : "border-border bg-muted/50 text-muted-foreground"
                   )}
                 >
@@ -167,13 +217,7 @@ function SectionMenu({ group, pathname }: { group: NavGroup; pathname: string })
   );
 }
 
-function MobileNav({
-  user,
-  pathname,
-}: {
-  user: { role: "USER" | "ADMIN" } | null;
-  pathname: string;
-}) {
+function MobileNav({ user, pathname }: { user: NavViewer; pathname: string }) {
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -189,19 +233,40 @@ function MobileNav({
       <SheetContent side="left" className="w-80 overflow-y-auto">
         <SheetHeader>
           <SheetTitle>
-            <Logo idSuffix="sheet" />
+            <Logo />
           </SheetTitle>
         </SheetHeader>
         <nav aria-label="All sections" className="space-y-5 px-4 pb-8">
-          {primaryNav.map((group) => {
-            const items = group.items.filter(
-              (item) => item.feature !== FEATURES.ADMIN || canAccess(user, item.feature)
-            );
-            if (items.length === 0) return null;
+          <div>
+            <p className="mb-1.5 px-2 text-xs font-medium text-muted-foreground">
+              Products
+            </p>
+            <ul className="flex gap-2 px-2">
+              {PRODUCTS.map((p) => (
+                <li key={p.id}>
+                  <Link
+                    href={route(p.id === "campus" && !user ? "/campus/login" : p.href)}
+                    aria-current={
+                      productForPath(pathname) === p.id ? "true" : undefined
+                    }
+                    className={cn(
+                      "block rounded-md border border-border px-3 py-1.5 text-sm",
+                      productForPath(pathname) === p.id
+                        ? "bg-accent font-medium text-foreground"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    {p.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          {navForViewer(user, productForPath(pathname)).map(({ label, items }) => {
             return (
-              <div key={group.label}>
-                <p className="mb-1.5 px-2 text-[0.68rem] font-medium tracking-wider text-muted-foreground/70 uppercase">
-                  {group.label}
+              <div key={label}>
+                <p className="mb-1.5 px-2 text-xs font-medium text-muted-foreground">
+                  {label}
                 </p>
                 <ul className="space-y-0.5">
                   {items.map((item) => {
@@ -210,6 +275,7 @@ function MobileNav({
                       <li key={item.href}>
                         <Link
                           href={route(item.href)}
+                          aria-current={active ? "page" : undefined}
                           className={cn(
                             "flex items-center gap-2.5 rounded-md px-2 py-2 text-sm transition-colors",
                             active
@@ -218,7 +284,7 @@ function MobileNav({
                           )}
                         >
                           <item.icon
-                            className={cn("size-4", active && "text-ember-400")}
+                            className={cn("size-4", active && "text-primary")}
                             aria-hidden="true"
                           />
                           {item.title}

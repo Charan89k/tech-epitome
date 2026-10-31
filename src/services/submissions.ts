@@ -1,13 +1,20 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
+
 import type { Language } from "@/generated/prisma/enums";
 import {
   buildHarness,
+  DUPLICATE_SUBMIT_WINDOW_MS,
   getExecutionService,
   spliceUserCode,
+  validateCustomInput,
   type ExecutionResult,
+  type ExecutionTestCase,
   type Signature,
+  type TestResult,
 } from "@/lib/code-execution";
+import { logExecution, type ExecutionMode } from "@/lib/code-execution/log";
 import { prisma } from "@/lib/db";
 import {
   bumpReviewPriority,
@@ -22,8 +29,15 @@ import {
  *
  *   run     — sample tests only, nothing recorded. This is the learner
  *             poking at their own code and should be free of consequence.
+ *   custom  — a run on one input the learner wrote, in the same wire format
+ *             as the test cases, validated against the problem's signature.
+ *             There is no expected output, so it reports what the function
+ *             returned rather than a verdict. Also recorded nowhere.
  *   submit  — every test, recorded as an attempt, and feeds progress and
  *             pattern mastery.
+ *
+ * Every execution writes one structured log line (lib/code-execution/log),
+ * which never contains code or test data.
  *
  * Both execute through the CodeExecutionService abstraction, so neither
  * knows or cares whether that is a container or a subprocess.
@@ -33,7 +47,21 @@ export type RunOutcome = {
   result: ExecutionResult;
   /** Which adapter ran it, and whether it actually isolates anything. */
   executor: { name: string; sandboxed: boolean };
+  /** A custom-input run: one case, reported as output rather than a verdict. */
+  custom?: boolean;
 };
+
+export type SubmitOutcome = RunOutcome & {
+  submissionId: string;
+  /**
+   * The same code was submitted moments ago; this is that submission's
+   * stored result, and nothing was executed or recorded again.
+   */
+  duplicate?: boolean;
+};
+
+/** Who is running code, for the execution log. Null is a signed-out Run. */
+type Actor = string | null;
 
 type ProblemForExecution = {
   id: string;
@@ -75,7 +103,8 @@ async function loadProblem(slug: string): Promise<ProblemForExecution | null> {
 export async function runAgainstSamples(
   slug: string,
   language: Language,
-  code: string
+  code: string,
+  actor: Actor = null
 ): Promise<RunOutcome | null> {
   const problem = await loadProblem(slug);
   if (!problem) return null;
@@ -86,7 +115,60 @@ export async function runAgainstSamples(
     select: { id: true, input: true, expected: true, isSample: true },
   });
 
-  return execute(problem, language, code, tests);
+  return execute(problem, language, code, tests, { mode: "run", actor });
+}
+
+/**
+ * Runs against every test case, hidden ones included. Records nothing: the
+ * caller (campus exam grading) stores its own result.
+ */
+export async function runAgainstAllTests(
+  slug: string,
+  language: Language,
+  code: string,
+  actor: Actor
+): Promise<RunOutcome | null> {
+  const problem = await loadProblem(slug);
+  if (!problem) return null;
+
+  const tests = await prisma.testCase.findMany({
+    where: { problemId: problem.id },
+    orderBy: [{ isSample: "desc" }, { order: "asc" }],
+    select: { id: true, input: true, expected: true, isSample: true },
+  });
+
+  return execute(problem, language, code, tests, { mode: "submit", actor });
+}
+
+/**
+ * Runs the learner's function on one input they wrote. Records nothing.
+ *
+ * The input is checked against this problem's signature first, so the only
+ * thing that ever reaches the executor is a well-formed case for the
+ * existing harness — never a free-form program or stdin of the learner's
+ * choosing.
+ */
+export async function runCustomInput(
+  slug: string,
+  language: Language,
+  code: string,
+  customInput: string,
+  actor: Actor = null
+): Promise<RunOutcome | { invalidInput: string } | null> {
+  const problem = await loadProblem(slug);
+  if (!problem) return null;
+
+  const checked = validateCustomInput(problem.signature, customInput);
+  if (!checked.ok) return { invalidInput: checked.error };
+
+  const outcome = await execute(
+    problem,
+    language,
+    code,
+    [{ id: "custom", input: checked.input, expected: null, isSample: true }],
+    { mode: "custom", actor }
+  );
+  return { ...outcome, custom: true };
 }
 
 /**
@@ -101,9 +183,12 @@ export async function submitSolution(
   slug: string,
   language: Language,
   code: string
-): Promise<(RunOutcome & { submissionId: string }) | null> {
+): Promise<SubmitOutcome | null> {
   const problem = await loadProblem(slug);
   if (!problem) return null;
+
+  const duplicate = await findDuplicateSubmission(userId, problem.id, language, code);
+  if (duplicate) return duplicate;
 
   const tests = await prisma.testCase.findMany({
     where: { problemId: problem.id },
@@ -113,7 +198,10 @@ export async function submitSolution(
     select: { id: true, input: true, expected: true, isSample: true },
   });
 
-  const outcome = await execute(problem, language, code, tests);
+  const outcome = await execute(problem, language, code, tests, {
+    mode: "submit",
+    actor: userId,
+  });
 
   const submission = await prisma.submission.create({
     data: {
@@ -144,32 +232,139 @@ export async function submitSolution(
   return { ...outcome, submissionId: submission.id };
 }
 
+/**
+ * The same learner submitting the same code to the same problem within
+ * DUPLICATE_SUBMIT_WINDOW_MS gets the stored result back instead of a
+ * second execution and a second recorded attempt.
+ *
+ * Deterministic and server-side: the decision depends only on what is in
+ * the database, not on any client state. Two tabs submitting at the same
+ * instant are serialised by the execution lease in the action, so the
+ * second sees the first's row here.
+ */
+async function findDuplicateSubmission(
+  userId: string,
+  problemId: string,
+  language: Language,
+  code: string
+): Promise<SubmitOutcome | null> {
+  const recent = await prisma.submission.findFirst({
+    where: {
+      userId,
+      problemId,
+      language,
+      code,
+      isRun: false,
+      createdAt: { gte: new Date(Date.now() - DUPLICATE_SUBMIT_WINDOW_MS) },
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      status: true,
+      passedCount: true,
+      totalCount: true,
+      runtimeMs: true,
+      memoryKb: true,
+      errorMessage: true,
+      testResults: true,
+    },
+  });
+  if (!recent) return null;
+
+  const service = await getExecutionService();
+  const results = (recent.testResults ?? []) as unknown as TestResult[];
+
+  logExecution({
+    executionId: randomUUID(),
+    userId,
+    problemId,
+    language,
+    mode: "submit",
+    provider: service.name,
+    status: recent.status,
+    durationMs: 0,
+    memoryKb: recent.memoryKb,
+    testCount: recent.totalCount ?? results.length,
+    deduplicated: true,
+  });
+
+  return {
+    result: {
+      status: recent.status,
+      passed: recent.passedCount ?? 0,
+      total: recent.totalCount ?? results.length,
+      executionTimeMs: recent.runtimeMs ?? 0,
+      memoryKb: recent.memoryKb,
+      ...(recent.errorMessage ? { compileError: recent.errorMessage } : {}),
+      results,
+    },
+    executor: { name: service.name, sandboxed: service.isSandboxed },
+    submissionId: recent.id,
+    duplicate: true,
+  };
+}
+
 async function execute(
   problem: ProblemForExecution,
   language: Language,
   code: string,
-  tests: { id: string; input: string; expected: string; isSample: boolean }[]
+  tests: ExecutionTestCase[],
+  context: { mode: ExecutionMode; actor: Actor }
 ): Promise<RunOutcome> {
-  const service = await getExecutionService();
+  const executionId = randomUUID();
+  const started = Date.now();
+  let provider = "unavailable";
 
-  // The harness is regenerated from the signature on every run rather than
-  // stored, so fixing a reader bug fixes every problem at once instead of
-  // requiring a data migration.
-  const harness = buildHarness(language, problem.signature);
-  const program = spliceUserCode(harness, code);
+  try {
+    const service = await getExecutionService();
+    provider = service.name;
 
-  const result = await service.execute({
-    language,
-    program,
-    tests,
-    timeLimitMs: problem.timeLimitMs,
-    memoryLimitMb: problem.memoryLimitMb,
-  });
+    // The harness is regenerated from the signature on every run rather than
+    // stored, so fixing a reader bug fixes every problem at once instead of
+    // requiring a data migration.
+    const harness = buildHarness(language, problem.signature);
+    const program = spliceUserCode(harness, code);
 
-  return {
-    result,
-    executor: { name: service.name, sandboxed: service.isSandboxed },
-  };
+    const result = await service.execute({
+      language,
+      program,
+      tests,
+      timeLimitMs: problem.timeLimitMs,
+      memoryLimitMb: problem.memoryLimitMb,
+    });
+
+    logExecution({
+      executionId,
+      userId: context.actor ?? "anonymous",
+      problemId: problem.id,
+      language,
+      mode: context.mode,
+      provider,
+      status: result.status,
+      durationMs: Date.now() - started,
+      memoryKb: result.memoryKb,
+      testCount: tests.length,
+    });
+
+    return {
+      result,
+      executor: { name: service.name, sandboxed: service.isSandboxed },
+    };
+  } catch (error) {
+    logExecution({
+      executionId,
+      userId: context.actor ?? "anonymous",
+      problemId: problem.id,
+      language,
+      mode: context.mode,
+      provider,
+      status: "EXCEPTION",
+      durationMs: Date.now() - started,
+      memoryKb: null,
+      testCount: tests.length,
+    });
+    throw error;
+  }
 }
 
 /**

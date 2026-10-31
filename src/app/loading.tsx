@@ -13,8 +13,7 @@ export default function Loading() {
   return (
     <div className="flex min-h-dvh items-center justify-center" role="status">
       <LogoMark
-        gradient
-        idSuffix="loading"
+        brand
         className="size-7 animate-pulse opacity-70"
       />
       <span className="sr-only">Loading</span>

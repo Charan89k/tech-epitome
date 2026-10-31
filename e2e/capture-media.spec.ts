@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { closeDb, makeAdmin, makeReviewsDue, reviewItemsFor } from "./db";
+import { closeDb, joinTestCollege, makeAdmin, makeReviewsDue, reviewItemsFor } from "./db";
 
 /**
  * Captures the screenshots and the demo recording used by the README.
@@ -108,6 +108,8 @@ test("capture the product screenshots", async ({ page }) => {
   // --- onboarding ---------------------------------------------------------
   const email = await signUp(page, "shots");
   await page.waitForURL(/\/(onboarding|dashboard)$/, { timeout: 30_000 });
+  // Interviews, prep and roadmaps are part of Campus; the screenshots show a member.
+  await joinTestCollege(email);
   if (page.url().includes("onboarding")) {
     await expect(
       page.getByRole("heading", { name: "Before you start" })
@@ -199,14 +201,8 @@ test("capture the product screenshots", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "AI Tutor", exact: true })
   ).toBeVisible({ timeout: 30_000 });
-  await page
-    .getByLabel("Message the tutor")
-    .filter({ visible: true })
-    .fill("How do I recognise a sliding-window problem?");
-  await page.getByRole("button", { name: "Send message" }).click();
-  await expect(
-    page.getByTestId("tutor-transcript").getByText(/Request type:/)
-  ).toBeVisible({ timeout: 30_000 });
+  // Captured before any message: this suite runs the mock AI provider, and
+  // its canned replies must never appear in documentation as real output.
   await shot(page, "ai-tutor");
 
   // --- mock interview -----------------------------------------------------
@@ -219,10 +215,7 @@ test("capture the product screenshots", async ({ page }) => {
   await page.getByRole("button", { name: "Start interview" }).click();
   await page.waitForURL(/\/interviews\/[a-z0-9]+$/, { timeout: 30_000 });
   await expect(page.getByTestId("interview-room")).toBeVisible({ timeout: 30_000 });
-  await page.getByRole("button", { name: "Begin interview" }).click();
-  await expect(
-    page.getByTestId("interview-transcript").getByText("Interviewer").first()
-  ).toBeVisible({ timeout: 30_000 });
+  // Before "Begin interview", for the same reason: no mock AI text in the docs.
   await shot(page, "interview-room");
 
   // --- design tracks ------------------------------------------------------
@@ -318,7 +311,7 @@ test("record the demo", async ({ browser }) => {
   await page.getByRole("button", { name: "Last step" }).click();
   await pause(1_800);
 
-  await page.goto("/roadmaps");
+  await page.goto("/learn");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await pause(1_800);
 

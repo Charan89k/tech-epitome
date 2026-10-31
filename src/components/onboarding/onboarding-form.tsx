@@ -225,7 +225,7 @@ function Field({
   return (
     <li className="flex gap-3 px-4 py-4 sm:px-5">
       <span
-        className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-ember-500/12 font-mono text-xs font-semibold text-ember-300"
+        className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-500/12 font-mono text-xs font-semibold text-brand-300"
         aria-hidden="true"
       >
         {step}

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { closeDb, joinTestCollege } from "./db";
 import { finishSignup } from "./helpers";
 
 /**
@@ -35,13 +36,20 @@ function uniqueEmail(tag: string): string {
 const PASSWORD = "forge-e2e-password";
 
 async function signUp(page: Page, tag: string): Promise<void> {
+  const email = uniqueEmail(tag);
   await page.goto("/signup");
   await page.getByLabel("Name").fill("Interview Candidate");
-  await page.getByLabel("Email").fill(uniqueEmail(tag));
+  await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Create account" }).click();
   await finishSignup(page);
+  // Mock interviews are part of Campus: the candidate is a college member.
+  await joinTestCollege(email);
 }
+
+test.afterAll(async () => {
+  await closeDb();
+});
 
 /** Selects a type and returns every difficulty the form offers for it. */
 async function offeredDifficulties(page: Page, type: string): Promise<string[]> {

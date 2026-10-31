@@ -6,8 +6,13 @@ import { usePathname } from "next/navigation";
 import { ChevronLeft, ChevronRight, LogIn } from "lucide-react";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { canAccess, FEATURES } from "@/lib/auth/access";
-import { isNavItemActive, primaryNav } from "@/lib/navigation";
+import { canAccess } from "@/lib/auth/access";
+import {
+  isNavItemActive,
+  navForViewer,
+  productForPath,
+  type NavViewer,
+} from "@/lib/navigation";
 import { cn, route } from "@/lib/utils";
 
 /**
@@ -32,7 +37,7 @@ function readExpanded(): boolean {
   }
 }
 
-export function AppRail({ user }: { user: { role: "USER" | "ADMIN" } | null }) {
+export function AppRail({ user }: { user: NavViewer }) {
   const pathname = usePathname();
   // Read once on the client; the server renders collapsed.
   const stored = useSyncExternalStore(
@@ -61,11 +66,11 @@ export function AppRail({ user }: { user: { role: "USER" | "ADMIN" } | null }) {
         expanded ? "w-60" : "w-[4.25rem]"
       )}
     >
-      <nav className="flex h-full flex-col overflow-x-hidden overflow-y-auto rounded-2xl border border-border bg-card/60 p-1.5">
+      <nav className="flex h-full flex-col overflow-x-hidden overflow-y-auto rounded-lg border border-border bg-card/60 p-1.5">
         <button
           type="button"
           onClick={toggle}
-          className="mb-1.5 flex size-9 shrink-0 items-center justify-center self-start rounded-xl border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="mb-1.5 flex size-9 shrink-0 items-center justify-center self-start rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           aria-label={expanded ? "Collapse navigation" : "Expand navigation"}
           aria-expanded={expanded}
         >
@@ -76,83 +81,81 @@ export function AppRail({ user }: { user: { role: "USER" | "ADMIN" } | null }) {
           )}
         </button>
 
-        {primaryNav.map((group, groupIndex) => {
-          const items = group.items.filter(
-            (item) => item.feature !== FEATURES.ADMIN || canAccess(user, item.feature)
-          );
-          if (items.length === 0) return null;
-          return (
-            <div
-              key={group.label}
-              className={cn(
-                groupIndex > 0 && "mt-1.5 border-t border-border/60 pt-1.5"
-              )}
-            >
-              {expanded && (
-                <p className="px-2.5 pt-1 pb-1 text-[0.62rem] font-medium tracking-wider text-muted-foreground/60 uppercase">
-                  {group.label}
-                </p>
-              )}
-              <ul className="space-y-0.5">
-                {items.map((item) => {
-                  const active = isNavItemActive(item, pathname);
-                  const needsAccount = item.feature
-                    ? !canAccess(user, item.feature)
-                    : false;
-                  const link = (
-                    <Link
-                      href={route(item.href)}
-                      aria-current={active ? "page" : undefined}
-                      className={cn(
-                        "flex h-9 items-center gap-2.5 rounded-xl text-sm transition-colors",
-                        expanded ? "px-2.5" : "w-9 justify-center",
-                        active
-                          ? "bg-ember-500/12 text-ember-200 ring-1 ring-ember-500/30 ring-inset"
-                          : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                      )}
-                    >
-                      <item.icon
+        {navForViewer(user, productForPath(pathname)).map(
+          ({ label, items }, groupIndex) => {
+            return (
+              <div
+                key={label}
+                className={cn(
+                  groupIndex > 0 && "mt-1.5 border-t border-border/60 pt-1.5"
+                )}
+              >
+                {expanded && (
+                  <p className="px-2.5 pt-1 pb-1 label-mono tracking-wider uppercase">
+                    {label}
+                  </p>
+                )}
+                <ul className="space-y-0.5">
+                  {items.map((item) => {
+                    const active = isNavItemActive(item, pathname);
+                    const needsAccount = item.feature
+                      ? !canAccess(user, item.feature)
+                      : false;
+                    const link = (
+                      <Link
+                        href={route(item.href)}
+                        aria-current={active ? "page" : undefined}
                         className={cn(
-                          "size-[1.05rem] shrink-0",
-                          active && "text-ember-400"
+                          "relative flex h-9 items-center gap-2.5 rounded-md text-sm transition-colors",
+                          expanded ? "px-2.5" : "w-9 justify-center",
+                          active
+                            ? "bg-accent font-medium text-foreground before:absolute before:inset-y-2 before:-left-1.5 before:w-0.5 before:rounded-full before:bg-primary"
+                            : "text-muted-foreground hover:bg-accent hover:text-foreground"
                         )}
-                        aria-hidden="true"
-                      />
-                      {expanded ? (
-                        <>
-                          <span className="truncate">{item.title}</span>
-                          {needsAccount && (
-                            <LogIn
-                              className="ml-auto size-3 shrink-0 text-muted-foreground/50"
-                              aria-label="Sign in required"
-                            />
+                      >
+                        <item.icon
+                          className={cn(
+                            "size-[1.05rem] shrink-0",
+                            active && "text-primary"
                           )}
-                        </>
-                      ) : (
-                        <span className="sr-only">{item.title}</span>
-                      )}
-                    </Link>
-                  );
-                  return (
-                    <li key={item.href}>
-                      {expanded ? (
-                        link
-                      ) : (
-                        <Tooltip>
-                          <TooltipTrigger asChild>{link}</TooltipTrigger>
-                          <TooltipContent side="right">
-                            {item.title}
-                            {needsAccount && " · sign in to use — it is free"}
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          );
-        })}
+                          aria-hidden="true"
+                        />
+                        {expanded ? (
+                          <>
+                            <span className="truncate">{item.title}</span>
+                            {needsAccount && (
+                              <LogIn
+                                className="ml-auto size-3 shrink-0 text-muted-foreground/50"
+                                aria-label="Sign in required"
+                              />
+                            )}
+                          </>
+                        ) : (
+                          <span className="sr-only">{item.title}</span>
+                        )}
+                      </Link>
+                    );
+                    return (
+                      <li key={item.href}>
+                        {expanded ? (
+                          link
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>{link}</TooltipTrigger>
+                            <TooltipContent side="right">
+                              {item.title}
+                              {needsAccount && " · sign in to use — it is free"}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          }
+        )}
       </nav>
     </aside>
   );

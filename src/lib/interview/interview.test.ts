@@ -5,6 +5,7 @@ import {
   buildFeedbackSystemPrompt,
   buildInterviewSystemPrompt,
   INTERVIEW_BUDGETS,
+  isUnansweredRepeat,
   renderInterviewContext,
 } from "./policy";
 import {
@@ -496,5 +497,24 @@ describe("boundTranscript", () => {
 
   it("returns nothing for an empty transcript", () => {
     expect(boundTranscript([])).toEqual([]);
+  });
+});
+
+describe("recovering an interrupted turn", () => {
+  const turns = [
+    { role: "ASSISTANT" as const, content: "How would you approach it?" },
+    { role: "USER" as const, content: "With a heap." },
+  ];
+
+  it("recognises a resend of the unanswered last message", () => {
+    expect(isUnansweredRepeat(turns, "  With a heap. ")).toBe(true);
+  });
+
+  it("treats anything else as a new turn", () => {
+    expect(isUnansweredRepeat(turns, "With a sorted array.")).toBe(false);
+    expect(
+      isUnansweredRepeat([...turns, { role: "ASSISTANT", content: "Why?" }], "With a heap.")
+    ).toBe(false);
+    expect(isUnansweredRepeat([], "With a heap.")).toBe(false);
   });
 });

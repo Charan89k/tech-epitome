@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+
+import { nextSteps } from "@/lib/career/next-steps";
 import {
   CheckCircle2,
   ChevronLeft,
@@ -14,13 +16,9 @@ import {
 import { DifficultyBadge } from "@/components/common/difficulty-badge";
 import { DesignThumb } from "@/components/system-design/design-thumb";
 import { Button } from "@/components/ui/button";
-import { getCurrentUser } from "@/lib/auth/session";
+import { requireCampusUser } from "@/lib/campus-access";
 import { cn, route } from "@/lib/utils";
-import { getPrepTrack, listPrepTrackSlugs, type Provenance } from "@/services/prep";
-
-export async function generateStaticParams() {
-  return (await listPrepTrackSlugs()).map((track) => ({ track }));
-}
+import { getPrepTrack, type Provenance } from "@/services/prep";
 
 export async function generateMetadata({
   params,
@@ -82,7 +80,7 @@ export default async function PrepTrackPage({
   params,
 }: PageProps<"/prepare/[track]">) {
   const { track: slug } = await params;
-  const user = await getCurrentUser();
+  const user = await requireCampusUser(`/prepare/${slug}`);
   const track = await getPrepTrack(slug, user?.id);
 
   if (!track) notFound();
@@ -137,7 +135,7 @@ export default async function PrepTrackPage({
                 id="loop"
                 className="tracking-headline flex items-center gap-2 text-base font-semibold"
               >
-                <ListChecks className="text-ember-400 size-4" aria-hidden="true" />
+                <ListChecks className="text-brand-400 size-4" aria-hidden="true" />
                 How this loop usually runs
               </h2>
               <ol className="mt-4">
@@ -149,7 +147,7 @@ export default async function PrepTrackPage({
                         aria-hidden="true"
                       />
                     )}
-                    <span className="border-ember-500/50 bg-ember-500/12 text-ember-300 relative flex size-6 shrink-0 items-center justify-center rounded-full border font-mono text-[0.65rem] font-semibold">
+                    <span className="border-brand-500/50 bg-brand-500/12 text-brand-300 relative flex size-6 shrink-0 items-center justify-center rounded-full border font-mono text-[0.65rem] font-semibold">
                       {index + 1}
                     </span>
                     <div className="min-w-0 pt-0.5">
@@ -174,7 +172,7 @@ export default async function PrepTrackPage({
                 id="roadmap"
                 className="tracking-headline flex items-center gap-2 px-4 pt-4 text-base font-semibold sm:px-5"
               >
-                <RouteIcon className="text-ember-400 size-4" aria-hidden="true" />
+                <RouteIcon className="text-brand-400 size-4" aria-hidden="true" />
                 A plan
               </h2>
               <ol className="border-border mt-3 divide-y divide-[var(--border)] border-t">
@@ -222,7 +220,7 @@ export default async function PrepTrackPage({
                       aria-label="Problems solved"
                     >
                       <div
-                        className="bg-ember-500 h-full rounded-full"
+                        className="bg-brand-500 h-full rounded-full"
                         style={{ width: `${problemPercent}%` }}
                       />
                     </div>
@@ -251,7 +249,7 @@ export default async function PrepTrackPage({
                         <Link
                           href={route(`/problems/${problem.slug}`)}
                           className={cn(
-                            "hover:text-ember-300 text-sm font-medium transition-colors",
+                            "hover:text-brand-300 text-sm font-medium transition-colors",
                             problem.status === "SOLVED" ? "text-muted-foreground" : "text-info"
                           )}
                         >
@@ -304,7 +302,7 @@ export default async function PrepTrackPage({
                         <Link
                           href={route(`/system-design/${exercise.slug}`)}
                           className={cn(
-                            "hover:text-ember-300 text-sm font-medium transition-colors",
+                            "hover:text-brand-300 text-sm font-medium transition-colors",
                             exercise.submitted ? "text-muted-foreground" : "text-info"
                           )}
                         >
@@ -336,17 +334,38 @@ export default async function PrepTrackPage({
               </div>
               <div className="bg-muted mt-3 h-1.5 overflow-hidden rounded-full" aria-hidden="true">
                 <div
-                  className="bg-ember-500 h-full rounded-full"
+                  className="bg-brand-500 h-full rounded-full"
                   style={{
                     width: `${Math.round((track.progress.solved / track.progress.total) * 100)}%`,
                   }}
                 />
               </div>
               <p className="text-muted-foreground mt-3 text-xs">
-                <span className="text-ember-300 font-medium">{track.progress.solved}</span>{" "}
+                <span className="text-brand-300 font-medium">{track.progress.solved}</span>{" "}
                 of {track.progress.total} recommended problems solved.
               </p>
             </div>
+          )}
+
+          {track.progress && nextSteps(track).length > 0 && (
+            <section
+              aria-labelledby="next-steps"
+              className="bg-card border-border rounded-xl border p-4"
+            >
+              <h2 id="next-steps" className="text-sm font-semibold">
+                Next steps
+              </h2>
+              <ol className="mt-3 space-y-3">
+                {nextSteps(track).map((step) => (
+                  <li key={step.href} className="text-sm">
+                    <Link href={route(step.href)} className="font-medium hover:underline">
+                      {step.label}
+                    </Link>
+                    <p className="text-muted-foreground text-xs">{step.why}</p>
+                  </li>
+                ))}
+              </ol>
+            </section>
           )}
 
           {track.focusAreas.length > 0 && (
@@ -355,10 +374,10 @@ export default async function PrepTrackPage({
               className="bg-card border-border rounded-xl border p-4"
             >
               <h2 id="focus" className="flex items-center gap-1.5 text-sm font-semibold">
-                <Target className="text-ember-400 size-3.5" aria-hidden="true" />
+                <Target className="text-brand-400 size-3.5" aria-hidden="true" />
                 What to weight
               </h2>
-              <ul className="marker:text-ember-500/60 mt-2 list-disc space-y-1.5 pl-4">
+              <ul className="marker:text-brand-500/60 mt-2 list-disc space-y-1.5 pl-4">
                 {track.focusAreas.map((area) => (
                   <li key={area} className="text-muted-foreground text-xs leading-relaxed">
                     {area}

@@ -18,7 +18,9 @@ import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/dashboard/panel";
 import { describeEvent } from "@/lib/analytics";
 import { requireUser } from "@/lib/auth/session";
+import { SharePanel } from "@/components/profile/share-panel";
 import { listAchievements } from "@/services/achievements";
+import { getActiveShareLink } from "@/services/sharing";
 import { prisma } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { getProgressSummary } from "@/services/progress";
@@ -54,6 +56,7 @@ export default async function ProfilePage() {
     select: { id: true, name: true, createdAt: true },
   });
   const achievements = await listAchievements(user.id);
+  const shareLink = await getActiveShareLink(user.id);
 
   const totalSolved = summary.problemsSolved;
   const unlockedCount = achievements.filter((a) => a.unlockedAt !== null).length;
@@ -75,9 +78,9 @@ export default async function ProfilePage() {
         aria-label="Account"
         className="mt-6 flex flex-col gap-4 rounded-xl border border-border bg-card p-5 sm:flex-row sm:items-center"
       >
-        <Avatar className="size-16 ring-2 ring-ember-500/30">
+        <Avatar className="size-16 ring-2 ring-brand-500/30">
           {user.image && <AvatarImage src={user.image} alt="" />}
-          <AvatarFallback className="bg-ember-500/12 text-lg font-semibold text-ember-300">
+          <AvatarFallback className="bg-brand-500/12 text-lg font-semibold text-brand-300">
             {(user.name ?? user.email).slice(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
@@ -132,7 +135,7 @@ export default async function ProfilePage() {
           icon={Flame}
           hint={`longest ${summary.longestStreak}d`}
           className={
-            summary.currentStreak > 0 ? "border-ember-500/30 bg-ember-500/6" : undefined
+            summary.currentStreak > 0 ? "border-brand-500/30 bg-brand-500/6" : undefined
           }
         />
         <StatTile
@@ -165,7 +168,7 @@ export default async function ProfilePage() {
                   className={cn(
                     "rounded-lg border p-3",
                     unlocked
-                      ? "border-ember-500/30 bg-ember-500/6"
+                      ? "border-brand-500/30 bg-brand-500/6"
                       : "border-border bg-muted/20"
                   )}
                 >
@@ -174,7 +177,7 @@ export default async function ProfilePage() {
                       className={cn(
                         "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md",
                         unlocked
-                          ? "bg-ember-500/15 text-ember-400"
+                          ? "bg-brand-500/15 text-brand-400"
                           : "bg-muted text-muted-foreground"
                       )}
                     >
@@ -188,7 +191,7 @@ export default async function ProfilePage() {
                       <div className="flex items-baseline justify-between gap-2">
                         <p className="text-sm font-medium">{achievement.name}</p>
                         {unlocked ? (
-                          <span className="shrink-0 text-[0.65rem] font-medium text-ember-400">
+                          <span className="shrink-0 text-[0.65rem] font-medium text-brand-400">
                             Unlocked
                           </span>
                         ) : (
@@ -212,7 +215,7 @@ export default async function ProfilePage() {
                           aria-label={`Progress towards ${achievement.name}`}
                         >
                           <div
-                            className="h-full rounded-full bg-ember-500/60"
+                            className="h-full rounded-full bg-brand-500/60"
                             style={{ width: `${percent}%` }}
                           />
                         </div>
@@ -283,7 +286,7 @@ export default async function ProfilePage() {
                   >
                     <span className="flex min-w-0 items-center gap-2">
                       <span
-                        className="size-1.5 shrink-0 rounded-full bg-ember-500/70"
+                        className="size-1.5 shrink-0 rounded-full bg-brand-500/70"
                         aria-hidden="true"
                       />
                       <span className="truncate">{describeEvent(event.name)}</span>
@@ -303,6 +306,21 @@ export default async function ProfilePage() {
             )}
           </Panel>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <Panel title="Share your achievements" bodyClassName="p-4 sm:p-5">
+          <SharePanel
+            active={
+              shareLink
+                ? {
+                    createdAt: shareLink.createdAt.toISOString(),
+                    displayName: shareLink.displayName,
+                  }
+                : null
+            }
+          />
+        </Panel>
       </div>
     </div>
   );

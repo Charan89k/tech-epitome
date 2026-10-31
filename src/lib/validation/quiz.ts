@@ -10,10 +10,12 @@ import { z } from "zod";
  */
 export const quizSubmissionSchema = z.object({
   quizSlug: z.string().min(1).max(120),
-  answers: z.record(
-    z.string().min(1).max(64),
-    z.union([z.string().min(1).max(64), z.array(z.string().min(1).max(64)).max(12)])
-  ),
+  answers: z
+    .record(
+      z.string().min(1).max(64),
+      z.union([z.string().min(1).max(64), z.array(z.string().min(1).max(64)).max(12)])
+    )
+    .refine((answers) => Object.keys(answers).length <= 100, "Too many answers"),
 });
 
 export type QuizSubmissionInput = z.infer<typeof quizSubmissionSchema>;

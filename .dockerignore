@@ -1,0 +1,16 @@
+# Nothing secret and nothing local goes into an image build context.
+.env
+.env.*
+!.env.example
+.git
+.next
+node_modules
+coverage
+test-results
+playwright-report
+e2e
+docs/screenshots
+docs/videos
+deploy/*.env
+deploy/secrets
+*.log

@@ -24,6 +24,9 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
 
+  // A self-contained server bundle for the container image (deploy/Dockerfile).
+  output: "standalone",
+
   // The development badge would otherwise appear in every screenshot the
   // README's capture script takes. Development-only; production never shows it.
   devIndicators: false,

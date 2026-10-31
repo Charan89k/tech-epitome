@@ -12,7 +12,12 @@ import type { Language, SubmissionStatus } from "@/generated/prisma/enums";
 export type ExecutionTestCase = {
   id: string;
   input: string;
-  expected: string;
+  /**
+   * What stdout must match. Null for a learner's custom Run input, which has
+   * no answer to compare against: the case is reported as COMPLETED with
+   * its output, never as passed or failed.
+   */
+  expected: string | null;
   /** Sample cases may have their input shown to the learner; hidden ones must not. */
   isSample: boolean;
 };
@@ -30,9 +35,13 @@ export type ExecutionRequest = {
 export type TestOutcome =
   | "PASSED"
   | "WRONG_ANSWER"
+  /** Ran to completion with nothing to compare against (custom input). */
+  | "COMPLETED"
   | "TIMEOUT"
   | "RUNTIME_ERROR"
-  | "MEMORY_LIMIT";
+  | "MEMORY_LIMIT"
+  /** Wrote more than EXECUTION_LIMITS allows, to stdout or to a file. */
+  | "OUTPUT_LIMIT";
 
 export type TestResult = {
   testCaseId: string;
@@ -41,6 +50,7 @@ export type TestResult = {
   runtimeMs: number;
   /** Populated for sample cases only; hidden inputs never reach the client. */
   input?: string;
+  /** Absent for a custom input, which has no expected value. */
   expected?: string;
   actual?: string;
   stderr?: string;
@@ -80,6 +90,15 @@ export interface CodeExecutionService {
  * because they are an artefact of how a language's print function terminates
  * output, not a property of the answer. Everything else must match exactly.
  */
+/**
+ * The outcome of a case that ran to completion: compared when there is an
+ * expected value, reported as COMPLETED when there is not.
+ */
+export function judgeOutput(actual: string, expected: string | null): TestOutcome {
+  if (expected === null) return "COMPLETED";
+  return outputMatches(actual, expected) ? "PASSED" : "WRONG_ANSWER";
+}
+
 export function outputMatches(actual: string, expected: string): boolean {
   return normaliseOutput(actual) === normaliseOutput(expected);
 }

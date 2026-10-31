@@ -20,19 +20,24 @@ import { route } from "@/lib/utils";
  */
 export function SiteHeader({ signedIn }: { signedIn: boolean }) {
   return (
-    <header className="bg-background/85 border-border sticky top-0 z-40 border-b backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-border bg-background">
       <div className="flex h-14 items-center gap-2 px-3 sm:px-4">
         {/* Mobile nav */}
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-9 md:hidden" aria-label="Open menu">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-9 lg:hidden"
+              aria-label="Open menu"
+            >
               <MenuGlyph />
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-72">
             <SheetHeader>
               <SheetTitle>
-                <Logo idSuffix="mobile-nav" />
+                <Logo />
               </SheetTitle>
             </SheetHeader>
             <nav aria-label="Mobile" className="px-4">
@@ -41,7 +46,7 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
                   <li key={item.href}>
                     <Link
                       href={route(item.href)}
-                      className="text-muted-foreground hover:bg-accent/60 hover:text-foreground block rounded-md px-2 py-2 text-sm transition-colors"
+                      className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
                     >
                       {item.title}
                     </Link>
@@ -51,7 +56,7 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
                   <li>
                     <Link
                       href="/login"
-                      className="text-muted-foreground hover:bg-accent/60 hover:text-foreground block rounded-md px-2 py-2 text-sm transition-colors"
+                      className="block rounded-md px-2 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
                     >
                       Sign in
                     </Link>
@@ -63,16 +68,16 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
         </Sheet>
 
         <Link href="/" className="mr-2 flex shrink-0 items-center rounded-md px-1 py-1">
-          <Logo idSuffix="site-header" wordmarkClassName="text-[1.05rem]" />
+          <Logo wordmarkClassName="text-[1.05rem]" />
         </Link>
 
-        <nav aria-label="Main" className="hidden md:block">
+        <nav aria-label="Main" className="hidden lg:block">
           <ul className="flex items-center gap-0.5">
             {marketingNav.map((item) => (
               <li key={item.href}>
                 <Link
                   href={route(item.href)}
-                  className="text-muted-foreground hover:text-foreground hover:bg-accent/60 flex h-9 items-center rounded-md px-2.5 text-sm font-medium transition-colors"
+                  className="flex h-9 items-center rounded-md px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
                 >
                   {item.title}
                 </Link>
@@ -84,16 +89,21 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
           <ThemeToggle />
           {signedIn ? (
-            <Button asChild size="sm" className="rounded-full px-4">
+            <Button asChild size="sm">
               <Link href="/dashboard">Dashboard</Link>
             </Button>
           ) : (
             <>
-              <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="hidden sm:inline-flex"
+              >
                 <Link href="/login">Sign in</Link>
               </Button>
-              <Button asChild size="sm" className="rounded-full px-4">
-                <Link href="/signup">Start learning</Link>
+              <Button asChild size="sm">
+                <Link href="/explore">Explore Learn</Link>
               </Button>
             </>
           )}

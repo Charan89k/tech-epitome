@@ -85,7 +85,7 @@ const GRADES: {
     hint: "Normal spacing",
     key: "3",
     className:
-      "border-ember-500/40 text-ember-300 hover:bg-ember-500/10 hover:text-ember-200",
+      "border-brand-500/40 text-brand-300 hover:bg-brand-500/10 hover:text-brand-200",
   },
   {
     grade: "EASY",
@@ -93,7 +93,7 @@ const GRADES: {
     hint: "Longer gap",
     key: "4",
     className:
-      "border-ember-500/60 bg-ember-500/10 text-ember-200 hover:bg-ember-500/20 hover:text-ember-100",
+      "border-brand-500/60 bg-brand-500/10 text-brand-200 hover:bg-brand-500/20 hover:text-brand-100",
   },
 ];
 
@@ -201,8 +201,8 @@ export function ReviewSession({ initialQueue }: { initialQueue: SessionCard[] })
     return (
       <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-16">
         <div className="mx-auto max-w-md rounded-xl border border-border bg-card px-6 py-10 text-center">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-ember-500/12 ring-1 ring-ember-500/25">
-            <CheckCircle2 className="size-6 text-ember-400" aria-hidden="true" />
+          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-brand-500/12 ring-1 ring-brand-500/25">
+            <CheckCircle2 className="size-6 text-brand-400" aria-hidden="true" />
           </div>
           <h1 className="tracking-headline mt-4 text-xl font-bold">Session complete</h1>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -249,7 +249,7 @@ export function ReviewSession({ initialQueue }: { initialQueue: SessionCard[] })
             aria-label="Session progress"
           >
             <div
-              className="h-full rounded-full bg-ember-500 transition-[width] duration-300"
+              className="h-full rounded-full bg-brand-500 transition-[width] duration-300"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
@@ -266,7 +266,7 @@ export function ReviewSession({ initialQueue }: { initialQueue: SessionCard[] })
 
         <article className="overflow-hidden rounded-xl border border-border bg-card">
           <header className="flex flex-wrap items-center gap-2 border-b border-border px-5 py-3 sm:px-6">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-ember-500/12 px-2.5 py-1 text-[0.68rem] font-medium tracking-wider text-ember-300 uppercase">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-500/12 px-2.5 py-1 text-[0.68rem] font-medium tracking-wider text-brand-300 uppercase">
               <Icon className="size-3.5 shrink-0" aria-hidden="true" />
               {current.prompt.kind}
             </span>
@@ -312,14 +312,14 @@ export function ReviewSession({ initialQueue }: { initialQueue: SessionCard[] })
               <div className="mt-7 space-y-5 border-t border-border pt-6">
                 {current.prompt.answer.map((section) => (
                   <section key={section.heading}>
-                    <h2 className="text-[0.68rem] font-medium tracking-wider text-ember-300/90 uppercase">
+                    <h2 className="text-[0.68rem] font-medium tracking-wider text-brand-300/90 uppercase">
                       {section.heading}
                     </h2>
                     <ul className="mt-2 space-y-1.5">
                       {section.items.map((item) => (
                         <li key={item} className="flex gap-2.5 text-sm">
                           <span
-                            className="mt-2 size-1 shrink-0 rounded-full bg-ember-500/50"
+                            className="mt-2 size-1 shrink-0 rounded-full bg-brand-500/50"
                             aria-hidden="true"
                           />
                           <span className="leading-relaxed text-foreground/85">
@@ -333,7 +333,7 @@ export function ReviewSession({ initialQueue }: { initialQueue: SessionCard[] })
 
                 <Link
                   href={route(current.prompt.href)}
-                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-ember-300"
+                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-brand-300"
                 >
                   Re-read {current.prompt.title}
                   <ExternalLink className="size-3" aria-hidden="true" />

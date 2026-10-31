@@ -37,7 +37,7 @@ export function ComparisonCard({
       className="not-prose border-border bg-card surface-edge my-5 rounded-xl border p-4"
       aria-label={title ?? "Approach comparison"}
     >
-      <p className="text-ember-400 font-mono text-[0.7rem] tracking-wider uppercase">
+      <p className="text-brand-400 font-mono text-[0.7rem] tracking-wider uppercase">
         Approaches
       </p>
       {title && (
@@ -56,7 +56,7 @@ export function ComparisonCard({
             className={cn(
               "rounded-md border p-3",
               option.preferred
-                ? "border-ember-500/45 bg-ember-500/5"
+                ? "border-brand-500/45 bg-brand-500/5"
                 : "border-border bg-muted/20"
             )}
           >
@@ -65,7 +65,7 @@ export function ComparisonCard({
                 {option.label}
               </h5>
               {option.preferred && (
-                <span className="text-ember-400 flex shrink-0 items-center gap-1 text-[0.65rem] font-medium">
+                <span className="text-brand-400 flex shrink-0 items-center gap-1 text-[0.65rem] font-medium">
                   <Check className="size-3" aria-hidden="true" />
                   Taught here
                 </span>
@@ -75,11 +75,11 @@ export function ComparisonCard({
             <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
               <div className="flex items-baseline gap-1.5">
                 <dt className="text-muted-foreground text-xs">Time</dt>
-                <dd className="text-ember-300 font-mono text-xs">{option.time}</dd>
+                <dd className="text-brand-300 font-mono text-xs">{option.time}</dd>
               </div>
               <div className="flex items-baseline gap-1.5">
                 <dt className="text-muted-foreground text-xs">Space</dt>
-                <dd className="text-ember-300 font-mono text-xs">{option.space}</dd>
+                <dd className="text-brand-300 font-mono text-xs">{option.space}</dd>
               </div>
             </dl>
 

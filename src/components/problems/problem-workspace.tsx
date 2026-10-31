@@ -18,6 +18,9 @@ import { TestResults } from "@/components/problems/test-results";
 import { TutorLauncher } from "@/components/tutor/tutor-launcher";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -28,6 +31,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Language } from "@/generated/prisma/enums";
+import { describeWireFormat } from "@/lib/code-execution/custom-input";
+import { CUSTOM_INPUT_LIMITS } from "@/lib/code-execution/limits";
 import {
   LANGUAGE_LABEL,
   SUPPORTED_LANGUAGES,
@@ -36,7 +41,7 @@ import {
 import { isTraceable } from "@/lib/trace/types";
 import { cn } from "@/lib/utils";
 import type { TutorContextLabel, TutorQuickAction, TutorCodeState } from "@/lib/tutor/types";
-import type { RunOutcome } from "@/services/submissions";
+import type { SubmitOutcome, RunOutcome } from "@/services/submissions";
 
 /**
  * The coding workspace: editor, controls, and results.
@@ -79,6 +84,15 @@ type Props = {
     quickActions: TutorQuickAction[];
     enabled: boolean;
   };
+  /** Whether this deployment runs code, and the limits each test runs under. */
+  execution: {
+    available: boolean;
+    reason?: string;
+    timeLimitSeconds: number;
+    memoryLimitMb: number;
+  };
+  /** The server's guess at a phone, so hydration starts in the right layout. */
+  likelyMobile?: boolean;
 };
 
 function draftKey(slug: string, language: Language) {
@@ -115,13 +129,16 @@ export function ProblemWorkspace({
   signature,
   samples,
   tutor,
+  execution,
+  likelyMobile = false,
 }: Props) {
   // Only one layout is rendered at a time. Showing both and hiding one
   // with CSS would put two live Monaco instances on the page: double the
-  // memory, and an ambiguous `getModels()[0]`. The cost is that a phone
-  // renders the desktop layout for the first frame before hydration
-  // corrects it, which is by far the cheaper of the two problems.
-  const isMobile = useIsMobile();
+  // memory, and an ambiguous `getModels()[0]`. The server picks the first
+  // layout from the request so a phone hydrates straight into the tabs
+  // instead of swapping from desktop (which remounted the description and
+  // detached any selection in it).
+  const isMobile = useIsMobile(likelyMobile);
 
   const available = SUPPORTED_LANGUAGES.filter((language) => starterCode[language]);
   const initialLanguage = available.includes(defaultLanguage)
@@ -131,10 +148,18 @@ export function ProblemWorkspace({
   const [language, setLanguage] = useState<Language>(initialLanguage);
   const [code, setCode] = useState(() => loadDraft(slug, initialLanguage, starterCode));
   const [loadedFor, setLoadedFor] = useState(initialLanguage);
-  const [outcome, setOutcome] = useState<RunOutcome | null>(null);
+  const [outcome, setOutcome] = useState<(RunOutcome & Partial<SubmitOutcome>) | null>(null);
   const [mode, setMode] = useState<"run" | "submit" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // Custom input: one test case the learner writes, in the same format as
+  // the samples, run through the problem's own harness. Seeded with the
+  // first sample so the format is shown by example, not just described.
+  const [useCustom, setUseCustom] = useState(false);
+  const [customInput, setCustomInput] = useState(() => samples[0]?.input ?? "");
+  const customAvailable = signature !== null;
+  const runsCustom = useCustom && customAvailable;
 
   // Live visualizer wiring: a token to request an auto-playing trace, the
   // line it is on (mirrored into the editor), and which pane is showing.
@@ -221,16 +246,24 @@ export function ProblemWorkspace({
 
   function execute(which: "run" | "submit") {
     // A run is also a trace: the picture should follow the code the
-    // learner just ran, without a second click.
-    if (which === "run" && traceable && signature) {
+    // learner just ran, without a second click. Not for a custom input:
+    // the visualizer traces a sample, which is not what they just ran.
+    if (which === "run" && !runsCustom && traceable && signature) {
       setRunToken((token) => token + 1);
       setLeftPane("visualize");
     }
     setError(null);
     setMode(which);
     startTransition(async () => {
-      const action = which === "run" ? runCodeAction : submitCodeAction;
-      const response = await action({ slug, language, code });
+      const response =
+        which === "submit"
+          ? await submitCodeAction({ slug, language, code })
+          : await runCodeAction({
+              slug,
+              language,
+              code,
+              ...(runsCustom ? { customInput } : {}),
+            });
       if (response.ok) {
         setOutcome(response.data);
       } else {
@@ -292,7 +325,7 @@ export function ProblemWorkspace({
           <Button
             variant="ghost"
             size="sm"
-            className="text-ember-300 hover:text-ember-200 h-8"
+            className="text-brand-300 hover:text-brand-200 h-8"
             onClick={visualize}
             disabled={!traceable}
             title={
@@ -311,7 +344,7 @@ export function ProblemWorkspace({
           size="sm"
           className="h-8"
           onClick={() => execute("run")}
-          disabled={pending}
+          disabled={pending || !execution.available}
         >
           {pending && mode === "run" ? (
             <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
@@ -325,8 +358,14 @@ export function ProblemWorkspace({
           size="sm"
           className="h-8"
           onClick={() => execute("submit")}
-          disabled={pending || !signedIn}
-          title={signedIn ? undefined : "Sign in to submit"}
+          disabled={pending || !signedIn || !execution.available}
+          title={
+            !execution.available
+              ? execution.reason
+              : signedIn
+                ? undefined
+                : "Sign in to submit"
+          }
         >
           {pending && mode === "submit" ? (
             <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
@@ -342,6 +381,17 @@ export function ProblemWorkspace({
   const editorPane = (
     <div className="flex h-full flex-col">
       {controls}
+      {!execution.available ? (
+        <p role="status" className="border-border bg-muted/40 text-muted-foreground border-b px-3 py-2 text-xs">
+          {execution.reason} You can still read the problem, write code, use hints and
+          the visualizer.
+        </p>
+      ) : (
+        <p className="border-border text-muted-foreground border-b px-3 py-1.5 text-xs tabular-nums">
+          Limits per test: {execution.timeLimitSeconds} s CPU, {execution.memoryLimitMb} MB
+          memory, 1 MB output. No network access.
+        </p>
+      )}
       <div className="min-h-0 flex-1">
         <CodeEditor
           language={language}
@@ -357,15 +407,49 @@ export function ProblemWorkspace({
   );
 
   const resultsPane = (
-    <div className="flex h-full flex-col">
-      <div className="border-border flex items-center gap-2 border-b px-3 py-2">
-        <h2 className="text-xs font-medium">Test results</h2>
+    <section aria-labelledby="test-results-heading" className="flex h-full flex-col">
+      <div className="border-border flex flex-wrap items-center gap-2 border-b px-3 py-2">
+        <h2 id="test-results-heading" className="text-xs font-medium">
+          Test results
+        </h2>
         {!signedIn && (
-          <span className="text-muted-foreground ml-auto text-[0.68rem]">
+          <span className="text-muted-foreground text-[0.68rem]">
             Sign in to submit and record progress
           </span>
         )}
+        {customAvailable && (
+          <div className="ml-auto flex items-center gap-2">
+            <Switch
+              id={`custom-input-${slug}`}
+              checked={useCustom}
+              onCheckedChange={setUseCustom}
+              disabled={pending}
+            />
+            <Label htmlFor={`custom-input-${slug}`} className="text-[0.7rem] font-normal">
+              Run with custom input
+            </Label>
+          </div>
+        )}
       </div>
+      {runsCustom && signature && (
+        <div className="border-border space-y-2 border-b px-3 py-2.5">
+          <Textarea
+            value={customInput}
+            onChange={(event) => setCustomInput(event.target.value)}
+            maxLength={CUSTOM_INPUT_LIMITS.maxChars}
+            rows={4}
+            spellCheck={false}
+            aria-label="Custom input"
+            className="font-mono text-[0.72rem]"
+          />
+          <ul className="text-muted-foreground space-y-0.5 text-[0.65rem] leading-relaxed">
+            {describeWireFormat(signature).map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+            <li>Run shows what your function returns. Submit still runs every test.</li>
+          </ul>
+        </div>
+      )}
       <div className="min-h-0 flex-1">
         {error ? (
           <div className="p-4">
@@ -374,10 +458,15 @@ export function ProblemWorkspace({
             </Alert>
           </div>
         ) : (
-          <TestResults outcome={outcome} pending={pending} mode={mode} />
+          <TestResults
+            outcome={outcome}
+            pending={pending}
+            mode={mode}
+            custom={runsCustom}
+          />
         )}
       </div>
-    </div>
+    </section>
   );
 
   const visualPane = signature ? (
@@ -497,7 +586,7 @@ function ResizeHandle({
   return (
     <Separator
       className={cn(
-        "bg-border hover:bg-ember-500/40 data-[state=dragging]:bg-ember-500/60 transition-colors",
+        "bg-border hover:bg-brand-500/40 data-[state=dragging]:bg-brand-500/60 transition-colors",
         orientation === "horizontal" ? "w-px cursor-col-resize" : "h-px cursor-row-resize"
       )}
       aria-label={`Resize ${orientation === "horizontal" ? "panels" : "editor"}`}
@@ -519,11 +608,11 @@ function PaneTab({
   return (
     <TabsTrigger
       value={value}
-      className="data-[state=active]:text-foreground data-[state=active]:after:bg-ember-500 relative h-10 rounded-none border-0 bg-transparent px-3 text-xs shadow-none after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+      className="data-[state=active]:text-foreground data-[state=active]:after:bg-brand-500 relative h-10 rounded-none border-0 bg-transparent px-3 text-xs shadow-none after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full data-[state=active]:bg-transparent data-[state=active]:shadow-none"
     >
       <Icon className="size-3.5" />
       {label}
-      {live && <span className="bg-ember-500 size-1.5 rounded-full" aria-hidden="true" />}
+      {live && <span className="bg-brand-500 size-1.5 rounded-full" aria-hidden="true" />}
     </TabsTrigger>
   );
 }

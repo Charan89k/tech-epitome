@@ -282,7 +282,7 @@ export function LiveVisualizer({
               <Radio
                 className={cn(
                   "size-3",
-                  live ? "text-ember-400" : "text-muted-foreground"
+                  live ? "text-brand-400" : "text-muted-foreground"
                 )}
                 aria-hidden="true"
               />
@@ -544,7 +544,7 @@ function StepCaption({
 }) {
   return (
     <p className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
-      <span className="rounded bg-ember-500/15 px-1.5 py-0.5 font-mono text-[0.68rem] text-ember-200">
+      <span className="rounded bg-brand-500/15 px-1.5 py-0.5 font-mono text-[0.68rem] text-brand-200">
         line {step.line}
       </span>
       <span>

@@ -32,7 +32,7 @@ export function ProblemRow({ problem }: { problem: ProblemListItem }) {
           </span>
           {problem.bookmarked && (
             <Bookmark
-              className="text-ember-500 size-3 shrink-0 fill-current"
+              className="text-brand-500 size-3 shrink-0 fill-current"
               aria-label="Bookmarked"
             />
           )}

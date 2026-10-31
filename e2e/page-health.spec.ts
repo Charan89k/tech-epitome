@@ -28,8 +28,6 @@ const ROUTES = [
   "/visualize/binary-search",
   "/visualize/breadth-first-search",
   "/visualize/write-pointer",
-  "/prepare",
-  "/prepare/generalist-loop",
 ];
 
 /** Errors a healthy page may still emit, and why they are not our problem. */
@@ -117,4 +115,14 @@ test("no internal link on a shell page is broken", async ({ page, request }) => 
       response.status()
     );
   }
+});
+
+test("a problem page is served in the layout it hydrates into", async ({ page }) => {
+  // The server guesses the layout from the request. If the guess is wrong,
+  // a phone hydrates the desktop split and swaps to tabs, remounting the
+  // description and detaching any selection in it.
+  const phone = (page.viewportSize()?.width ?? 1280) < 768;
+  const html = await (await page.request.get("/problems/running-altitude")).text();
+  expect(html.includes("tech-epitome-problem-h"), "desktop split in the HTML").toBe(!phone);
+  expect(/>Results</.test(html), "mobile tabs in the HTML").toBe(phone);
 });

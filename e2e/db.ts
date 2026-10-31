@@ -170,6 +170,45 @@ export function dueAtMs(row: ReviewItemRow): number {
  * development default. Writing the role directly keeps the test honest
  * about what it is doing rather than hiding it behind a fixture login.
  */
+/**
+ * Runs one parameterised statement. For specs that need to put the
+ * database into a state no UI reaches directly - an account suspended by
+ * an operator, a membership revoked - so the spec can assert what the next
+ * request does.
+ */
+export async function execSql<T = Record<string, unknown>>(
+  text: string,
+  params: unknown[] = []
+): Promise<T[]> {
+  const result = await withRetry(() => pool().query(text, params));
+  return result.rows as T[];
+}
+
+/**
+ * Makes the account an active student of a fresh throwaway college.
+ *
+ * Mock interviews, interview prep and roadmaps are part of Campus, so a
+ * spec that exercises them needs a member, exactly as a real student is.
+ */
+export async function joinTestCollege(email: string): Promise<void> {
+  const userId = await userIdFor(email);
+  const suffix = `${Date.now()}-${Math.floor(Math.random() * 100_000)}`;
+  await withRetry(async () => {
+    const [inst] = (
+      await pool().query<{ id: string }>(
+        `INSERT INTO institutions (id, slug, name, "updatedAt")
+         VALUES ($1, $2, 'E2E College', now()) RETURNING id`,
+        [`e2e-inst-${suffix}`, `e2e-college-${suffix}`]
+      )
+    ).rows;
+    await pool().query(
+      `INSERT INTO institution_memberships (id, "institutionId", "userId", role, source, "updatedAt")
+       VALUES ($1, $2, $3, 'STUDENT', 'INVITATION', now())`,
+      [`e2e-m-${suffix}`, inst!.id, userId]
+    );
+  });
+}
+
 export async function makeAdmin(email: string): Promise<void> {
   const userId = await userIdFor(email);
   await withRetry(() =>

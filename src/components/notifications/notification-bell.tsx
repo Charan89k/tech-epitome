@@ -105,7 +105,7 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
           {unread > 0 && (
             <span
               aria-hidden="true"
-              className="bg-ember-500 text-background absolute top-1 right-1 flex size-4 items-center justify-center rounded-full text-[0.6rem] font-medium tabular-nums"
+              className="bg-brand-500 text-background absolute top-1 right-1 flex size-4 items-center justify-center rounded-full text-[0.6rem] font-medium tabular-nums"
             >
               {unread > 9 ? "9+" : unread}
             </span>
@@ -153,7 +153,7 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
                     <div className="flex items-start gap-2">
                       {!item.read && (
                         <span
-                          className="bg-ember-500 mt-1.5 size-1.5 shrink-0 rounded-full"
+                          className="bg-brand-500 mt-1.5 size-1.5 shrink-0 rounded-full"
                           aria-hidden="true"
                         />
                       )}

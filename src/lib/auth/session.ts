@@ -4,6 +4,7 @@ import { cache } from "react";
 import { forbidden, redirect, unauthorized } from "next/navigation";
 
 import { auth } from "@/lib/auth";
+import { loginPathFor } from "@/lib/auth/login-path";
 import { prisma } from "@/lib/db";
 import { route } from "@/lib/utils";
 import type { Role } from "@/generated/prisma/enums";
@@ -45,12 +46,20 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       name: true,
       image: true,
       role: true,
+      status: true,
+      sessionVersion: true,
     },
   });
 
   // The session referenced a user that no longer exists - treat as signed out
   // rather than crashing the render.
   if (!user) return null;
+
+  // Revocation. A suspended account, or a token minted before the user's
+  // sessionVersion was last bumped, is signed out on this request - not when
+  // the 30-day JWT expires. Every page, action and route resolves the user
+  // here, so this is the one check that needs to exist.
+  if (!isSessionCurrent(user, session.user.sessionVersion)) return null;
 
   return {
     id: user.id,
@@ -60,6 +69,14 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     role: user.role,
   };
 });
+
+/** Whether a decoded session still grants access to this account. */
+export function isSessionCurrent(
+  user: { status: "ACTIVE" | "SUSPENDED"; sessionVersion: number },
+  tokenVersion: number | undefined
+): boolean {
+  return user.status === "ACTIVE" && (tokenVersion ?? 0) === user.sessionVersion;
+}
 
 /** Convenience for layouts that only need to know whether to show the app shell. */
 export async function isSignedIn(): Promise<boolean> {
@@ -73,10 +90,18 @@ export async function isSignedIn(): Promise<boolean> {
 export async function requireUser(returnTo?: string): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) {
-    const target = returnTo
-      ? `/login?next=${encodeURIComponent(returnTo)}`
-      : "/login";
-    redirect(route(target));
+    // A cookie that still decodes but no longer grants access (suspended,
+    // or revoked by a sessionVersion bump) would otherwise bounce between
+    // /login and /dashboard: the proxy only sees a valid JWT and sends
+    // "signed-in" visitors away from the login page. `ended=1` tells it to
+    // let this one through.
+    const ended = Boolean((await auth())?.user?.id);
+    const params = new URLSearchParams();
+    if (returnTo) params.set("next", returnTo);
+    if (ended) params.set("ended", "1");
+    const query = params.toString();
+    const login = loginPathFor(returnTo ?? "/");
+    redirect(route(query ? `${login}?${query}` : login));
   }
   return user;
 }
@@ -94,7 +119,7 @@ export async function requireUserOrThrow(): Promise<CurrentUser> {
 
 export async function requireAdmin(): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (!user) redirect("/login?next=%2Fadmin");
+  if (!user) redirect("/admin/login?next=%2Fadmin");
   if (user.role !== "ADMIN") forbidden();
   return user;
 }
@@ -125,14 +150,16 @@ export async function requireAdminOrThrow(): Promise<CurrentUser> {
  * for a signed-out visitor — the OS media query still applies to them,
  * and it applies to everyone.
  */
-export const getMotionPreference = cache(async function getMotionPreference(): Promise<boolean> {
-  const session = await auth();
-  const id = session?.user?.id;
-  if (!id) return false;
+export const getMotionPreference = cache(
+  async function getMotionPreference(): Promise<boolean> {
+    const session = await auth();
+    const id = session?.user?.id;
+    if (!id) return false;
 
-  const profile = await prisma.profile.findUnique({
-    where: { userId: id },
-    select: { reducedMotion: true },
-  });
-  return profile?.reducedMotion ?? false;
-});
+    const profile = await prisma.profile.findUnique({
+      where: { userId: id },
+      select: { reducedMotion: true },
+    });
+    return profile?.reducedMotion ?? false;
+  }
+);

@@ -25,8 +25,13 @@ export function PageHeader({
       )}
     >
       <div className="min-w-0 space-y-1.5">
-        {eyebrow}
-        <h1 className="tracking-headline truncate text-2xl font-bold sm:text-3xl">
+        {eyebrow &&
+          (typeof eyebrow === "string" ? (
+            <p className="label-mono uppercase tracking-wider">{eyebrow}</p>
+          ) : (
+            eyebrow
+          ))}
+        <h1 className="tracking-headline text-2xl font-semibold text-balance sm:text-3xl">
           {title}
         </h1>
         {description && (

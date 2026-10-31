@@ -1,8 +1,8 @@
-import { NextResponse, type NextRequest } from "next/server";
-import { timingSafeEqual } from "node:crypto";
+import type { NextRequest } from "next/server";
 
 import { prisma } from "@/lib/db";
-import { getEnv } from "@/lib/env";
+import { jobResponse, refuseCron } from "@/lib/cron-auth";
+import { runJob } from "@/services/jobs";
 import { runReviewReminders } from "@/services/email-notifications";
 import { notifyReviewsDue } from "@/services/notifications";
 
@@ -32,31 +32,14 @@ import { notifyReviewsDue } from "@/services/notifications";
 
 export const dynamic = "force-dynamic";
 
-/** Constant time, and length-safe: `timingSafeEqual` throws on a mismatch. */
-function secretMatches(provided: string, expected: string): boolean {
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
+export async function POST(request: NextRequest) {
+  const refused = refuseCron(request);
+  if (refused) return refused;
+  // Recorded in job_runs; a second concurrent call gets 409 and does nothing.
+  return jobResponse(await runJob("review-reminders", sendReminders));
 }
 
-export async function POST(request: NextRequest) {
-  const expected = getEnv().CRON_SECRET;
-
-  if (!expected) {
-    return NextResponse.json(
-      { error: "Scheduled jobs are not configured on this deployment." },
-      { status: 503 }
-    );
-  }
-
-  const header = request.headers.get("authorization") ?? "";
-  const provided = header.startsWith("Bearer ") ? header.slice(7) : "";
-
-  if (!provided || !secretMatches(provided, expected)) {
-    return NextResponse.json({ error: "Not authorized." }, { status: 401 });
-  }
-
+async function sendReminders() {
   const now = new Date();
   // One reminder per learner per day, however often the scheduler runs.
   const since = new Date(now.getTime() - 20 * 60 * 60 * 1000);
@@ -88,11 +71,11 @@ export async function POST(request: NextRequest) {
   // concurrently.
   const email = await runReviewReminders({ now });
 
-  return NextResponse.json({
+  return {
     learnersWithWork: due.length,
     // In-app notifications written this run.
     notified,
     // What the email pipeline actually did, including the declines.
     email,
-  });
+  };
 }

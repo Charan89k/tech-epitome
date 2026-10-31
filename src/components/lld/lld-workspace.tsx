@@ -345,7 +345,7 @@ export function LLDWorkspace({
             type="button"
             onClick={() => addType(entry.kind)}
             title={entry.hint}
-            className="border-border bg-background/60 text-muted-foreground hover:border-ember-500/40 hover:text-ember-300 focus-visible:ring-ring/50 inline-flex h-7 items-center gap-1 rounded-md border px-2.5 text-xs transition-colors focus-visible:ring-3 focus-visible:outline-none"
+            className="border-border bg-background/60 text-muted-foreground hover:border-brand-500/40 hover:text-brand-300 focus-visible:ring-ring/50 inline-flex h-7 items-center gap-1 rounded-md border px-2.5 text-xs transition-colors focus-visible:ring-3 focus-visible:outline-none"
           >
             <Plus className="size-3" aria-hidden="true" />
             {entry.label}
@@ -402,7 +402,7 @@ export function LLDWorkspace({
   );
 
   const inspector = selectedType ? (
-    <div className="border-ember-500/30 bg-ember-500/5 rounded-lg border p-3" data-testid="lld-inspector">
+    <div className="border-brand-500/30 bg-brand-500/5 rounded-lg border p-3" data-testid="lld-inspector">
       <div className="flex items-center gap-2">
         <Select
           value={selectedType.kind}

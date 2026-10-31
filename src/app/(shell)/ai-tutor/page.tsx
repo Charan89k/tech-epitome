@@ -92,13 +92,13 @@ function ContextLink({
   return (
     <Link
       href={href}
-      className="group bg-card border-border hover:border-ember-500/40 focus-visible:ring-ring/50 flex items-start gap-3 rounded-xl border p-3 transition-colors focus-visible:ring-3 focus-visible:outline-none"
+      className="group bg-card border-border hover:border-brand-500/40 focus-visible:ring-ring/50 flex items-start gap-3 rounded-xl border p-3 transition-colors focus-visible:ring-3 focus-visible:outline-none"
     >
-      <span className="bg-ember-500/12 text-ember-300 flex size-8 shrink-0 items-center justify-center rounded-lg">
+      <span className="bg-brand-500/12 text-brand-300 flex size-8 shrink-0 items-center justify-center rounded-lg">
         <Icon className="size-4" aria-hidden="true" />
       </span>
       <span className="min-w-0">
-        <span className="group-hover:text-ember-200 block text-sm font-medium transition-colors">
+        <span className="group-hover:text-brand-200 block text-sm font-medium transition-colors">
           {title}
         </span>
         <span className="text-muted-foreground mt-0.5 block text-xs leading-snug">

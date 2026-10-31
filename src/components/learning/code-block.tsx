@@ -86,14 +86,14 @@ export function CodeBlock({
                   key={index}
                   className={cn(
                     "grid grid-cols-[2.5rem_1fr] hover:bg-white/[0.02]",
-                    isHighlighted && "bg-ember-500/8 border-ember-500/60 border-l-2"
+                    isHighlighted && "bg-brand-500/8 border-brand-500/60 border-l-2"
                   )}
                 >
                   <span
                     aria-hidden="true"
                     className={cn(
                       "text-muted-foreground/40 shrink-0 pr-3 text-right select-none",
-                      isHighlighted && "text-ember-500/70 -ml-0.5"
+                      isHighlighted && "text-brand-500/70 -ml-0.5"
                     )}
                   >
                     {lineNumber}

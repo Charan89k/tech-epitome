@@ -1,13 +1,15 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { closeDb } from "./db";
+import { closeDb, joinTestCollege } from "./db";
 import { finishSignup } from "./helpers";
 
 /**
  * Tech Epitome is free, proven rather than asserted.
  *
  * One ordinary account — nothing bought, no role, no flag — opens every
- * surface in the product and is never shown a price. The check is
+ * individual-learning surface and is never shown a price. Mock interviews,
+ * interview prep and roadmaps are part of Campus: they come with a college
+ * membership, never with a payment, and are checked separately below. The check is
  * deliberately blunt: it reads the whole rendered page and fails on any
  * word from the monetization vocabulary, so a paywall reintroduced
  * anywhere fails here even if nobody thinks to write a test for it.
@@ -74,9 +76,6 @@ const ROUTES = [
   "/lld",
   "/lld/parking-garage",
   "/review",
-  "/interviews",
-  "/prepare",
-  "/prepare/generalist-loop",
   "/ai-tutor",
   "/dashboard/notes",
   "/dashboard/bookmarks",
@@ -139,11 +138,34 @@ test("an ordinary account reaches every surface, and is never asked to pay", asy
   }
 });
 
-test("every interview type can be started by an ordinary account", async ({
+/** The Campus offering: reached through a college, never through a payment. */
+const CAMPUS_ROUTES = ["/interviews", "/prepare", "/prepare/generalist-loop", "/roadmaps"] as const;
+
+test("Campus surfaces send an ordinary account to join a college, not to pay", async ({
+  page,
+}) => {
+  await signUp(page, "campus-gate");
+  for (const route of CAMPUS_ROUTES) {
+    await page.goto(route);
+    await expect(page, `${route} for a non-member`).toHaveURL(/\/campus\?need=membership$/, {
+      timeout: 30_000,
+    });
+    expect(page.url()).not.toMatch(/pricing|upgrade|billing/);
+  }
+});
+
+test("a college member reaches the Campus surfaces and can start every interview type", async ({
   page,
 }) => {
   test.slow();
-  await signUp(page, "interviews");
+  const email = await signUp(page, "interviews");
+  await joinTestCollege(email);
+
+  for (const route of CAMPUS_ROUTES) {
+    const response = await page.goto(route);
+    expect(response?.status(), `${route} status`).toBeLessThan(400);
+    expect(page.url(), `${route} for a member`).not.toMatch(/\/campus/);
+  }
 
   for (const type of [
     "Coding (DSA)",

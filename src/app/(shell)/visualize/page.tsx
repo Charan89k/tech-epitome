@@ -20,7 +20,7 @@ export default function VisualizeIndexPage() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <header className="max-w-3xl">
-        <p className="text-ember-400 text-[0.68rem] font-medium tracking-wider uppercase">
+        <p className="text-brand-400 text-[0.68rem] font-medium tracking-wider uppercase">
           Live visuals
         </p>
         <h1 className="tracking-headline mt-2 text-2xl font-bold sm:text-3xl">Visualize</h1>
@@ -36,14 +36,14 @@ export default function VisualizeIndexPage() {
           <li key={visualization.key}>
             <Link
               href={route(`/visualize/${visualization.key}`)}
-              className="border-border bg-card hover:border-ember-500/40 group flex h-full flex-col overflow-hidden rounded-xl border transition-colors"
+              className="border-border bg-card hover:border-brand-500/40 group flex h-full flex-col overflow-hidden rounded-xl border transition-colors"
             >
               <MiniDiagram
                 kind={diagramFor(visualization.key, index)}
                 className="border-border h-32 border-b"
               />
               <div className="flex flex-1 flex-col p-4">
-                <h2 className="group-hover:text-ember-200 text-base font-semibold transition-colors">
+                <h2 className="group-hover:text-brand-200 text-base font-semibold transition-colors">
                   {visualization.title}
                 </h2>
                 <p className="text-muted-foreground mt-1 line-clamp-3 flex-1 text-xs leading-relaxed">
@@ -59,7 +59,7 @@ export default function VisualizeIndexPage() {
                     </span>
                   </div>
                   <ArrowRight
-                    className="text-muted-foreground group-hover:text-ember-400 size-4 shrink-0 transition-all group-hover:translate-x-0.5"
+                    className="text-muted-foreground group-hover:text-brand-400 size-4 shrink-0 transition-all group-hover:translate-x-0.5"
                     aria-hidden="true"
                   />
                 </div>

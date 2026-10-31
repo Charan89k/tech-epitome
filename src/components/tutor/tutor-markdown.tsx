@@ -73,7 +73,7 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
       nodes.push(
         <code
           key={`${keyPrefix}-c${index}`}
-          className="bg-muted text-ember-300 rounded px-1 py-0.5 font-mono text-[0.85em]"
+          className="bg-muted text-brand-300 rounded px-1 py-0.5 font-mono text-[0.85em]"
         >
           {token.slice(1, -1)}
         </code>

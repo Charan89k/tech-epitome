@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, Info } from "lucide-react";
 
 import { InterviewRoom } from "@/components/interview/interview-room";
-import { requireUser } from "@/lib/auth/session";
+import { requireCampusUser } from "@/lib/campus-access";
 import {
   BAND_LABELS,
   DIMENSION_LABELS,
@@ -12,7 +12,12 @@ import {
   type EvaluationDimension,
   type RatingBand,
 } from "@/lib/interview/types";
+import { Button } from "@/components/ui/button";
+import { SELF_CHECK } from "@/lib/interview/feedback";
+import { dimensionsFor } from "@/lib/interview/types";
 import { getInterview } from "@/services/interview";
+
+import { deleteInterviewAction } from "../actions";
 
 export const metadata: Metadata = {
   title: "Interview",
@@ -23,13 +28,13 @@ export const metadata: Metadata = {
 const BAND_STYLE: Record<RatingBand, string> = {
   not_demonstrated: "border-border text-muted-foreground",
   developing: "border-warning/35 bg-warning/10 text-warning",
-  solid: "border-ember-500/35 bg-ember-500/10 text-ember-300",
+  solid: "border-brand-500/35 bg-brand-500/10 text-brand-300",
   strong: "border-success/35 bg-success/10 text-success",
 };
 
 export default async function InterviewPage({ params }: PageProps<"/interviews/[id]">) {
   const { id } = await params;
-  const user = await requireUser(`/interviews/${id}`);
+  const user = await requireCampusUser(`/interviews/${id}`);
 
   // Scoped read: another learner's session id matches no row and 404s,
   // which is indistinguishable from one that never existed.
@@ -58,6 +63,13 @@ export default async function InterviewPage({ params }: PageProps<"/interviews/[
           <span className="capitalize">{session.difficulty.toLowerCase()}</span>
         </span>
       </div>
+
+      {session.transcriptDeletedAt && (
+        <p className="mt-4 rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+          This transcript and your code were deleted under the retention policy. The
+          written feedback below is kept.
+        </p>
+      )}
 
       <div className="mt-5">
         <InterviewRoom
@@ -99,8 +111,10 @@ export default async function InterviewPage({ params }: PageProps<"/interviews/[
                   AI-generated feedback.
                 </strong>{" "}
                 Written by a language model reading your transcript. Each judgement
-                cites what it is based on, so you can disagree with it. There is no
-                overall score, and this is not equivalent to a real company interview.
+                cites what it is based on, and quotations are checked against what you
+                actually said, so you can disagree with it. There is no overall score.
+                It is advisory: it is not a real company interview and does not
+                predict or guarantee placement or hiring.
               </p>
             </div>
 
@@ -139,7 +153,7 @@ export default async function InterviewPage({ params }: PageProps<"/interviews/[
               {session.feedback.strengths.length > 0 && (
                 <div>
                   <h3 className="mt-6 text-sm font-semibold">What went well</h3>
-                  <ul className="mt-2 list-disc space-y-1 pl-5 marker:text-ember-500/60">
+                  <ul className="mt-2 list-disc space-y-1 pl-5 marker:text-brand-500/60">
                     {session.feedback.strengths.map((s) => (
                       <li
                         key={s}
@@ -155,7 +169,7 @@ export default async function InterviewPage({ params }: PageProps<"/interviews/[
               {session.feedback.improvements.length > 0 && (
                 <div>
                   <h3 className="mt-6 text-sm font-semibold">What to work on</h3>
-                  <ul className="mt-2 list-disc space-y-1 pl-5 marker:text-ember-500/60">
+                  <ul className="mt-2 list-disc space-y-1 pl-5 marker:text-brand-500/60">
                     {session.feedback.improvements.map((s) => (
                       <li
                         key={s}
@@ -171,6 +185,45 @@ export default async function InterviewPage({ params }: PageProps<"/interviews/[
           </section>
         </>
       )}
+      {session.stage === "ENDED" && !session.feedback && session.transcript.length > 0 && (
+        <section
+          aria-labelledby="self-review"
+          className="mt-8 rounded-xl border border-border bg-card p-4 sm:p-6"
+        >
+          <h2 id="self-review" className="tracking-headline text-lg font-semibold">
+            Self-review
+          </h2>
+          <p className="mt-2 text-xs text-muted-foreground">
+            The rubric written feedback uses. Read your transcript above against each
+            question. Useful when AI feedback is unavailable, and on its own.
+          </p>
+          <ul className="mt-4 space-y-2 text-sm">
+            {dimensionsFor(session.type).map((d) => (
+              <li key={d}>
+                <span className="font-medium">{DIMENSION_LABELS[d]}:</span>{" "}
+                <span className="text-muted-foreground">{SELF_CHECK[d]}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <form
+        action={deleteInterviewAction.bind(null, session.id)}
+        className="mt-10 border-t border-border pt-6"
+      >
+        <p className="mb-2 text-xs text-muted-foreground">
+          Your transcripts are private to you. Deleting removes this interview, its
+          transcript, code and feedback permanently.
+        </p>
+        <label className="mb-2 flex items-center gap-2 text-xs">
+          <input type="checkbox" name="confirm" required />
+          I understand this cannot be undone.
+        </label>
+        <Button type="submit" variant="destructive" size="sm">
+          Delete this interview
+        </Button>
+      </form>
     </div>
   );
 }

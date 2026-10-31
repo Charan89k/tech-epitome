@@ -32,7 +32,7 @@ export function InlineContent({ nodes }: { nodes: InlineNode[] }) {
             return (
               <code
                 key={index}
-                className="bg-muted text-ember-300 rounded px-1.5 py-0.5 font-mono text-[0.85em]"
+                className="bg-muted text-brand-300 rounded px-1.5 py-0.5 font-mono text-[0.85em]"
               >
                 {node.value}
               </code>
@@ -46,7 +46,7 @@ export function InlineContent({ nodes }: { nodes: InlineNode[] }) {
                   href={node.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-ember-400 underline decoration-dotted underline-offset-4 hover:decoration-solid"
+                  className="text-brand-400 underline decoration-dotted underline-offset-4 hover:decoration-solid"
                 >
                   {node.value}
                 </a>
@@ -56,7 +56,7 @@ export function InlineContent({ nodes }: { nodes: InlineNode[] }) {
               <Link
                 key={index}
                 href={route(node.href)}
-                className="text-ember-400 underline decoration-dotted underline-offset-4 hover:decoration-solid"
+                className="text-brand-400 underline decoration-dotted underline-offset-4 hover:decoration-solid"
               >
                 {node.value}
               </Link>

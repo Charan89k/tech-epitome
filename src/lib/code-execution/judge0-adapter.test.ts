@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Judge0ExecutionAdapter } from "./judge0-adapter";
+import { Judge0ExecutionAdapter, parseJudge0LanguageIds } from "./judge0-adapter";
 import type { ExecutionRequest } from "./types";
 
 /**
@@ -199,5 +199,135 @@ describe("Judge0ExecutionAdapter", () => {
       language: "GO",
     });
     expect(result.status).toBe("INTERNAL_ERROR");
+  });
+
+  it("maps Judge0's file-size signal to an output-limit verdict", async () => {
+    // Status 8 is Runtime Error (SIGXFSZ): on Judge0 stdout is a file, so a
+    // print loop trips max_file_size rather than filling memory.
+    const { fetcher } = server([{ status: 8, stdout: "AAAA" }]);
+    const result = await new Judge0ExecutionAdapter({
+      url: "https://j.test",
+      fetch: fetcher,
+    }).execute(request([{ expected: "1", isSample: true }]));
+
+    expect(result.status).toBe("OUTPUT_LIMIT_EXCEEDED");
+    expect(result.results[0]!.outcome).toBe("OUTPUT_LIMIT");
+  });
+
+  it("treats a Python print loop that hit the file-size limit as output-limited", async () => {
+    // CPython ignores SIGXFSZ, so on Judge0 it exits with NZEC (11) and EFBIG.
+    const { fetcher } = server([
+      { status: 11, stderr: "OSError: [Errno 27] File too large" },
+    ]);
+    const result = await new Judge0ExecutionAdapter({
+      url: "https://j.test",
+      fetch: fetcher,
+    }).execute(request([{ expected: "1", isSample: true }]));
+    expect(result.status).toBe("OUTPUT_LIMIT_EXCEEDED");
+  });
+
+  it("reports a custom input as output, never as a verdict", async () => {
+    const { fetcher } = server([{ status: 3, stdout: "42\n" }]);
+    const result = await new Judge0ExecutionAdapter({
+      url: "https://j.test",
+      fetch: fetcher,
+    }).execute({
+      ...request([]),
+      tests: [{ id: "custom", input: "1 2", expected: null, isSample: true }],
+    });
+
+    expect(result.status).toBe("ACCEPTED");
+    expect(result.passed).toBe(0);
+    expect(result.results[0]).toMatchObject({ outcome: "COMPLETED", actual: "42\n" });
+    expect(result.results[0]).not.toHaveProperty("expected");
+  });
+
+  it("clamps every limit and refuses networking, whatever the request asks", async () => {
+    const { fetcher, calls } = server([{ status: 3, stdout: "1" }]);
+    await new Judge0ExecutionAdapter({ url: "https://j.test", fetch: fetcher }).execute({
+      ...request([{ expected: "1", isSample: true }]),
+      timeLimitMs: 600_000,
+      memoryLimitMb: 64_000,
+    });
+
+    const body = JSON.parse(String(calls[0]!.init!.body)) as {
+      submissions: Record<string, unknown>[];
+    };
+    expect(body.submissions[0]).toMatchObject({
+      cpu_time_limit: 5,
+      wall_time_limit: 10,
+      memory_limit: 256 * 1024,
+      stack_limit: 64_000,
+      max_file_size: 1024,
+      max_processes_and_or_threads: 60,
+      enable_network: false,
+    });
+  });
+
+  it("uses configured language ids instead of the public server's", async () => {
+    const { fetcher, calls } = server([{ status: 3, stdout: "1" }]);
+    await new Judge0ExecutionAdapter({
+      url: "https://j.test",
+      fetch: fetcher,
+      languageIds: { PYTHON: 71 },
+    }).execute(request([{ expected: "1", isSample: true }]));
+
+    const body = JSON.parse(String(calls[0]!.init!.body)) as {
+      submissions: { language_id: number }[];
+    };
+    expect(body.submissions[0]!.language_id).toBe(71);
+  });
+
+  it("splits large suites into batches of at most 20", async () => {
+    const posted: number[] = [];
+    const fetcher = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      if (init?.method === "POST") {
+        const { submissions } = JSON.parse(String(init.body)) as { submissions: unknown[] };
+        const offset = posted.reduce((sum, n) => sum + n, 0);
+        posted.push(submissions.length);
+        return Response.json(submissions.map((_, i) => ({ token: `t${offset + i}` })));
+      }
+      const tokens = new URL(String(url)).searchParams.get("tokens")!.split(",");
+      return Response.json({
+        submissions: tokens.map(() => ({
+          stdout: Buffer.from("1").toString("base64"),
+          stderr: null,
+          compile_output: null,
+          message: null,
+          time: "0.01",
+          memory: 1000,
+          status: { id: 3, description: "" },
+        })),
+      });
+    }) as unknown as typeof fetch;
+
+    const result = await new Judge0ExecutionAdapter({
+      url: "https://j.test",
+      fetch: fetcher,
+    }).execute(
+      request(Array.from({ length: 25 }, () => ({ expected: "1", isSample: false })))
+    );
+
+    expect(posted).toEqual([20, 5]);
+    expect(result.status).toBe("ACCEPTED");
+    expect(result.passed).toBe(25);
+  });
+});
+
+describe("parseJudge0LanguageIds", () => {
+  it("reads LANGUAGE:id pairs", () => {
+    expect(parseJudge0LanguageIds("PYTHON:71, JAVASCRIPT:63,JAVA:62,CPP:54")).toEqual({
+      PYTHON: 71,
+      JAVASCRIPT: 63,
+      JAVA: 62,
+      CPP: 54,
+    });
+  });
+
+  it("refuses anything it cannot read exactly", () => {
+    // A wrong id would run learner code under a different language.
+    expect(() => parseJudge0LanguageIds("PYTHON=71")).toThrow(/LANGUAGE:id/);
+    expect(() => parseJudge0LanguageIds("RUBY:72")).toThrow(/LANGUAGE:id/);
+    expect(() => parseJudge0LanguageIds("PYTHON:seventy")).toThrow(/LANGUAGE:id/);
   });
 });

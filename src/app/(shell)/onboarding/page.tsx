@@ -41,7 +41,7 @@ export default async function OnboardingPage() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-12">
       <div className="mx-auto w-full max-w-xl">
-        <p className="inline-flex rounded-full bg-ember-500/12 px-2.5 py-1 text-[0.68rem] font-medium tracking-wider text-ember-300 uppercase">
+        <p className="inline-flex rounded-full bg-brand-500/12 px-2.5 py-1 text-[0.68rem] font-medium tracking-wider text-brand-300 uppercase">
           Getting started
         </p>
         <h1 className="tracking-headline mt-3 text-2xl font-bold sm:text-3xl">

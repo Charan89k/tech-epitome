@@ -6,12 +6,8 @@ import { Sparkles } from "lucide-react";
 
 import { TutorPanel } from "@/components/tutor/tutor-panel";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type {
   TutorAnchor,
@@ -57,6 +53,9 @@ export function TutorLauncher({
 }) {
   const [open, setOpen] = useState(false);
   const isMobile = useIsMobile();
+  // A tap before hydration would be silently lost (seen on slow phones on
+  // the problem page), so the button stays disabled until it can respond.
+  const hydrated = useHydrated();
 
   return (
     <>
@@ -64,6 +63,7 @@ export function TutorLauncher({
         variant={variant}
         size="sm"
         className={cn("h-8 gap-1.5", className)}
+        disabled={!hydrated}
         onClick={() => setOpen(true)}
         data-testid="tutor-open"
       >
@@ -78,9 +78,7 @@ export function TutorLauncher({
           side={isMobile ? "bottom" : "right"}
           className={cn(
             "gap-0 p-0",
-            isMobile
-              ? "h-[92dvh] w-full max-w-none rounded-t-xl"
-              : "w-full sm:max-w-md"
+            isMobile ? "h-[92dvh] w-full max-w-none rounded-t-xl" : "w-full sm:max-w-md"
           )}
         >
           {/* The dialog's accessible name. Names the context rather than
@@ -89,9 +87,7 @@ export function TutorLauncher({
               same two words twice. */}
           <SheetHeader className="sr-only">
             <SheetTitle>
-              {label.secondary
-                ? `AI Tutor — ${label.secondary}`
-                : "AI Tutor"}
+              {label.secondary ? `AI Tutor — ${label.secondary}` : "AI Tutor"}
             </SheetTitle>
           </SheetHeader>
 
@@ -114,12 +110,12 @@ export function TutorLauncher({
 function SignInToUseTutor() {
   return (
     <div className="flex h-full flex-col items-center justify-center px-8 text-center">
-      <Sparkles className="text-muted-foreground size-6" aria-hidden="true" />
+      <Sparkles className="size-6 text-muted-foreground" aria-hidden="true" />
       <h2 className="mt-3 text-sm font-semibold">Sign in to use the tutor</h2>
-      <p className="text-muted-foreground mt-2 max-w-xs text-sm leading-relaxed">
-        It knows the chapter you are reading and the code in your editor, and it
-        walks you to the answer instead of handing it over. Conversations are
-        saved to your account, so it needs one. It is free.
+      <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">
+        It knows the chapter you are reading and the code in your editor, and it walks
+        you to the answer instead of handing it over. Conversations are saved to your
+        account, so it needs one. It is free.
       </p>
       <Button asChild className="mt-6">
         <Link href="/login">Sign in</Link>

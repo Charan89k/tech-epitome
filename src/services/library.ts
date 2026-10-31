@@ -139,9 +139,17 @@ export async function listBookmarks(userId: string): Promise<LibraryItem[]> {
 
 export type NoteItem = LibraryItem & { body: string; updatedAt: Date };
 
+export const NOTES_PER_PAGE = 50;
+
+/**
+ * One page of the user's own notes, newest first. Returns up to
+ * `NOTES_PER_PAGE + 1` rows: the extra one only tells the caller there is a
+ * next page, and is not shown.
+ */
 export async function listNotes(
   userId: string,
-  search?: string
+  search?: string,
+  page = 1
 ): Promise<NoteItem[]> {
   const notes = await prisma.note.findMany({
     where: {
@@ -154,8 +162,9 @@ export async function listNotes(
         ? { body: { contains: search.trim(), mode: "insensitive" as const } }
         : {}),
     },
-    orderBy: { updatedAt: "desc" },
-    take: 200,
+    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+    skip: (Math.max(1, Math.floor(page)) - 1) * NOTES_PER_PAGE,
+    take: NOTES_PER_PAGE + 1,
     select: {
       id: true,
       entityType: true,

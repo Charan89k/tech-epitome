@@ -42,7 +42,7 @@ export function ProblemListBlock({
               <span className="min-w-0 flex-1 truncate text-sm">{problem.title}</span>
               <DifficultyBadge difficulty={problem.difficulty} />
               <ArrowUpRight
-                className="text-muted-foreground group-hover:text-ember-500 size-3.5 shrink-0 transition-colors"
+                className="text-muted-foreground group-hover:text-brand-500 size-3.5 shrink-0 transition-colors"
                 aria-hidden="true"
               />
             </Link>

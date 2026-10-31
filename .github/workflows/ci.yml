@@ -1,0 +1,70 @@
+# Every push and pull request: lint, types, the full Vitest suite against a
+# real PostgreSQL (migrated and seeded), a secret-free production build,
+# and the container image build. Nothing here deploys or reads production.
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: techepitome
+          POSTGRES_PASSWORD: techepitome
+          POSTGRES_DB: techepitome
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U techepitome" --health-interval 5s
+          --health-timeout 5s --health-retries 20
+    env:
+      # Throwaway CI database and test-only values; no real secret is used.
+      DATABASE_URL: postgresql://techepitome:techepitome@127.0.0.1:5432/techepitome
+      AUTH_SECRET: ci-only-auth-secret-not-used-anywhere-else
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3100
+      AI_PROVIDER: mock
+      EMAIL_PROVIDER: console
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx next typegen
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npx prisma migrate deploy
+      - run: npm run db:seed
+      - run: npm test
+      - name: Production build without secrets or a database
+        env:
+          NODE_ENV: production
+          SKIP_ENV_VALIDATION: "true"
+          DATABASE_URL: postgresql://build:build@127.0.0.1:1/build
+        run: npm run build
+
+  image:
+    runs-on: ubuntu-24.04
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f deploy/Dockerfile --target app -t tech-epitome:ci .
+      - run: docker build -f deploy/Dockerfile --target migrator -t tech-epitome-migrator:ci .
+      - name: The image carries no env files
+        run: |
+          ! docker run --rm --entrypoint sh tech-epitome:ci -c 'ls -a /app | grep -q "^\.env"'

@@ -96,7 +96,7 @@ export function ChapterToc({
             aria-label="Reading progress"
           >
             <div
-              className="bg-ember-500 h-full rounded-full transition-[width] duration-150"
+              className="bg-brand-500 h-full rounded-full transition-[width] duration-150"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -112,7 +112,7 @@ export function ChapterToc({
               <li key={entry.id} className="relative">
                 {active && (
                   <span
-                    className="bg-ember-500 absolute top-1 bottom-1 left-0 w-[3px] rounded-full"
+                    className="bg-brand-500 absolute top-1 bottom-1 left-0 w-[3px] rounded-full"
                     aria-hidden="true"
                   />
                 )}
@@ -123,7 +123,7 @@ export function ChapterToc({
                     "block rounded-sm py-1.5 text-[0.8rem] leading-snug transition-colors",
                     entry.level === 3 ? "pl-7" : "pl-3.5",
                     active
-                      ? "text-ember-300 font-medium"
+                      ? "text-brand-300 font-medium"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >

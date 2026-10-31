@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play } from "lucide-react";
+import { Pause, Play, RotateCcw, StepForward } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -119,7 +119,7 @@ export function CodeReplayDemo({ className }: { className?: string }) {
     >
       {/* Window chrome */}
       <div className="flex items-center gap-3 border-b border-border px-4 py-2.5">
-        <span className="rounded-full bg-ember-500/12 px-2 py-0.5 font-mono text-[0.65rem] font-medium text-ember-300">
+        <span className="rounded-sm bg-brand-500/12 px-2 py-0.5 font-mono text-[0.65rem] font-medium text-brand-300">
           Python
         </span>
         <span className="truncate font-mono text-xs text-muted-foreground">
@@ -128,21 +128,48 @@ export function CodeReplayDemo({ className }: { className?: string }) {
         <span className="ml-auto font-mono text-[0.7rem] text-muted-foreground tabular-nums">
           step {step}/{frames.length}
         </span>
-        <button
-          type="button"
-          onClick={() => setPlaying((p) => !p)}
-          aria-label={playing ? "Pause the replay" : "Play the replay"}
-          className="-mr-1.5 flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-accent/60 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+        <div
+          className="-mr-1.5 flex items-center"
+          role="group"
+          aria-label="Replay controls"
         >
-          {playing ? (
-            <Pause className="size-3.5" aria-hidden="true" />
-          ) : (
-            <Play className="size-3.5" aria-hidden="true" />
-          )}
-        </button>
+          <ControlButton
+            label={playing ? "Pause the replay" : "Play the replay"}
+            onClick={() => {
+              // Playing from the end starts over rather than holding there.
+              if (!playing && index >= frames.length - 1) setIndex(0);
+              setPlaying((p) => !p);
+            }}
+          >
+            {playing ? (
+              <Pause className="size-3.5" aria-hidden="true" />
+            ) : (
+              <Play className="size-3.5" aria-hidden="true" />
+            )}
+          </ControlButton>
+          <ControlButton
+            label="Next step"
+            disabled={index >= frames.length - 1}
+            onClick={() => {
+              setPlaying(false);
+              setIndex((i) => Math.min(i + 1, frames.length - 1));
+            }}
+          >
+            <StepForward className="size-3.5" aria-hidden="true" />
+          </ControlButton>
+          <ControlButton
+            label="Reset to the first step"
+            onClick={() => {
+              setPlaying(false);
+              setIndex(0);
+            }}
+          >
+            <RotateCcw className="size-3.5" aria-hidden="true" />
+          </ControlButton>
+        </div>
       </div>
 
-      <div className="grid md:grid-cols-[1.15fr_1fr]">
+      <div className="grid md:grid-cols-[1.35fr_1fr]">
         {/* Code */}
         <div className="overflow-x-auto border-b border-border py-3 font-mono text-[0.72rem] leading-6 md:border-r md:border-b-0">
           {CODE.map((text, i) => {
@@ -152,7 +179,7 @@ export function CodeReplayDemo({ className }: { className?: string }) {
                 key={i}
                 className={cn(
                   "flex border-l-2 pr-4 transition-colors duration-200",
-                  current ? "border-ember-500 bg-ember-500/10" : "border-transparent"
+                  current ? "border-brand-500 bg-brand-500/10" : "border-transparent"
                 )}
               >
                 <span className="w-8 shrink-0 pr-3 text-right text-muted-foreground/60 tabular-nums select-none">
@@ -190,9 +217,9 @@ export function CodeReplayDemo({ className }: { className?: string }) {
                       className={cn(
                         "flex h-10 w-full items-center justify-center rounded-md border font-mono text-sm transition-all duration-500",
                         changed
-                          ? "scale-105 border-ember-400 bg-ember-500/35 text-foreground"
+                          ? "scale-105 border-brand-400 bg-brand-500/35 text-foreground"
                           : pointed
-                            ? "border-ember-500/60 bg-ember-500/10 text-ember-200"
+                            ? "border-brand-500/60 bg-brand-500/10 text-brand-200"
                             : "border-viz-idle bg-transparent text-foreground/80"
                       )}
                     >
@@ -202,7 +229,7 @@ export function CodeReplayDemo({ className }: { className?: string }) {
                       {i}
                     </span>
                     <div className="flex h-4 items-start gap-1 font-mono text-[0.6rem] leading-none">
-                      {i === frame.left && <span className="text-ember-400">L</span>}
+                      {i === frame.left && <span className="text-brand-400">L</span>}
                       {i === frame.right && <span className="text-viz-compare">R</span>}
                     </div>
                   </div>
@@ -230,5 +257,30 @@ export function CodeReplayDemo({ className }: { className?: string }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function ControlButton({
+  label,
+  onClick,
+  disabled = false,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-40"
+    >
+      {children}
+    </button>
   );
 }

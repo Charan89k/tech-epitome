@@ -42,6 +42,40 @@ enum Role {
   ADMIN
 }
 
+/// Platform-wide account state. SUSPENDED blocks every request, not just
+/// new sign-ins: `getCurrentUser` rejects it on each read.
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum InstitutionStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+/// A user's role inside one institution. Separate from the platform `Role`:
+/// being a college's admin grants nothing outside that college.
+enum InstitutionRole {
+  STUDENT
+  FACULTY
+  INSTITUTION_ADMIN
+}
+
+enum MembershipStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+/// How a membership came to exist. A verified email domain can only ever
+/// produce a STUDENT membership; every other role needs an invitation.
+enum MembershipSource {
+  INVITATION
+  EMAIL_DOMAIN
+  PLATFORM
+}
+
 enum Track {
   DSA
   SYSTEM_DESIGN
@@ -73,6 +107,90 @@ enum ProblemStatus {
   SOLVED
 }
 
+enum ProblemSourceType {
+  ORIGINAL
+  LICENSED
+}
+
+/// One problem per UTC day. Fixed when first requested, so adding problems to
+/// the catalogue never changes a past day's challenge.
+model DailyChallenge {
+  date      DateTime @id @db.Date
+  problemId String
+  createdAt DateTime @default(now())
+
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@index([problemId])
+  @@map("daily_challenges")
+}
+
+model Contest {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  title          String
+  description    String   @db.Text
+  startsAt       DateTime
+  endsAt         DateTime
+  /// Minutes added to the score tie-break for each failed attempt on a
+  /// problem the entrant later solved.
+  penaltyMinutes Int      @default(5)
+  createdById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  createdBy User             @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  problems  ContestProblem[]
+  entries   ContestEntry[]
+
+  @@index([startsAt])
+  @@map("contests")
+}
+
+model ContestProblem {
+  contestId String
+  problemId String
+  order     Int
+  points    Int    @default(100)
+
+  contest Contest @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problemId], references: [id], onDelete: Restrict)
+
+  @@id([contestId, problemId])
+  @@unique([contestId, order])
+  @@index([problemId])
+  @@map("contest_problems")
+}
+
+model ContestEntry {
+  contestId String
+  userId    String
+  joinedAt  DateTime @default(now())
+
+  contest Contest @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([contestId, userId])
+  @@index([userId])
+  @@map("contest_entries")
+}
+
+/// A completed aptitude practice set. Personal learning: no institution can
+/// read it.
+model AptitudeAttempt {
+  id        String   @id @default(cuid())
+  userId    String
+  topic     String
+  correct   Int
+  total     Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("aptitude_attempts")
+}
+
 enum SubmissionStatus {
   QUEUED
   RUNNING
@@ -80,6 +198,8 @@ enum SubmissionStatus {
   WRONG_ANSWER
   TIME_LIMIT_EXCEEDED
   MEMORY_LIMIT_EXCEEDED
+  /// Wrote past the output/file-size ceiling (EXECUTION_LIMITS.maxOutputKb).
+  OUTPUT_LIMIT_EXCEEDED
   RUNTIME_ERROR
   COMPILE_ERROR
   INTERNAL_ERROR
@@ -238,26 +358,39 @@ enum AchievementKind {
 // ===========================================================================
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
+  id             String     @id @default(cuid())
+  name           String?
+  email          String     @unique
+  emailVerified  DateTime?
+  image          String?
   /// Argon2id hash. Null for OAuth-only accounts.
-  passwordHash  String?
-  role          Role      @default(USER)
+  passwordHash   String?
+  role           Role       @default(USER)
+  status         UserStatus @default(ACTIVE)
+  suspendedAt    DateTime?
+  /// Stamped into the JWT at sign-in. Bumping it (suspension, sign out
+  /// everywhere) invalidates every token minted before.
+  sessionVersion Int        @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  accounts     Account[]
-  sessions     Session[]
-  profile      Profile?
+  memberships        InstitutionMembership[]
+  cohortMemberships  CohortMember[]
+  assessmentAttempts AssessmentAttempt[]
+  shareLinks         ShareLink[]
+
+  accounts Account[]
+  sessions Session[]
+  profile  Profile?
 
   chapterProgress   UserChapterProgress[]
   problemProgress   UserProblemProgress[]
   patternMastery    UserPatternMastery[]
   submissions       Submission[]
+  contestEntries    ContestEntry[]
+  contestsCreated   Contest[]
+  aptitudeAttempts  AptitudeAttempt[]
   quizAttempts      QuizAttempt[]
   bookmarks         Bookmark[]
   notes             Note[]
@@ -343,19 +476,22 @@ model Profile {
 
   preferredLanguage Language @default(PYTHON)
   reducedMotion     Boolean  @default(false)
+  /// Opt-in: only then does this learner appear on leaderboards and at
+  /// /u/<username>. Off by default, so nobody is listed without choosing to.
+  publicProfile     Boolean  @default(false)
 
   // --- Onboarding ---------------------------------------------------------
   // All optional. Onboarding is genuinely skippable, so every field here
   // must have a sensible absent state rather than a default that pretends
   // the learner answered.
-  experienceLevel   ExperienceLevel?
-  primaryGoal       LearningGoal?
-  targetInterview   InterviewType?
+  experienceLevel ExperienceLevel?
+  primaryGoal     LearningGoal?
+  targetInterview InterviewType?
   /// Chapters-or-problems the learner means to finish each week. Drives the
   /// dashboard's weekly target; null means they never set one and the
   /// dashboard shows no target rather than inventing one.
-  weeklyTarget      Int?
-  onboardedAt       DateTime?
+  weeklyTarget    Int?
+  onboardedAt     DateTime?
 
   // --- Notification preferences -------------------------------------------
   // Opt-out rather than opt-in for the two that are about the learner's own
@@ -369,7 +505,7 @@ model Profile {
   /// and a deployment switching on a provider must not immediately mail
   /// everyone who ever signed up. Off also means off when the in-app
   /// preference is on — they are two channels, not one.
-  emailReviewReminders  Boolean @default(false)
+  emailReviewReminders Boolean @default(false)
 
   lastActiveOn DateTime?
   createdAt    DateTime  @default(now())
@@ -402,6 +538,8 @@ model Course {
   updatedAt DateTime @updatedAt
 
   sections CourseSection[]
+
+  cohortAssignments CohortAssignment[]
 
   @@index([track, status, order])
   @@index([status])
@@ -464,6 +602,8 @@ model Chapter {
   problems ChapterProblem[]
   quizzes  Quiz[]
   progress UserChapterProgress[]
+
+  cohortAssignments CohortAssignment[]
 
   @@unique([sectionId, slug])
   @@index([sectionId, order])
@@ -586,23 +726,36 @@ model Problem {
   expectedTime  String?
   expectedSpace String?
 
+  /// Where this problem came from. A non-original problem must name its
+  /// licence and attribution; the import command refuses it otherwise.
+  sourceType  ProblemSourceType @default(ORIGINAL)
+  sourceName  String?
+  sourceUrl   String?
+  license     String?
+  attribution String?           @db.Text
+
   searchVector Unsupported("tsvector")?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  testCases   TestCase[]
-  hints       Hint[]
-  solutions   Solution[]
-  patterns    ProblemPattern[]
-  topics      ProblemTopic[]
-  tags        ProblemTag[]
-  prepTracks  PrepTrackProblem[]
-  submissions Submission[]
-  progress    UserProblemProgress[]
-  chapters    ChapterProblem[]
+  testCases       TestCase[]
+  hints           Hint[]
+  solutions       Solution[]
+  patterns        ProblemPattern[]
+  topics          ProblemTopic[]
+  tags            ProblemTag[]
+  prepTracks      PrepTrackProblem[]
+  submissions     Submission[]
+  progress        UserProblemProgress[]
+  chapters        ChapterProblem[]
+  dailyChallenges DailyChallenge[]
+  contests        ContestProblem[]
 
   interviews InterviewSession[]
+
+  cohortAssignments CohortAssignment[]
+  bankQuestions     BankQuestion[]
 
   @@index([difficulty, status])
   @@index([status, number])
@@ -1159,11 +1312,14 @@ model InterviewSession {
   language Language @default(PYTHON)
   code     String?  @db.Text
 
-  startedAt       DateTime  @default(now())
-  endedAt         DateTime?
-  durationSeconds Int       @default(0)
+  startedAt           DateTime  @default(now())
+  endedAt             DateTime?
+  durationSeconds     Int       @default(0)
+  /// Set when the retention job deleted the transcript and code
+  /// (INTERVIEW_TRANSCRIPT_RETENTION_DAYS). The feedback is kept.
+  transcriptDeletedAt DateTime?
 
-  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// SetNull rather than Cascade: retiring a problem must not delete a
   /// candidate's interview history. The transcript stands on its own.
   problem             Problem?             @relation(fields: [problemId], references: [id], onDelete: SetNull)
@@ -1284,7 +1440,7 @@ model SystemDesignSubmission {
   problemId String
 
   /// Nodes and edges, validated by src/lib/diagram/schema.ts before write.
-  diagram Json @default("{\"nodes\":[],\"edges\":[]}")
+  diagram Json   @default("{\"nodes\":[],\"edges\":[]}")
   /// The learner's written reasoning: why these components, what they
   /// traded away. An architecture without its rationale is not a design.
   notes   String @default("") @db.Text
@@ -1499,18 +1655,22 @@ model EmailDelivery {
   userId String
 
   /// Which mail this was. One value today; a closed set by convention.
-  kind String
+  kind      String
   /// The period this send belongs to — a UTC date for a daily reminder.
   /// Together with `kind` and `userId` this is what makes a send unique.
   periodKey String
 
   /// `accepted`, `rejected` or `skipped`, mirroring SendResult.
-  status   String
-  provider String
+  status     String
+  provider   String
   /// The provider's id when it accepted. Null otherwise.
   providerId String?
   /// Why it was rejected or skipped. Never contains the payload or a key.
   reason     String?
+  /// Sends tried for this slot. A retryable rejection is tried again by a
+  /// later run, up to 3 attempts; anything else is final.
+  attempts   Int     @default(1)
+  retryable  Boolean @default(false)
 
   createdAt DateTime @default(now())
 
@@ -1652,4 +1812,484 @@ model RateLimitBucket {
 
   @@index([resetAt])
   @@map("rate_limit_buckets")
+}
+
+// ===========================================================================
+// INSTITUTIONS (TENANCY)
+//
+// A college is a workspace a user joins; the user and their personal
+// learning stay global and private. Every row below carries institutionId,
+// and the database enforces it: these tables have row-level security
+// policies for the least-privilege `te_tenant` role, which
+// src/lib/tenancy/scope.ts switches to (SET LOCAL ROLE) inside each tenant
+// transaction, with the institution stamped transaction-locally so a pooled
+// connection cannot carry it into the next request.
+// ===========================================================================
+
+model Institution {
+  id     String            @id @default(cuid())
+  slug   String            @unique
+  name   String
+  status InstitutionStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  domains     InstitutionDomain[]
+  memberships InstitutionMembership[]
+  invitations InstitutionInvitation[]
+  auditLogs   InstitutionAuditLog[]
+  cohorts     Cohort[]
+  banks       QuestionBank[]
+
+  @@map("institutions")
+}
+
+/// An email domain that proves a student belongs to the institution. Only
+/// a platform admin adds one, and it counts only once `verifiedAt` is set
+/// by the DNS TXT check.
+model InstitutionDomain {
+  id                String    @id @default(cuid())
+  institutionId     String
+  /// Lowercased, no leading "@". Globally unique: one domain, one college.
+  domain            String    @unique
+  verificationToken String
+  verifiedAt        DateTime?
+
+  createdAt DateTime @default(now())
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@index([institutionId])
+  @@map("institution_domains")
+}
+
+model InstitutionMembership {
+  id            String           @id @default(cuid())
+  institutionId String
+  userId        String
+  role          InstitutionRole
+  status        MembershipStatus @default(ACTIVE)
+  source        MembershipSource
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  revokedAt DateTime?
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([institutionId, userId])
+  @@index([userId])
+  @@index([institutionId, role, status])
+  @@map("institution_memberships")
+}
+
+/// A single-use invitation. Only the SHA-256 of the token is stored; the
+/// token itself exists in the emailed link and nowhere else.
+model InstitutionInvitation {
+  id            String          @id @default(cuid())
+  institutionId String
+  email         String
+  role          InstitutionRole
+  tokenHash     String          @unique
+  expiresAt     DateTime
+  invitedById   String
+
+  acceptedAt   DateTime?
+  acceptedById String?
+  revokedAt    DateTime?
+  /// What the email provider said: accepted, rejected or skipped. Null
+  /// before the send. Lets staff see an invitation that never arrived.
+  emailStatus  String?
+  emailReason  String?
+
+  createdAt DateTime @default(now())
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@index([institutionId, email])
+  @@map("institution_invitations")
+}
+
+/// Append-only: a trigger rejects UPDATE and DELETE. Written in the same
+/// transaction as the change it records.
+model InstitutionAuditLog {
+  id            String  @id @default(cuid())
+  institutionId String
+  actorId       String
+  /// Copied, so the record survives the actor's account being deleted.
+  actorEmail    String
+  action        String
+  targetType    String
+  targetId      String?
+  summary       String  @db.Text
+  metadata      Json?
+
+  createdAt DateTime @default(now())
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+
+  @@index([institutionId, createdAt])
+  @@map("institution_audit_logs")
+}
+
+// ===========================================================================
+// CAMPUS LEARNING: classes, assigned content, question banks, assessments
+//
+// Every table carries institutionId and has row-level security for
+// `te_tenant` (migration 20261028230149_campus_learning): students see their
+// own classes, their own attempts and published assessments only; answer
+// keys and question banks are visible to staff only. See docs/CAMPUS.md.
+// ===========================================================================
+
+enum CohortRole {
+  STUDENT
+  INSTRUCTOR
+}
+
+enum CohortAssignmentKind {
+  COURSE
+  CHAPTER
+  PROBLEM
+}
+
+enum BankQuestionKind {
+  /// Options with one or more correct ids; scored by quiz-scoring.answersMatch.
+  CHOICE
+  /// A platform Problem; scored by its hidden test cases, or by hand.
+  CODING
+}
+
+enum AssessmentStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  ARCHIVED
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+}
+
+/// Why an attempt stopped accepting answers.
+enum AttemptFinish {
+  SUBMITTED
+  TIME_EXPIRED
+  DEADLINE
+  CLOSED_BY_STAFF
+}
+
+/// Which attempt counts when a student has several.
+enum ScorePolicy {
+  BEST
+  LATEST
+}
+
+/// A class: a group of students and its instructors inside one institution.
+model Cohort {
+  id            String    @id @default(cuid())
+  institutionId String
+  name          String
+  description   String?   @db.Text
+  createdById   String
+  archivedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  institution Institution        @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  members     CohortMember[]
+  assignments CohortAssignment[]
+  assessments Assessment[]
+
+  @@index([institutionId, archivedAt])
+  @@map("cohorts")
+}
+
+/// Removal is a timestamp, never a DELETE: te_tenant has no DELETE grant.
+model CohortMember {
+  id            String     @id @default(cuid())
+  institutionId String
+  cohortId      String
+  userId        String
+  role          CohortRole
+  removedAt     DateTime?
+
+  createdAt DateTime @default(now())
+
+  cohort Cohort @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([cohortId, userId])
+  @@index([institutionId, userId])
+  @@map("cohort_members")
+}
+
+/// Platform content (a published course, chapter or problem) set for a class.
+model CohortAssignment {
+  id            String               @id @default(cuid())
+  institutionId String
+  cohortId      String
+  kind          CohortAssignmentKind
+  courseId      String?
+  chapterId     String?
+  problemId     String?
+  /// Copied at assignment time, so the class view needs no catalogue join.
+  title         String
+  instructions  String?              @db.Text
+  dueAt         DateTime?
+  createdById   String
+  archivedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  cohort  Cohort   @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  course  Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  chapter Chapter? @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  problem Problem? @relation(fields: [problemId], references: [id], onDelete: Cascade)
+
+  @@index([cohortId, archivedAt])
+  @@map("cohort_assignments")
+}
+
+/// Reusable questions, shared by the institution's staff. Never readable
+/// by a student: they hold the answers.
+model QuestionBank {
+  id            String    @id @default(cuid())
+  institutionId String
+  name          String
+  description   String?   @db.Text
+  createdById   String
+  archivedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  institution Institution    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  questions   BankQuestion[]
+
+  @@index([institutionId, archivedAt])
+  @@map("question_banks")
+}
+
+model BankQuestion {
+  id            String           @id @default(cuid())
+  institutionId String
+  bankId        String
+  kind          BankQuestionKind
+  /// CHOICE only: MULTIPLE_CHOICE, MULTI_SELECT, TRUE_FALSE, CODE_OUTPUT or COMPLEXITY.
+  type          QuestionType?
+  /// Free label for filtering: "Aptitude", "DSA", "Verbal".
+  category      String
+  prompt        String           @db.Text
+  code          String?          @db.Text
+  /// [{ id, text }] for CHOICE.
+  options       Json             @default("[]")
+  /// Option id (single answer) or ids (MULTI_SELECT). Null for CODING.
+  answer        Json?
+  explanation   String?          @db.Text
+  /// CODING only.
+  problemId     String?
+  points        Int              @default(1)
+  createdById   String
+  archivedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bank    QuestionBank @relation(fields: [bankId], references: [id], onDelete: Cascade)
+  problem Problem?     @relation(fields: [problemId], references: [id], onDelete: Restrict)
+
+  @@index([bankId, archivedAt])
+  @@map("bank_questions")
+}
+
+model Assessment {
+  id            String           @id @default(cuid())
+  institutionId String
+  cohortId      String
+  title         String
+  instructions  String           @db.Text
+  status        AssessmentStatus @default(DRAFT)
+  /// Draft question list: [{ questionId, points }]. Frozen into an
+  /// AssessmentVersion on publish; never read by an attempt.
+  items         Json             @default("[]")
+
+  /// Null opens on publish. A PUBLISHED assessment before opensAt is "scheduled".
+  opensAt            DateTime?
+  /// The deadline. Attempts may start until then.
+  closesAt           DateTime
+  /// Optional grace window: answers saved and submitted after closesAt but
+  /// before lateUntil are accepted and marked late.
+  lateUntil          DateTime?
+  latePenaltyPercent Int         @default(0)
+  /// Per-attempt time limit; null means until the deadline.
+  durationMinutes    Int?
+  maxAttempts        Int         @default(1)
+  scorePolicy        ScorePolicy @default(BEST)
+  /// Show the student their score as soon as an attempt is finalised.
+  showScoreOnSubmit  Boolean     @default(false)
+  /// Set by staff after closing; reveals answers and feedback to students.
+  resultsReleasedAt  DateTime?
+
+  currentVersionId String?
+  createdById      String
+  publishedAt      DateTime?
+  closedAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cohort   Cohort              @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  versions AssessmentVersion[]
+  attempts AssessmentAttempt[]
+
+  @@index([cohortId, status])
+  @@map("assessments")
+}
+
+/// The frozen, student-safe question paper. Append-only by trigger.
+model AssessmentVersion {
+  id            String @id @default(cuid())
+  institutionId String
+  cohortId      String
+  assessmentId  String
+  version       Int
+  /// [{ key, kind, type, prompt, code, options, points, problem }]: no answers.
+  questions     Json
+  maxScore      Int
+  publishedById String
+
+  createdAt DateTime @default(now())
+
+  assessment Assessment           @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  answerKey  AssessmentAnswerKey?
+  attempts   AssessmentAttempt[]
+
+  @@unique([assessmentId, version])
+  @@map("assessment_versions")
+}
+
+/// Answers for one version, in its own table so row-level security can
+/// hide it from students entirely. Append-only by trigger.
+model AssessmentAnswerKey {
+  versionId     String @id
+  institutionId String
+  cohortId      String
+  /// { [key]: { answer, explanation, problemId } }
+  key           Json
+
+  version AssessmentVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@map("assessment_answer_keys")
+}
+
+model AssessmentAttempt {
+  id            String        @id @default(cuid())
+  institutionId String
+  cohortId      String
+  assessmentId  String
+  versionId     String
+  userId        String
+  /// 1-based; (assessment, user, number) is unique, which is what makes
+  /// the attempt limit hold under concurrent starts.
+  number        Int
+  status        AttemptStatus @default(IN_PROGRESS)
+
+  /// Server clock. deadlineAt = min(startedAt + duration, lateUntil ?? closesAt).
+  startedAt   DateTime       @default(now())
+  deadlineAt  DateTime
+  submittedAt DateTime?
+  finish      AttemptFinish?
+  late        Boolean        @default(false)
+
+  /// Sum of per-answer points after the late penalty; null until graded.
+  score        Float?
+  maxScore     Int
+  /// A coding answer could not be auto-graded and waits for staff.
+  needsGrading Boolean @default(false)
+
+  assessment Assessment        @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  version    AssessmentVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers    AttemptAnswer[]
+
+  @@unique([assessmentId, userId, number])
+  @@index([assessmentId, status])
+  @@index([userId])
+  @@map("assessment_attempts")
+}
+
+model AttemptAnswer {
+  id            String   @id @default(cuid())
+  institutionId String
+  attemptId     String
+  questionKey   String
+  /// Choice: option id(s). Coding: { language, code }.
+  value         Json
+  /// Client sequence number: a save with seq <= the stored one is a retry
+  /// or an out-of-order request and changes nothing.
+  seq           Int
+  savedAt       DateTime @default(now())
+
+  autoPoints Float?
+  /// Coding: { status, passed, total } from the execution service.
+  autoResult Json?
+  /// Staff override; wins over autoPoints when set.
+  points     Float?
+  feedback   String?   @db.Text
+  gradedById String?
+  gradedAt   DateTime?
+
+  attempt AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionKey])
+  @@map("attempt_answers")
+}
+
+// ===========================================================================
+// SHARING
+// ===========================================================================
+
+/// A revocable public link to a learner's achievement summary. Only the
+/// SHA-256 of the token is stored. The summary shows achievements and
+/// activity counts, never scores, feedback, transcripts, notes or email.
+model ShareLink {
+  id          String    @id @default(cuid())
+  userId      String
+  tokenHash   String    @unique
+  /// What the page calls the learner. Chosen by them; never their account name by default.
+  displayName String?
+  createdAt   DateTime  @default(now())
+  revokedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("share_links")
+}
+
+// ===========================================================================
+// OPERATIONS
+// ===========================================================================
+
+/// One run of a scheduled job. A partial unique index (migration
+/// 20261029004451_admin_ops) allows one RUNNING row per job, so two
+/// schedulers firing at once cannot both do the work. Summaries hold counts
+/// only, never addresses or other personal data.
+model JobRun {
+  id         String    @id @default(cuid())
+  job        String
+  /// RUNNING, SUCCEEDED, FAILED or STALE (a run that never finished).
+  status     String
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  summary    Json?
+  /// Error class and message, truncated. No stack, no payload.
+  error      String?
+
+  @@index([job, startedAt])
+  @@map("job_runs")
 }

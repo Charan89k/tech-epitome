@@ -2,16 +2,10 @@ import "server-only";
 
 import { hash, verify } from "@node-rs/argon2";
 
-/**
- * Argon2id parameters. OWASP's 2024 baseline: 19 MiB memory, 2 iterations,
- * 1 degree of parallelism. Tuned for a server that must also serve requests,
- * not for a dedicated hashing box.
- */
-const OPTIONS = {
-  memoryCost: 19456,
-  timeCost: 2,
-  parallelism: 1,
-} as const;
+import { ARGON2_OPTIONS } from "./argon2";
+
+// Shared with the seed and the provisioning CLI; see ./argon2.ts.
+const OPTIONS = ARGON2_OPTIONS;
 
 export async function hashPassword(plain: string): Promise<string> {
   return hash(plain, OPTIONS);

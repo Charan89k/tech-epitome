@@ -5,9 +5,11 @@ import { getAIProvider, recordAIUsage } from "@/lib/ai";
 import { AIProviderUnavailableError } from "@/lib/ai/types";
 import { canAccess, FEATURES } from "@/lib/auth/access";
 import { getCurrentUser } from "@/lib/auth/session";
+import { hasCampusAccess } from "@/lib/campus-access";
 import {
   boundTranscript,
   buildInterviewSystemPrompt,
+  isUnansweredRepeat,
   renderInterviewContext,
 } from "@/lib/interview/policy";
 import {
@@ -73,6 +75,9 @@ function fail(status: number, message: string) {
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return fail(401, "Sign in to run a mock interview.");
+  if (!(await hasCampusAccess(user))) {
+    return fail(403, "Mock interviews are part of Campus. Join your college to use them.");
+  }
 
   if (!canAccess(user, FEATURES.AI_MOCK_INTERVIEW)) {
     return fail(403, "Sign in to run a mock interview.");
@@ -119,12 +124,14 @@ export async function POST(request: NextRequest) {
 
   // Persist what the candidate said before calling the model, so a
   // provider failure leaves a transcript that still reads correctly.
-  if (input.message?.trim()) {
+  const message = input.message?.trim() ?? "";
+  const repeat = message !== "" && isUnansweredRepeat(context.transcript, message);
+  if (message && !repeat) {
     await appendTranscript({
       sessionId: input.sessionId,
       userId: user.id,
       role: "USER",
-      content: input.message.trim(),
+      content: message,
     });
   }
 
@@ -150,8 +157,8 @@ export async function POST(request: NextRequest) {
   });
 
   const transcript = boundTranscript(
-    input.message?.trim()
-      ? [...context.transcript, { role: "USER" as const, content: input.message.trim() }]
+    message && !repeat
+      ? [...context.transcript, { role: "USER" as const, content: message }]
       : context.transcript
   );
 

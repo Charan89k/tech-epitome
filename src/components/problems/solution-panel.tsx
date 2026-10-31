@@ -112,7 +112,7 @@ export function SolutionPanel({
               </span>
               {solution.title}
             </h3>
-            <span className="text-ember-300 shrink-0 font-mono text-[0.68rem]">
+            <span className="text-brand-300 shrink-0 font-mono text-[0.68rem]">
               {solution.timeComplexity} · {solution.spaceComplexity}
             </span>
           </header>
@@ -132,7 +132,7 @@ export function SolutionPanel({
                 <h4 className="text-muted-foreground text-[0.68rem] font-medium tracking-wider uppercase">
                   Algorithm
                 </h4>
-                <ol className="marker:text-ember-500/60 mt-1.5 list-decimal space-y-1 pl-5">
+                <ol className="marker:text-brand-500/60 mt-1.5 list-decimal space-y-1 pl-5">
                   {solution.approach.map((step) => (
                     <li key={step} className="text-muted-foreground text-sm leading-relaxed">
                       {step}

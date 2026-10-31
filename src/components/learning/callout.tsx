@@ -17,8 +17,8 @@ const TONES: Record<
   },
   tip: {
     icon: Lightbulb,
-    className: "border-ember-400/20 bg-ember-500/4",
-    iconClass: "text-ember-300",
+    className: "border-brand-400/20 bg-brand-500/4",
+    iconClass: "text-brand-300",
     defaultTitle: "Tip",
   },
   warning: {
@@ -29,8 +29,8 @@ const TONES: Record<
   },
   insight: {
     icon: Sparkles,
-    className: "border-ember-500/30 bg-ember-500/6",
-    iconClass: "text-ember-500",
+    className: "border-brand-500/30 bg-brand-500/6",
+    iconClass: "text-brand-500",
     defaultTitle: "Key idea",
   },
 };

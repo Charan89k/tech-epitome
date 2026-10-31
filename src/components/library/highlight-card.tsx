@@ -25,7 +25,7 @@ import { cn, route } from "@/lib/utils";
  */
 
 const BAR_CLASS: Record<HighlightColor, string> = {
-  ember: "border-l-ember-500",
+  ember: "border-l-amber-500",
   sky: "border-l-sky-500",
   mint: "border-l-emerald-500",
   violet: "border-l-violet-500",
@@ -83,7 +83,7 @@ export function HighlightCard({
           {resolved ? (
             <Link
               href={route(href)}
-              className="text-xs font-medium text-info transition-colors hover:text-ember-300"
+              className="text-xs font-medium text-info transition-colors hover:text-brand-300"
             >
               {title}
               {subtitle ? ` · ${subtitle}` : ""}

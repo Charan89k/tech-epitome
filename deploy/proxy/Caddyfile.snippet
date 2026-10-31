@@ -1,0 +1,15 @@
+# Tech Epitome behind an existing Caddy. Append this block and leave other
+# sites untouched. Attach the Caddy container to tech-epitome-edge once, then
+# validate and reload gracefully; never restart a shared proxy.
+
+tech-epitome.cloude5.tech {
+	encode zstd gzip
+	request_body {
+		max_size 5MB
+	}
+	@cron path /api/cron/*
+	respond @cron 404
+	reverse_proxy tech-epitome-app:3000 {
+		flush_interval -1
+	}
+}

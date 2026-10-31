@@ -31,8 +31,8 @@ export function RecognitionDrill({
   const [revealed, setRevealed] = useState(false);
 
   return (
-    <section className="not-prose border-ember-500/25 bg-ember-500/5 my-6 rounded-xl border p-5">
-      <p className="text-ember-400 font-mono text-[0.7rem] tracking-wider uppercase">
+    <section className="not-prose border-brand-500/25 bg-brand-500/5 my-6 rounded-xl border p-5">
+      <p className="text-brand-400 font-mono text-[0.7rem] tracking-wider uppercase">
         Can you recognise the pattern?
       </p>
 
@@ -75,7 +75,7 @@ export function RecognitionDrill({
             </p>
             <Link
               href={route(`/patterns/${answerPatternSlug}`)}
-              className="text-ember-400 mt-1.5 inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
+              className="text-brand-400 mt-1.5 inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
             >
               {answerPatternName}
               <ArrowRight className="size-3.5" aria-hidden="true" />

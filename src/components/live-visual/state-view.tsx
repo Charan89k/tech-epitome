@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
  * problem, which is what lets all fifty problems — and any helper variable a
  * learner invents — get a picture without anyone authoring one.
  *
- * Anything that changed since the previous step is ringed in ember. Colour
+ * Anything that changed since the previous step is ringed in the brand colour. Colour
  * is never the only signal: pointers are labelled, and changed values are
  * also marked for screen readers.
  */
@@ -380,9 +380,9 @@ function SequenceView({
                       <div
                         className={cn(
                           "w-5 rounded-t-sm transition-[height,background-color] duration-300",
-                          value < 0 ? "bg-difficulty-hard/45" : "bg-ember-500/35",
-                          here.length > 0 && "bg-ember-500/80",
-                          changed && "bg-ember-400"
+                          value < 0 ? "bg-difficulty-hard/45" : "bg-brand-500/35",
+                          here.length > 0 && "bg-brand-500/80",
+                          changed && "bg-brand-400"
                         )}
                         style={{
                           height: `${Math.max(6, (Math.abs(value) / max) * 100)}%`,
@@ -397,8 +397,8 @@ function SequenceView({
                         ? "border-viz-compare/50 bg-viz-compare/12"
                         : "border-border bg-muted/40",
                       here.length > 0 &&
-                        "border-ember-500/70 bg-ember-500/15 text-ember-100",
-                      changed && "animate-in ring-2 ring-ember-400 zoom-in-95"
+                        "border-brand-500/70 bg-brand-500/15 text-brand-100",
+                      changed && "animate-in ring-2 ring-brand-400 zoom-in-95"
                     )}
                   >
                     <span className="truncate px-0.5">
@@ -447,7 +447,7 @@ function PointerLabels({ pointers }: { pointers: Pointer[] }) {
       {pointers.map((pointer) => (
         <span
           key={pointer.name}
-          className="flex flex-col items-center font-mono text-[0.6rem] leading-none font-semibold text-ember-300"
+          className="flex flex-col items-center font-mono text-[0.6rem] leading-none font-semibold text-brand-300"
         >
           <span aria-hidden="true">▲</span>
           {pointer.name}
@@ -488,11 +488,11 @@ function StackView({
                 className={cn(
                   "flex h-7 items-center justify-center rounded border font-mono text-xs transition-colors",
                   top
-                    ? "border-ember-500/60 bg-ember-500/15 text-ember-100"
+                    ? "border-brand-500/60 bg-brand-500/15 text-brand-100"
                     : "border-border bg-muted/40",
                   top &&
                     pushed &&
-                    "animate-in ring-2 ring-ember-400 slide-in-from-top-2"
+                    "animate-in ring-2 ring-brand-400 slide-in-from-top-2"
                 )}
               >
                 <span className="truncate px-1">{display(item)}</span>
@@ -501,7 +501,7 @@ function StackView({
           })}
         </div>
         {items.length > 0 && (
-          <span className="mb-auto pt-1 font-mono text-[0.6rem] font-semibold text-ember-300">
+          <span className="mb-auto pt-1 font-mono text-[0.6rem] font-semibold text-brand-300">
             ◀ top
           </span>
         )}
@@ -540,7 +540,7 @@ function GridView({
                       key={c}
                       className={cn(
                         "h-8 min-w-8 rounded border border-border bg-muted/40 px-1.5 text-center transition-colors",
-                        changed && "bg-ember-500/15 ring-2 ring-ember-400"
+                        changed && "bg-brand-500/15 ring-2 ring-brand-400"
                       )}
                     >
                       {display(cell)}
@@ -593,7 +593,7 @@ function MapView({
                     key={k}
                     className={cn(
                       "transition-colors",
-                      (isNew || changed) && "bg-ember-500/12"
+                      (isNew || changed) && "bg-brand-500/12"
                     )}
                   >
                     <td className="w-1/2 truncate px-2 py-1 text-viz-compare">
@@ -602,12 +602,12 @@ function MapView({
                     <td
                       className={cn(
                         "truncate px-2 py-1",
-                        (isNew || changed) && "text-ember-200"
+                        (isNew || changed) && "text-brand-200"
                       )}
                     >
                       {display(entry)}
                       {isNew && (
-                        <span className="ml-1.5 text-[0.6rem] text-ember-400">new</span>
+                        <span className="ml-1.5 text-[0.6rem] text-brand-400">new</span>
                       )}
                     </td>
                   </tr>
@@ -649,7 +649,7 @@ function SetView({
               key={JSON.stringify(item)}
               className={cn(
                 "rounded-full border border-border bg-muted/40 px-2 py-0.5 font-mono text-xs",
-                isNew && "border-ember-500/60 bg-ember-500/15 text-ember-100"
+                isNew && "border-brand-500/60 bg-brand-500/15 text-brand-100"
               )}
             >
               {item.t === "str" ? JSON.stringify(item.v) : display(item)}
@@ -693,9 +693,9 @@ function LinkedLists({
                         className={cn(
                           "flex h-9 min-w-10 items-center justify-center rounded-lg border px-2 font-mono text-xs transition-colors",
                           names.length > 0
-                            ? "border-ember-500/70 bg-ember-500/15 text-ember-100"
+                            ? "border-brand-500/70 bg-brand-500/15 text-brand-100"
                             : "border-border bg-muted/40",
-                          rewired && "ring-2 ring-ember-400"
+                          rewired && "ring-2 ring-brand-400"
                         )}
                       >
                         {display(node.val)}
@@ -744,7 +744,7 @@ function Arrow({ muted = false }: { muted?: boolean }) {
       height="10"
       viewBox="0 0 22 10"
       aria-hidden="true"
-      className={cn("mr-0.5", muted ? "text-ember-400" : "text-muted-foreground/70")}
+      className={cn("mr-0.5", muted ? "text-brand-400" : "text-muted-foreground/70")}
     >
       <path
         d="M0 5h18M14 1l4 4-4 4"
@@ -844,11 +844,11 @@ function VariableStrip({
               key={name}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/30 px-2 py-1 font-mono text-xs transition-colors",
-                changed && "border-ember-500/60 bg-ember-500/12"
+                changed && "border-brand-500/60 bg-brand-500/12"
               )}
             >
               <span className="text-muted-foreground">{name}</span>
-              <span className={cn(changed ? "text-ember-200" : "text-foreground")}>
+              <span className={cn(changed ? "text-brand-200" : "text-foreground")}>
                 {value.t === "str" ? JSON.stringify(value.v) : display(value)}
               </span>
               {changed && <span className="sr-only">(changed)</span>}
@@ -879,7 +879,7 @@ function CallStack({ step }: { step: TraceStep }) {
               <span
                 className={cn(
                   "rounded px-1.5 py-0.5",
-                  current ? "bg-ember-500/15 text-ember-200" : "text-muted-foreground"
+                  current ? "bg-brand-500/15 text-brand-200" : "text-muted-foreground"
                 )}
               >
                 {frame.func}

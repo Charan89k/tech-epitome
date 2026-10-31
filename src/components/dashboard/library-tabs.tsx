@@ -10,7 +10,7 @@ const TABS = [
 ] as const;
 
 /**
- * Underline tabs across the three library pages, ember bar under the
+ * Underline tabs across the three library pages, brand bar under the
  * active one — the same pattern as the pane tabs in the problem workspace.
  * Plain links, so each tab is its own URL and works without JS.
  */
@@ -37,13 +37,13 @@ export function LibraryTabs({ active }: { active: (typeof TABS)[number]["href"] 
                 )}
               >
                 <Icon
-                  className={cn("size-3.5", current ? "text-ember-400" : "")}
+                  className={cn("size-3.5", current ? "text-brand-400" : "")}
                   aria-hidden="true"
                 />
                 {tab.label}
                 {current && (
                   <span
-                    className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-ember-500"
+                    className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-brand-500"
                     aria-hidden="true"
                   />
                 )}

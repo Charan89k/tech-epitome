@@ -21,7 +21,7 @@ and realistic interview practice.
 ---
 
 > [!NOTE]
-> **Live at [tech-epitome.vercel.app](https://tech-epitome.vercel.app).** You can
+> **Live at [tech-epitome.cloude5.tech](https://tech-epitome.cloude5.tech).** You can
 > also [run it locally](#-run-locally) in a few minutes, or
 > [deploy your own](#️-deploy-your-own) — everything needed is in the repo.
 
@@ -129,9 +129,11 @@ after the rungs before it.
 > **Anthropic**, and a deterministic mock used by the test suite. Nothing above
 > the adapter layer names a vendor.
 
-### 🎤 Mock interviews
+### 🎤 Mock interviews (Campus)
 
-Four interviewers, each with its own server-owned state machine:
+Part of Campus: students reach mock interviews, interview insights, preparation
+tracks and roadmaps through their college (an active membership). Four
+interviewers, each with its own server-owned state machine:
 
 | Mode | Shape |
 |---|---|
@@ -236,10 +238,10 @@ pointing at a paywall.
 ![A problem statement beside the Monaco editor and test results](docs/screenshots/problem-workspace.png)
 
 ### AI Tutor
-![The AI tutor answering a question about recognising sliding-window problems](docs/screenshots/ai-tutor.png)
+![The AI tutor, ready for a question, with its quick actions](docs/screenshots/ai-tutor.png)
 
-### Mock interview
-![A system design mock interview with its stage stepper and transcript](docs/screenshots/interview-room.png)
+### Mock interview (Campus)
+![A system design mock interview (Campus) with its brief and stage stepper, before it begins](docs/screenshots/interview-room.png)
 
 ### System design workspace
 ![The architecture workspace for a design brief](docs/screenshots/system-design-workspace.png)
@@ -254,7 +256,7 @@ pointing at a paywall.
 ### Notes
 ![The notes library with a saved note attached to a problem](docs/screenshots/notes.png)
 
-### Interview preparation
+### Interview preparation (Campus)
 ![A preparation track describing an interview loop and its recommended practice](docs/screenshots/prepare.png)
 
 ### Achievements & profile
@@ -270,7 +272,7 @@ pointing at a paywall.
 ![A gallery of stepped algorithm visualizations](docs/screenshots/visualize.png)
 
 ### Admin
-![The admin overview with user, content, activity and AI-usage counts](docs/screenshots/admin.png)
+![The admin overview with user, content, activity and AI-usage counts (figures from a local test database, not real usage)](docs/screenshots/admin.png)
 
 ---
 
@@ -315,7 +317,7 @@ next request rather than their next sign-in.
    Press **Visualize** to watch your own code move through the example.
 6. **Ask the AI Tutor** when you are stuck on the idea rather than the syntax.
 7. **Submit a design exercise** before looking at the reference.
-8. **Run a mock interview** and read the feedback against your transcript.
+8. **Run a mock interview** (Campus members) and read the feedback against your transcript.
 9. **Come back to `/review`** when the scheduler brings material back.
 10. **Watch the dashboard** — mastery is computed from your own history.
 
@@ -473,7 +475,8 @@ explicitly.
 | `AI_PROVIDER` | No | `ollama` (default), `anthropic`, or `mock` (rejected in production) |
 | `AI_API_KEY` | Conditional | Required when `AI_PROVIDER=anthropic` |
 | `OLLAMA_BASE_URL` / `OLLAMA_MODEL` | No | Local model configuration |
-| `CODE_EXECUTION_DRIVER` | No | `docker` (default), `local`, or `remote` (Judge0) |
+| `CODE_EXECUTION_DRIVER` | No | `docker` (default, development), `local` (development), `worker` or `remote` (Judge0). Production accepts only `worker` and `remote`; see [docs/EXECUTION.md](docs/EXECUTION.md) |
+| `CODE_EXECUTION_ENABLED` | Production | Must be `true` for code to run in production; unset means off |
 | `EMAIL_PROVIDER` | No | `console` (default, logs only, rejected in production) or `resend` |
 | `RESEND_API_KEY` / `EMAIL_FROM` | Conditional | Required when `EMAIL_PROVIDER=resend` |
 | `CRON_SECRET` | No | Authenticates the review-reminder job. Unset ⇒ the route refuses everything |
@@ -487,6 +490,11 @@ Never commit `.env`. It is gitignored.
 ---
 
 ## ☁️ Deploy your own
+
+The production deployment is a self-hosted Docker stack (app, its own
+Postgres, encrypted backups, health-checked releases with automatic rollback)
+behind an existing Caddy. Operational runbooks are kept private. The
+Vercel route below still works for a personal copy.
 
 Tech Epitome is a standard Next.js application and deploys to Vercel without
 modification. You will need a hosted PostgreSQL database — Neon, Supabase and
@@ -542,6 +550,11 @@ Vercel Postgres all work.
 - **Review reminder emails.** Point a scheduler at
   `POST /api/cron/notifications` with `Authorization: Bearer $CRON_SECRET`.
   Without it no reminders are sent; nothing else is affected.
+- **Interview transcript retention.** Point a daily scheduler at
+  `POST /api/cron/retention` (same secret). It deletes transcripts and code
+  `INTERVIEW_TRANSCRIPT_RETENTION_DAYS` (default 180) after an interview ends;
+  feedback is kept. **If nothing calls it, nothing is deleted** (learners can
+  still delete any interview themselves). See [docs/CAREER.md](docs/CAREER.md).
 - **More than one instance (or serverless)?** Set `RATE_LIMIT_STORE=postgres`
   and `REQUIRE_DISTRIBUTED_RATE_LIMIT=true`. Counters then live in the
   `rate_limit_buckets` table, so a limit holds across every instance instead of
@@ -578,23 +591,36 @@ withholding, server-owned interview state, and the free-platform guarantee.
 
 Stated plainly, because a README that hides them is not documentation.
 
-- **Code runs on Judge0's public instance.** It is free and rate limited, so
-  heavy traffic will see "the code runner is busy" messages. Moving to a
-  RapidAPI plan or a self-hosted Judge0 is a change of two environment
-  variables.
+- **Code execution is off in production until switched on.** It needs
+  `CODE_EXECUTION_ENABLED=true` and an isolated service: the execution
+  worker on its own host, or Judge0. Requirements and the threat model are
+  in [docs/EXECUTION.md](docs/EXECUTION.md).
 - **Step-by-step tracing covers Python and JavaScript only.** Java and C++
   have no in-browser runtime, so they show the input picture and are judged
   normally, but are not replayed line by line.
 - **Google and GitHub sign-in are not yet switched on in production.** The
   code is complete and its redirects are tested; the live site needs its
   OAuth credentials before the buttons appear.
-- **Docker execution is not runtime-verified.** The container executor is
-  written and selectable, but no Docker daemon was available to run it
-  against. Production uses Judge0 instead.
+- **College assessments enforce timing, attempts and answer secrecy, not
+  honesty.** There is no proctoring or plagiarism detection. Rules and the
+  authorization matrix are in [docs/CAMPUS.md](docs/CAMPUS.md).
+- **College assessments enforce timing, attempts and answer secrecy, not
+  honesty.** There is no proctoring or plagiarism detection. Rules and the
+  authorization matrix are in [docs/CAMPUS.md](docs/CAMPUS.md).
+- **Container isolation is verified on a development machine only** (runc,
+  no gVisor). It must be re-verified on the worker host before launch.
 - **The Anthropic adapter and the Resend adapter** are tested against stubs,
   not their real services.
 - **Interview feedback is AI-generated** and labelled as such. It is a language
-  model reading a transcript, not an assessment.
+  model reading a transcript, not an assessment, and no guarantee of placement or
+  hiring. Quotations in it are checked against the transcript; the judgements
+  themselves are the model's.
+- **Large college operations are synchronous.** Roster imports (200 rows) and
+  class exports (5,000 rows) run in the request; there is no job queue or
+  alerting yet. See [docs/ADMIN.md](docs/ADMIN.md).
+- **No aptitude practice for individual learners.** The platform has no aptitude
+  question content of its own to grade against; colleges can add aptitude
+  questions to their own question banks (docs/CAMPUS.md).
 
 The [engineering reference](docs/ENGINEERING.md) has the complete list.
 

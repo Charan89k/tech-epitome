@@ -20,6 +20,24 @@ export async function getClientIp(): Promise<string> {
  * inside a render — the credentials `authorize` callback, which Auth.js
  * reaches both from the sign-in action and from its own route handler.
  */
+/**
+ * Whether the request probably comes from a phone: the `Sec-CH-UA-Mobile`
+ * client hint where the browser sends it, otherwise the user agent. Only a
+ * layout hint for the first render; the media query has the final say.
+ */
+export async function isLikelyMobileRequest(): Promise<boolean> {
+  return likelyMobileFromHeaders(await headers());
+}
+
+export function likelyMobileFromHeaders(h: Headers): boolean {
+  const agent = h.get("user-agent") ?? "";
+  // iPads say "Mobile/" in their user agent but get the desktop layout.
+  if (/iPad/i.test(agent)) return false;
+  const hint = h.get("sec-ch-ua-mobile");
+  if (hint) return hint === "?1";
+  return /Mobi|iPhone|iPod/i.test(agent);
+}
+
 export function clientIpFromHeaders(h: Headers): string {
   const forwarded = h.get("x-forwarded-for");
   if (forwarded) {

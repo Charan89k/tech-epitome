@@ -52,13 +52,17 @@ export function getEmailProvider(name?: string): EmailProvider {
   if (override) return override;
 
   const selected = name ?? getEnv().EMAIL_PROVIDER;
-  const factory = PROVIDERS[selected];
+  // `console` is the schema's default. In production it means nobody chose a
+  // provider, which is a state to report rather than a crash in the caller.
+  const factory =
+    PROVIDERS[selected] ??
+    (selected === "console" ? () => new ResendProvider(undefined, "") : undefined);
 
   if (!factory) {
     throw new Error(
-      `Unknown email provider "${selected}". Available: ${Object.keys(
-        PROVIDERS
-      ).join(", ")}.`
+      `Unknown email provider "${selected}". Available: ${Object.keys(PROVIDERS).join(
+        ", "
+      )}.`
     );
   }
 

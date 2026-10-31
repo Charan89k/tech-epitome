@@ -28,6 +28,7 @@
     "content:sync:dry": "tsx scripts/chapter-content-sync.ts --dry-run",
     "content:sync:prod": "NODE_ENV=production tsx scripts/chapter-content-sync.ts",
     "content:sync:prod:dry": "NODE_ENV=production tsx scripts/chapter-content-sync.ts --dry-run",
+    "problems:import": "tsx scripts/import-problems.ts",
     "problems:verify": "tsx --conditions=react-server scripts/verify-problems.ts",
     "problems:sync:dry": "tsx scripts/problem-sync.ts --dry-run",
     "problems:sync:prod:dry": "NODE_ENV=production tsx scripts/problem-sync.ts --dry-run",
@@ -41,19 +42,22 @@
     "db:status:prod": "NODE_ENV=production prisma migrate status",
     "db:deploy:prod": "NODE_ENV=production prisma migrate deploy",
     "db:seed:prod": "NODE_ENV=production tsx prisma/seed.ts",
+    "accounts:provision": "tsx prisma/provision-accounts.ts",
     "setup": "npm run db:up && npm run db:generate && npm run db:migrate && npm run db:seed",
     "postinstall": "prisma generate",
     "verify": "npm run typecheck && npm run lint && npm run test",
     "test:e2e:prod": "next build && (npx next start --port 3200 & sleep 6; PROD_URL=http://127.0.0.1:3200 playwright test e2e/production-csp.spec.ts --project=chromium; kill %1)",
     "test:redis": "REDIS_TEST_SERVER=${REDIS_TEST_SERVER:-$(command -v redis-server)} REDIS_TEST_REQUIRED=true vitest run src/lib/rate-limit.redis.integration.test.ts",
-    "capture:media": "playwright test --project=capture && bash scripts/encode-demo.sh"
+    "capture:media": "playwright test --project=capture && bash scripts/encode-demo.sh",
+    "security:hostile": "vitest run tests/security/hostile",
+    "worker": "tsx --conditions=react-server src/worker/main.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
     "@monaco-editor/react": "^4.7.0",
     "@node-rs/argon2": "^2.2.1",
-    "@prisma/adapter-pg": "^7.10.0",
-    "@prisma/client": "7.10.0",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "7.10.1",
     "acorn": "^8.19.0",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
@@ -62,7 +66,7 @@
     "lucide-react": "^1.48.0",
     "motion": "^13.4.4",
     "nanoid": "^6.0.1",
-    "next": "16.3.6",
+    "next": "16.4.3",
     "next-auth": "^5.0.0-beta.32",
     "next-themes": "^0.4.6",
     "radix-ui": "^1.6.7",
@@ -72,7 +76,7 @@
     "server-only": "^0.0.1",
     "sonner": "^2.0.8",
     "tw-animate-css": "^1.4.0",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
@@ -85,11 +89,11 @@
     "@types/react-dom": "^19",
     "dotenv": "^18.0.4",
     "eslint": "^9",
-    "eslint-config-next": "16.3.6",
+    "eslint-config-next": "16.4.3",
     "jsdom": "^30.1.1",
     "prettier": "^3.9.9",
     "prettier-plugin-tailwindcss": "^0.8.1",
-    "prisma": "7.10.0",
+    "prisma": "7.10.1",
     "shadcn": "^4.21.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
@@ -97,9 +101,9 @@
     "vitest": "^5.0.2"
   },
   "allowScripts": {
-    "@prisma/engines@7.10.0": true,
+    "@prisma/engines@7.10.1": true,
     "esbuild@0.28.2": true,
-    "prisma@7.10.0": true,
+    "prisma@7.10.1": true,
     "unrs-resolver@1.12.2": true
   },
   "description": "Tech Epitome - an interactive platform for learning DSA, system design, coding patterns and software engineering interviews.",
@@ -108,5 +112,9 @@
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
+  },
+  "overrides": {
+    "monaco-editor": "0.57.0",
+    "dompurify": "3.4.17"
   }
 }

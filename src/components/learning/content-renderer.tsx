@@ -114,11 +114,11 @@ function Block({
         </li>
       ));
       return block.ordered ? (
-        <ol className="marker:text-ember-500/60 list-decimal space-y-1.5 pl-5">
+        <ol className="marker:text-brand-500/60 list-decimal space-y-1.5 pl-5">
           {items}
         </ol>
       ) : (
-        <ul className="marker:text-ember-500/60 list-disc space-y-1.5 pl-5">{items}</ul>
+        <ul className="marker:text-brand-500/60 list-disc space-y-1.5 pl-5">{items}</ul>
       );
     }
 

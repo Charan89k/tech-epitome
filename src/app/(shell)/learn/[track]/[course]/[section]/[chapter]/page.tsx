@@ -341,13 +341,13 @@ export default async function ChapterPage({ params }: Params) {
                   <Link
                     href={route(chapter.previous.href)}
                     rel="prev"
-                    className="border-border bg-card hover:border-ember-500/40 group min-w-0 rounded-xl border p-4 transition-colors"
+                    className="border-border bg-card hover:border-brand-500/40 group min-w-0 rounded-xl border p-4 transition-colors"
                   >
                     <span className="text-muted-foreground flex items-center gap-1 text-xs">
                       <ChevronLeft className="size-3.5" aria-hidden="true" />
                       Previous
                     </span>
-                    <span className="group-hover:text-ember-200 mt-1 block truncate text-sm font-semibold transition-colors">
+                    <span className="group-hover:text-brand-200 mt-1 block truncate text-sm font-semibold transition-colors">
                       {chapter.previous.title}
                     </span>
                   </Link>
@@ -359,13 +359,13 @@ export default async function ChapterPage({ params }: Params) {
                   <Link
                     href={route(chapter.next.href)}
                     rel="next"
-                    className="border-border bg-card hover:border-ember-500/40 group min-w-0 rounded-xl border p-4 text-right transition-colors"
+                    className="border-border bg-card hover:border-brand-500/40 group min-w-0 rounded-xl border p-4 text-right transition-colors"
                   >
                     <span className="text-muted-foreground flex items-center justify-end gap-1 text-xs">
                       Next
                       <ChevronRight className="size-3.5" aria-hidden="true" />
                     </span>
-                    <span className="group-hover:text-ember-200 mt-1 block truncate text-sm font-semibold transition-colors">
+                    <span className="group-hover:text-brand-200 mt-1 block truncate text-sm font-semibold transition-colors">
                       {chapter.next.title}
                     </span>
                   </Link>

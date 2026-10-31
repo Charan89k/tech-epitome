@@ -29,7 +29,7 @@ const TRACK_COPY: Record<
       "Ordered by dependency, not by topic popularity. Each chapter states what you should be able to do afterwards, then checks it.",
     metaTitle: "DSA curriculum",
     metaDescription:
-      "A structured data structures and algorithms curriculum, ordered by dependency: complexity analysis through advanced dynamic programming.",
+      "A structured data structures and algorithms curriculum, ordered by dependency: complexity analysis, arrays, strings, hashing, two pointers, sliding windows, binary search, linked lists, stacks and queues, and recursion.",
   },
   SYSTEM_DESIGN: {
     heading: "System Design",
@@ -86,7 +86,7 @@ export default async function TrackRoadmapPage({
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <header className="max-w-3xl">
-        <p className="text-ember-400 text-[0.68rem] font-medium tracking-wider uppercase">
+        <p className="text-brand-400 text-[0.68rem] font-medium tracking-wider uppercase">
           Learn
         </p>
         <h1 className="tracking-headline mt-2 text-2xl font-bold sm:text-3xl">
@@ -120,14 +120,14 @@ export default async function TrackRoadmapPage({
               <section key={course.id} aria-label={course.title}>
                 <Link
                   href={route(`/learn/${segment}/${course.slug}`)}
-                  className="border-border bg-card hover:border-ember-500/40 group flex flex-col overflow-hidden rounded-xl border transition-colors sm:flex-row"
+                  className="border-border bg-card hover:border-brand-500/40 group flex flex-col overflow-hidden rounded-xl border transition-colors sm:flex-row"
                 >
                   <MiniDiagram
                     kind={diagramFor(course.slug, courseIndex)}
                     className="border-border h-32 shrink-0 border-b sm:h-auto sm:w-56 sm:border-r sm:border-b-0"
                   />
                   <div className="min-w-0 flex-1 p-5 sm:p-6">
-                    <h2 className="tracking-headline group-hover:text-ember-200 text-lg font-semibold transition-colors sm:text-xl">
+                    <h2 className="tracking-headline group-hover:text-brand-200 text-lg font-semibold transition-colors sm:text-xl">
                       {course.title}
                     </h2>
                     {course.subtitle && (
@@ -164,14 +164,14 @@ export default async function TrackRoadmapPage({
                         aria-label={`${course.completedChapters} of ${course.totalChapters} chapters complete`}
                       >
                         <div
-                          className="bg-ember-500 h-full rounded-full"
+                          className="bg-brand-500 h-full rounded-full"
                           style={{ width: `${percent}%` }}
                         />
                       </div>
                       <span className="text-muted-foreground font-mono text-xs tabular-nums">
                         {percent}%
                       </span>
-                      <span className="text-ember-300 flex shrink-0 items-center gap-1 text-sm font-medium">
+                      <span className="text-brand-300 flex shrink-0 items-center gap-1 text-sm font-medium">
                         {course.completedChapters > 0 ? "Continue" : "Open course"}
                         <ArrowRight
                           className="size-4 transition-transform group-hover:translate-x-0.5"
@@ -200,7 +200,7 @@ export default async function TrackRoadmapPage({
                               href={route(
                                 `/learn/${segment}/${course.slug}#section-${section.slug}`
                               )}
-                              className="border-border bg-card hover:border-ember-500/40 group flex h-full overflow-hidden rounded-xl border transition-colors sm:flex-col"
+                              className="border-border bg-card hover:border-brand-500/40 group flex h-full overflow-hidden rounded-xl border transition-colors sm:flex-col"
                             >
                               <MiniDiagram
                                 kind={diagramFor(section.slug, sectionIndex)}
@@ -210,7 +210,7 @@ export default async function TrackRoadmapPage({
                                 <p className="text-muted-foreground font-mono text-[0.65rem] tabular-nums">
                                   {String(sectionIndex + 1).padStart(2, "0")}
                                 </p>
-                                <p className="group-hover:text-ember-200 mt-0.5 truncate text-sm font-semibold transition-colors">
+                                <p className="group-hover:text-brand-200 mt-0.5 truncate text-sm font-semibold transition-colors">
                                   {section.title}
                                 </p>
                                 {section.summary && (
@@ -221,7 +221,7 @@ export default async function TrackRoadmapPage({
                                 <div className="mt-auto flex items-center gap-2 pt-3">
                                   <div className="bg-muted h-1 flex-1 overflow-hidden rounded-full">
                                     <div
-                                      className="bg-ember-500 h-full rounded-full"
+                                      className="bg-brand-500 h-full rounded-full"
                                       style={{ width: `${sectionPercent}%` }}
                                     />
                                   </div>

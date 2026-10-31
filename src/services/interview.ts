@@ -462,6 +462,8 @@ export type InterviewDetail = {
   problemStatement: string;
   startedAt: Date;
   endedAt: Date | null;
+  /** Set when retention deleted the transcript and code. */
+  transcriptDeletedAt: Date | null;
   transcript: { id: string; role: "USER" | "ASSISTANT"; content: string; at: Date }[];
   feedback: {
     dimensions: { dimension: string; band: string; evidence: string }[];
@@ -493,6 +495,7 @@ export async function getInterview(
       code: true,
       startedAt: true,
       endedAt: true,
+      transcriptDeletedAt: true,
       // Candidate-visible brief only. See BRIEF_SELECT: no solutions, no
       // hidden tests, no reference architecture, no reference class
       // diagram, no behavioural rubric.
@@ -526,6 +529,7 @@ export async function getInterview(
     problemStatement: briefStatement(session, session.id),
     startedAt: session.startedAt,
     endedAt: session.endedAt,
+    transcriptDeletedAt: session.transcriptDeletedAt,
     transcript: session.messages
       .filter((m) => m.role !== "SYSTEM")
       .map((m) => ({
@@ -929,4 +933,58 @@ export async function getInterviewStats(userId: string): Promise<{
     prisma.interviewSession.count({ where: { userId, status: "IN_PROGRESS" } }),
   ]);
   return { total, completed, withFeedback, inProgress };
+}
+
+/**
+ * Permanently deletes one of the candidate's own sessions: transcript,
+ * code and feedback (cascade). Scoped by userId, so another learner's id
+ * deletes nothing.
+ */
+export async function deleteInterview(sessionId: string, userId: string): Promise<boolean> {
+  const { count } = await prisma.interviewSession.deleteMany({
+    where: { id: sessionId, userId },
+  });
+  return count > 0;
+}
+
+/**
+ * The retention rule: a transcript and its code are deleted `days` after
+ * the interview ended (or started, for one abandoned unfinished). The
+ * session row and its written feedback stay, so history and insights keep
+ * working; the session records when its transcript went.
+ *
+ * Batched, so one run is bounded; a scheduler calling daily catches up.
+ */
+export async function purgeExpiredTranscripts(
+  days: number,
+  now = new Date(),
+  batch = 500
+): Promise<number> {
+  const cutoff = new Date(now.getTime() - days * 24 * 60 * 60_000);
+  const expired = await prisma.interviewSession.findMany({
+    where: {
+      transcriptDeletedAt: null,
+      OR: [
+        { endedAt: { lt: cutoff } },
+        { endedAt: null, startedAt: { lt: cutoff } },
+      ],
+    },
+    select: { id: true },
+    take: batch,
+  });
+  const ids = expired.map((s) => s.id);
+  if (ids.length === 0) return 0;
+  await prisma.$transaction([
+    prisma.interviewMessage.deleteMany({ where: { sessionId: { in: ids } } }),
+    // Unfinished ones can never be resumed without a transcript.
+    prisma.interviewSession.updateMany({
+      where: { id: { in: ids }, status: "IN_PROGRESS" },
+      data: { status: "ABANDONED", stage: "ENDED" },
+    }),
+    prisma.interviewSession.updateMany({
+      where: { id: { in: ids } },
+      data: { code: null, transcriptDeletedAt: now },
+    }),
+  ]);
+  return ids.length;
 }

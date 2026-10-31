@@ -74,7 +74,7 @@ export function layoutByDistance(
 const TONE_FILL: Record<GraphNodeTone, string> = {
   idle: "var(--viz-idle)",
   frontier: "var(--viz-compare)",
-  current: "var(--ember-500)",
+  current: "var(--brand-500)",
   visited: "var(--viz-done)",
 };
 

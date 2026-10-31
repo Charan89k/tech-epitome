@@ -45,7 +45,7 @@ export default async function AdminContentPage({
         operation this screen exists for.
       </p>
 
-      <div className="bg-card border-border mt-4 flex flex-col gap-2 rounded-xl border p-2 md:flex-row md:items-center">
+      <div className="bg-card border-border mt-4 flex flex-col gap-2 rounded-lg border p-2 md:flex-row md:items-center">
       <nav aria-label="Content type" className="flex flex-wrap gap-1">
         {KINDS.map((item) => (
           <Link
@@ -55,7 +55,7 @@ export default async function AdminContentPage({
             className={cn(
               "rounded-lg px-2.5 py-1.5 text-xs transition-colors",
               item.key === kind
-                ? "bg-ember-500/12 text-ember-300 font-medium"
+                ? "bg-brand-500/12 text-brand-300 font-medium"
                 : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
             )}
           >
@@ -80,7 +80,7 @@ export default async function AdminContentPage({
       </div>
 
       {rows.length === 0 ? (
-        <div className="bg-card border-border mt-4 rounded-xl border">
+        <div className="bg-card border-border mt-4 rounded-lg border">
           <EmptyState
             icon={FileQuestion}
             title="Nothing here"
@@ -92,13 +92,13 @@ export default async function AdminContentPage({
           />
         </div>
       ) : (
-        <div className="bg-card border-border mt-4 overflow-x-auto rounded-xl border">
+        <div className="bg-card border-border mt-4 overflow-x-auto rounded-lg border">
           <table className="w-full min-w-[32rem] text-sm">
             <caption className="sr-only">
               {KINDS.find((item) => item.key === kind)?.label} and their publication status
             </caption>
             <thead>
-              <tr className="border-border text-muted-foreground bg-muted/20 border-b text-left text-xs">
+              <tr className="border-b border-border bg-muted/40 text-left [&>th]:label-mono [&>th]:font-normal">
                 <th scope="col" className="px-4 py-2.5 font-medium">
                   Title
                 </th>

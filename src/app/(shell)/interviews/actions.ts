@@ -2,14 +2,18 @@
 
 import { checkInterviewQuota } from "@/lib/ai/quota";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { Difficulty, InterviewType, Language } from "@/generated/prisma/enums";
 import { getAIProvider, recordAIUsage } from "@/lib/ai";
+import type { AIMessage } from "@/lib/ai/types";
+import { checkFeedback } from "@/lib/interview/feedback";
+import { fence } from "@/lib/tutor/policy";
 import { recordEvent } from "@/lib/analytics";
 import { notifyInterviewGraded } from "@/services/notifications";
 import { canAccess, FEATURES } from "@/lib/auth/access";
-import { requireUserOrThrow } from "@/lib/auth/session";
+import { requireCampusUserOrThrow } from "@/lib/campus-access";
 import {
   boundTranscript,
   buildFeedbackSystemPrompt,
@@ -26,6 +30,7 @@ import { RATE_LIMITS, rateLimit } from "@/lib/rate-limit";
 import {
   availableDifficulties,
   createInterview,
+  deleteInterview,
   loadFeedbackContext,
   saveFeedback,
   saveInterviewCode,
@@ -63,7 +68,7 @@ const createSchema = z.object({
 export async function availableDifficultiesAction(
   rawType: unknown
 ): Promise<ActionResult<{ difficulties: Difficulty[] }>> {
-  await requireUserOrThrow();
+  await requireCampusUserOrThrow();
 
   const parsed = z.nativeEnum(InterviewType).safeParse(rawType);
   if (!parsed.success) {
@@ -81,7 +86,7 @@ export async function availableDifficultiesAction(
 export async function createInterviewAction(
   raw: unknown
 ): Promise<ActionResult<{ id: string; difficulty: Difficulty; substituted: boolean }>> {
-  const user = await requireUserOrThrow();
+  const user = await requireCampusUserOrThrow();
   if (!canAccess(user, FEATURES.AI_MOCK_INTERVIEW)) {
     return { ok: false, error: "Sign in to use mock interviews." };
   }
@@ -138,7 +143,7 @@ const codeSchema = z.object({
 export async function saveInterviewCodeAction(
   raw: unknown
 ): Promise<ActionResult> {
-  const user = await requireUserOrThrow();
+  const user = await requireCampusUserOrThrow();
 
   const parsed = codeSchema.safeParse(raw);
   if (!parsed.success) {
@@ -163,11 +168,22 @@ export async function saveInterviewCodeAction(
   return { ok: true, data: undefined };
 }
 
+/**
+ * Permanently deletes one of the candidate's own interviews: transcript,
+ * code and feedback. Another learner's id deletes nothing.
+ */
+export async function deleteInterviewAction(sessionId: string): Promise<void> {
+  const user = await requireCampusUserOrThrow();
+  await deleteInterview(z.string().min(1).max(64).parse(sessionId), user.id);
+  revalidatePath("/interviews");
+  redirect("/interviews");
+}
+
 /** Ends the interview. The one stage transition a candidate may ask for. */
 export async function endInterviewAction(
   sessionId: string
 ): Promise<ActionResult> {
-  const user = await requireUserOrThrow();
+  const user = await requireCampusUserOrThrow();
   await setStage({ sessionId, userId: user.id, stage: "ENDED" });
   revalidatePath(`/interviews/${sessionId}`);
   revalidatePath("/interviews");
@@ -199,6 +215,65 @@ const feedbackSchema = z.object({
   summary: z.string().min(1).max(2_000),
 });
 
+const FEEDBACK_TIMEOUT_MS = 60_000;
+
+type FeedbackOutcome =
+  | { status: "ok"; feedback: z.infer<typeof feedbackSchema>; raw: string }
+  | { status: "invalid"; raw: string }
+  | { status: "unavailable" };
+
+/** One provider call, with a timeout, usage recorded and output validated. */
+async function requestFeedback(
+  provider: ReturnType<typeof getAIProvider>,
+  messages: AIMessage[],
+  userId: string
+): Promise<FeedbackOutcome> {
+  const startedAt = Date.now();
+  let raw: string;
+  try {
+    const result = await provider.generate({
+      messages,
+      maxOutputTokens: 1_600,
+      temperature: 0.4,
+      signal: AbortSignal.timeout(FEEDBACK_TIMEOUT_MS),
+    });
+    raw = result.text;
+    await recordAIUsage({
+      userId,
+      provider: provider.name,
+      model: provider.defaultModel,
+      feature: "interview-feedback",
+      usage: result.usage,
+      latencyMs: Date.now() - startedAt,
+      success: true,
+    });
+  } catch (error) {
+    // The provider's message can carry a status body; it goes to the log only.
+    console.error("[interview] feedback generation failed", error);
+    await recordAIUsage({
+      userId,
+      provider: provider.name,
+      model: provider.defaultModel,
+      feature: "interview-feedback",
+      usage: { promptTokens: 0, completionTokens: 0 },
+      latencyMs: Date.now() - startedAt,
+      success: false,
+    });
+    return { status: "unavailable" };
+  }
+
+  // Models sometimes wrap JSON in a fence despite being told not to.
+  const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  try {
+    const parsed = feedbackSchema.safeParse(JSON.parse(cleaned));
+    return parsed.success
+      ? { status: "ok", feedback: parsed.data, raw: cleaned }
+      : { status: "invalid", raw: cleaned };
+  } catch {
+    return { status: "invalid", raw: cleaned };
+  }
+}
+
 /**
  * Generates the written feedback.
  *
@@ -210,7 +285,7 @@ const feedbackSchema = z.object({
 export async function generateFeedbackAction(
   sessionId: string
 ): Promise<ActionResult<{ generated: true }>> {
-  const user = await requireUserOrThrow();
+  const user = await requireCampusUserOrThrow();
   if (!canAccess(user, FEATURES.AI_MOCK_INTERVIEW)) {
     return { ok: false, error: "Sign in to use mock interviews." };
   }
@@ -248,83 +323,81 @@ export async function generateFeedbackAction(
     reference: context.reference,
   });
 
-  const transcript = boundTranscript(context.transcript)
-    .map((turn) => `${turn.role === "USER" ? "Candidate" : "Interviewer"}: ${turn.content}`)
-    .join("\n\n");
+  // Fenced like every other untrusted block, so a candidate who types the
+  // closing marker cannot step outside the transcript.
+  const transcript = fence(
+    "transcript",
+    boundTranscript(context.transcript)
+      .map((turn) => `${turn.role === "USER" ? "Candidate" : "Interviewer"}: ${turn.content}`)
+      .join("\n\n")
+  );
+  // What quotations are checked against: only the candidate's own words.
+  const candidateText = [
+    ...context.transcript.filter((t) => t.role === "USER").map((t) => t.content),
+    context.code ?? "",
+  ].join("\n");
 
   const provider = getAIProvider();
-  const startedAt = Date.now();
+  const messages: AIMessage[] = [
+    { role: "system", content: buildFeedbackSystemPrompt(kind) },
+    {
+      role: "user",
+      content:
+        `${contextBlock}\n\n${transcript}\n\n` +
+        `Assess these dimensions: ${dimensions.join(", ")}.\n` +
+        `Bands: ${RATING_BANDS.join(", ")}.\n` +
+        `Only put text in quotation marks if the candidate said or wrote exactly that.\n` +
+        `Return JSON: { dimensions: [{dimension, band, evidence}], strengths: [], improvements: [], summary }`,
+    },
+  ];
 
-  let raw: string;
-  try {
-    const result = await provider.generate({
-      messages: [
-        { role: "system", content: buildFeedbackSystemPrompt(kind) },
+  // One corrective retry: the model is told precisely what failed.
+  let feedback: z.infer<typeof feedbackSchema> | null = null;
+  for (let attempt = 0; attempt < 2 && !feedback; attempt += 1) {
+    const outcome = await requestFeedback(provider, messages, user.id);
+    if (outcome.status === "unavailable") {
+      return {
+        ok: false,
+        error:
+          "Written feedback is unavailable right now. Use the self-review below, or try again later.",
+      };
+    }
+    if (outcome.status === "ok") {
+      const check = checkFeedback(outcome.feedback, kind, candidateText);
+      if (check.ok) {
+        feedback = outcome.feedback;
+        break;
+      }
+      messages.push(
+        { role: "assistant", content: outcome.raw },
         {
           role: "user",
-          content:
-            `${contextBlock}\n\n<<<TRANSCRIPT>>>\n${transcript}\n<<<END_TRANSCRIPT>>>\n\n` +
-            `Assess these dimensions: ${dimensions.join(", ")}.\n` +
-            `Bands: ${RATING_BANDS.join(", ")}.\n` +
-            `Return JSON: { dimensions: [{dimension, band, evidence}], strengths: [], improvements: [], summary }`,
-        },
-      ],
-      maxOutputTokens: 1_600,
-      temperature: 0.4,
-    });
-    raw = result.text;
-
-    await recordAIUsage({
-      userId: user.id,
-      provider: provider.name,
-      model: provider.defaultModel,
-      feature: "interview-feedback",
-      usage: result.usage,
-      latencyMs: Date.now() - startedAt,
-      success: true,
-    });
-  } catch (error) {
-    console.error("[interview] feedback generation failed", error);
-    await recordAIUsage({
-      userId: user.id,
-      provider: provider.name,
-      model: provider.defaultModel,
-      feature: "interview-feedback",
-      usage: { promptTokens: 0, completionTokens: 0 },
-      latencyMs: Date.now() - startedAt,
-      success: false,
-    });
-    return { ok: false, error: "Could not generate feedback. Try again shortly." };
+          content: `That feedback failed validation:\n- ${check.problems.join("\n- ")}\nReturn corrected JSON only.`,
+        }
+      );
+    } else {
+      messages.push({
+        role: "user",
+        content: "That was not valid JSON in the required shape. Return the JSON only.",
+      });
+    }
   }
-
-  // Models sometimes wrap JSON in a fence despite being told not to.
-  const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-
-  let parsedJson: unknown;
-  try {
-    parsedJson = JSON.parse(cleaned);
-  } catch {
+  if (!feedback) {
     return {
       ok: false,
-      error: "The feedback came back in an unexpected format. Try again.",
+      error:
+        "Could not produce feedback grounded in your transcript. Use the self-review below, or try again.",
     };
   }
 
-  const validated = feedbackSchema.safeParse(parsedJson);
-  if (!validated.success) {
-    return {
-      ok: false,
-      error: "The feedback came back in an unexpected format. Try again.",
-    };
-  }
 
   const saved = await saveFeedback({
     sessionId,
     userId: user.id,
-    dimensions: validated.data.dimensions,
-    strengths: validated.data.strengths,
-    improvements: validated.data.improvements,
-    summary: validated.data.summary,
+    dimensions: feedback.dimensions,
+    strengths: feedback.strengths,
+    improvements: feedback.improvements,
+    summary: feedback.summary,
   });
   if (!saved) return { ok: false, error: "That interview is not available." };
 

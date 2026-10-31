@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { useFormStatus } from "react-dom";
 import { AlertCircle, Loader2 } from "lucide-react";
@@ -32,6 +32,10 @@ type AuthFormProps = {
    * `?error=` code by the page. Never the raw parameter.
    */
   notice?: string | null;
+  /** A confirmation to show above the form, already written by the page. */
+  success?: string | null;
+  /** A portal's own heading, and whether it offers account creation. */
+  portal?: { title: string; subtitle: string; allowSignup: boolean };
 };
 
 const EMPTY: AuthFormState = {};
@@ -42,9 +46,15 @@ export function AuthForm({
   googleEnabled,
   githubEnabled,
   notice = null,
+  success = null,
+  portal,
 }: AuthFormProps) {
   const action = mode === "signin" ? signInAction : signUpAction;
   const [state, formAction] = useActionState(action, EMPTY);
+  // Controlled so a failed attempt keeps what was typed; the password still
+  // clears, as it should.
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
 
   const fieldErrors = state.fieldErrors ?? {};
 
@@ -52,14 +62,22 @@ export function AuthForm({
     <div className="space-y-6">
       <header className="space-y-1.5 text-center">
         <h1 className="tracking-headline text-2xl font-bold">
-          {mode === "signin" ? "Sign in to Tech Epitome" : "Create your account"}
+          {portal?.title ??
+            (mode === "signin" ? "Sign in to Tech Epitome" : "Create your account")}
         </h1>
-        <p className="text-muted-foreground text-sm">
-          {mode === "signin"
-            ? "Pick up where you left off."
-            : "Free, every track and feature. No card."}
+        <p className="text-sm text-muted-foreground">
+          {portal?.subtitle ??
+            (mode === "signin"
+              ? "Pick up where you left off."
+              : "Free for every learner. No card.")}
         </p>
       </header>
+
+      {success && !state.error && (
+        <Alert variant="success" role="status">
+          <AlertDescription>{success}</AlertDescription>
+        </Alert>
+      )}
 
       {/* The form's own error wins: once the learner has tried again, the
           message about the earlier provider attempt is stale. */}
@@ -104,7 +122,7 @@ export function AuthForm({
 
           <div className="relative">
             <Separator />
-            <span className="bg-card text-muted-foreground absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-3 text-xs">
+            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-3 text-xs text-muted-foreground">
               or
             </span>
           </div>
@@ -123,6 +141,8 @@ export function AuthForm({
             autoComplete="name"
             placeholder="Ada Lovelace"
             error={fieldErrors.name}
+            value={name}
+            onValueChange={setName}
             required
           />
         )}
@@ -135,6 +155,8 @@ export function AuthForm({
           autoComplete="email"
           placeholder="you@example.com"
           error={fieldErrors.email}
+          value={email}
+          onValueChange={setEmail}
           required
         />
 
@@ -155,15 +177,28 @@ export function AuthForm({
         />
 
         <SubmitButton mode={mode} />
+        {mode === "signin" && (
+          <p className="text-center text-sm">
+            <Link
+              href="/forgot-password"
+              className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Forgot your password?
+            </Link>
+          </p>
+        )}
       </form>
 
-      <p className="text-muted-foreground text-center text-sm">
+      <p
+        hidden={Boolean(portal && !portal.allowSignup)}
+        className="text-center text-sm text-muted-foreground"
+      >
         {mode === "signin" ? (
           <>
             New here?{" "}
             <Link
               href={{ pathname: "/signup", query: { next } }}
-              className="text-ember-300 hover:text-ember-200 font-medium underline-offset-4 hover:underline"
+              className="font-medium text-brand-300 underline-offset-4 hover:text-brand-200 hover:underline"
             >
               Create an account
             </Link>
@@ -173,7 +208,7 @@ export function AuthForm({
             Already have an account?{" "}
             <Link
               href={{ pathname: "/login", query: { next } }}
-              className="text-ember-300 hover:text-ember-200 font-medium underline-offset-4 hover:underline"
+              className="font-medium text-brand-300 underline-offset-4 hover:text-brand-200 hover:underline"
             >
               Sign in
             </Link>
@@ -211,12 +246,7 @@ function ProviderButton({ provider }: { provider: keyof typeof PROVIDERS }) {
   const { label, Glyph } = PROVIDERS[provider];
 
   return (
-    <Button
-      type="submit"
-      variant="outline"
-      className="h-10 w-full"
-      disabled={pending}
-    >
+    <Button type="submit" variant="outline" className="h-10 w-full" disabled={pending}>
       {pending ? (
         <Loader2 className="size-4 animate-spin" aria-hidden="true" />
       ) : (
@@ -237,6 +267,9 @@ type FieldProps = {
   hint?: string;
   error?: string;
   required?: boolean;
+  /** Set to keep the value across a failed submit (React resets uncontrolled fields). */
+  value?: string;
+  onValueChange?: (value: string) => void;
 };
 
 function Field({
@@ -249,6 +282,8 @@ function Field({
   hint,
   error,
   required,
+  value,
+  onValueChange,
 }: FieldProps) {
   const describedBy =
     [error ? `${id}-error` : null, hint ? `${id}-hint` : null]
@@ -265,17 +300,24 @@ function Field({
         autoComplete={autoComplete}
         placeholder={placeholder}
         required={required}
+        value={value}
+        onChange={
+          onValueChange ? (event) => onValueChange(event.target.value) : undefined
+        }
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
-        className={cn("h-10", error && "border-destructive focus-visible:ring-destructive/40")}
+        className={cn(
+          "h-10",
+          error && "border-destructive focus-visible:ring-destructive/40"
+        )}
       />
       {hint && !error && (
-        <p id={`${id}-hint`} className="text-muted-foreground text-xs">
+        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
           {hint}
         </p>
       )}
       {error && (
-        <p id={`${id}-error`} className="text-destructive text-xs" role="alert">
+        <p id={`${id}-error`} className="text-xs text-destructive" role="alert">
           {error}
         </p>
       )}

@@ -34,7 +34,7 @@ export function ExerciseCard({
   return (
     <Link
       href={route(href)}
-      className="group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-ember-500/40 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+      className="group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-brand-500/40 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
     >
       <div className="relative">
         <DesignThumb kind={thumb} className="h-32 w-full border-b border-border" />
@@ -45,7 +45,7 @@ export function ExerciseCard({
           </span>
         )}
         {status === "IN_PROGRESS" && (
-          <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded-full border border-border bg-background/85 px-2 py-0.5 text-[0.65rem] font-medium text-ember-300 backdrop-blur">
+          <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded-full border border-border bg-background/85 px-2 py-0.5 text-[0.65rem] font-medium text-brand-300 backdrop-blur">
             <PenLine className="size-3" aria-hidden="true" />
             Draft
           </span>
@@ -54,11 +54,11 @@ export function ExerciseCard({
 
       <div className="flex flex-1 flex-col p-4">
         <div className="flex items-start gap-2">
-          <h2 className="min-w-0 flex-1 text-base font-semibold transition-colors group-hover:text-ember-200">
+          <h2 className="min-w-0 flex-1 text-base font-semibold transition-colors group-hover:text-brand-200">
             {title}
           </h2>
           <ArrowUpRight
-            className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-ember-400"
+            className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-brand-400"
             aria-hidden="true"
           />
         </div>

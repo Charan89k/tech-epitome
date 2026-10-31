@@ -27,7 +27,7 @@ export default async function AdminAuditPage() {
       </p>
 
       {rows.length === 0 ? (
-        <div className="bg-card border-border mt-4 rounded-xl border">
+        <div className="bg-card border-border mt-4 rounded-lg border">
           <EmptyState
             icon={ScrollText}
             title="Nothing has been changed yet"
@@ -35,11 +35,11 @@ export default async function AdminAuditPage() {
           />
         </div>
       ) : (
-        <div className="bg-card border-border mt-4 overflow-x-auto rounded-xl border">
+        <div className="bg-card border-border mt-4 overflow-x-auto rounded-lg border">
           <table className="w-full min-w-[48rem] text-sm">
             <caption className="sr-only">Administrative changes, newest first</caption>
             <thead>
-              <tr className="border-border text-muted-foreground bg-muted/20 border-b text-left text-xs">
+              <tr className="border-b border-border bg-muted/40 text-left [&>th]:label-mono [&>th]:font-normal">
                 <th scope="col" className="w-40 px-4 py-2.5 font-medium">
                   When
                 </th>

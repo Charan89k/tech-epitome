@@ -59,14 +59,14 @@ export type ClientHighlight = {
 
 /** Tailwind classes per colour. A closed set, so these all exist in the build. */
 const COLOR_CLASS: Record<HighlightColor, string> = {
-  ember: "bg-ember-500/25 text-foreground rounded-[2px]",
+  ember: "bg-amber-500/25 text-foreground rounded-[2px]",
   sky: "bg-sky-500/25 text-foreground rounded-[2px]",
   mint: "bg-emerald-500/25 text-foreground rounded-[2px]",
   violet: "bg-violet-500/25 text-foreground rounded-[2px]",
 };
 
 const SWATCH_CLASS: Record<HighlightColor, string> = {
-  ember: "bg-ember-500",
+  ember: "bg-amber-500",
   sky: "bg-sky-500",
   mint: "bg-emerald-500",
   violet: "bg-violet-500",

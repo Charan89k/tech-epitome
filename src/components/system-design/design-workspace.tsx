@@ -204,7 +204,7 @@ export function DesignWorkspace({
                 type="button"
                 onClick={() => addNode(entry.kind)}
                 title={entry.hint}
-                className="inline-flex h-7 items-center gap-1 rounded-md border border-border bg-background/60 px-2.5 text-xs text-muted-foreground transition-colors hover:border-ember-500/40 hover:text-ember-300 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                className="inline-flex h-7 items-center gap-1 rounded-md border border-border bg-background/60 px-2.5 text-xs text-muted-foreground transition-colors hover:border-brand-500/40 hover:text-brand-300 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
               >
                 <Plus className="size-3" aria-hidden="true" />
                 {entry.label}
@@ -263,8 +263,8 @@ export function DesignWorkspace({
 
       {/* Selected component editor */}
       {selectedNode && (
-        <div className="rounded-lg border border-ember-500/30 bg-ember-500/5 p-3">
-          <p className="text-[0.65rem] font-medium tracking-wider text-ember-300 uppercase">
+        <div className="rounded-lg border border-brand-500/30 bg-brand-500/5 p-3">
+          <p className="text-[0.65rem] font-medium tracking-wider text-brand-300 uppercase">
             {NODE_KIND_LABELS[selectedNode.kind]}
           </p>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">

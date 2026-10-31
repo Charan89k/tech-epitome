@@ -85,11 +85,41 @@ async function claimPeriod(params: {
     });
     return { claimed: true, id: row.id };
   } catch {
-    // The unique constraint. Any other failure also lands here and is
-    // treated as "do not send", which is the safe direction for mail.
-    return { claimed: false };
+    // The unique constraint, so a row exists. Re-claim it only if its last
+    // send was a retryable rejection with attempts left. The conditional
+    // update is the lock: of two racing runs, one moves the row, the other
+    // updates nothing. "attempted" (outcome unknown) is never retried,
+    // because the first send may have gone out.
+    const retried = await prisma.emailDelivery
+      .updateMany({
+        where: {
+          userId: params.userId,
+          kind: params.kind,
+          periodKey: params.periodKey,
+          status: "rejected",
+          retryable: true,
+          attempts: { lt: MAX_EMAIL_ATTEMPTS },
+        },
+        data: { status: "attempted", attempts: { increment: 1 }, provider: params.provider },
+      })
+      .catch(() => ({ count: 0 }));
+    if (retried.count !== 1) return { claimed: false };
+    const row = await prisma.emailDelivery.findUnique({
+      where: {
+        userId_kind_periodKey: {
+          userId: params.userId,
+          kind: params.kind,
+          periodKey: params.periodKey,
+        },
+      },
+      select: { id: true },
+    });
+    return row ? { claimed: true, id: row.id } : { claimed: false };
   }
 }
+
+/** Total sends per slot, the first included. */
+export const MAX_EMAIL_ATTEMPTS = 3;
 
 async function recordResult(id: string, result: SendResult): Promise<void> {
   await prisma.emailDelivery.update({
@@ -99,6 +129,7 @@ async function recordResult(id: string, result: SendResult): Promise<void> {
       provider: result.provider,
       providerId: result.status === "accepted" ? result.id : null,
       reason: result.status === "accepted" ? null : result.reason,
+      retryable: result.status === "rejected" ? result.retryable : false,
     },
   });
 }
@@ -121,11 +152,15 @@ export async function sendReviewReminder(params: {
     select: {
       email: true,
       name: true,
+      status: true,
       profile: { select: { emailReviewReminders: true } },
     },
   });
 
   if (!user?.email) return "no-address";
+
+  // A suspended account gets no mail from background jobs either.
+  if (user.status !== "ACTIVE") return "opted-out";
 
   // Opt-in, and checked before anything is written. A learner who never
   // asked for mail leaves no delivery row at all.

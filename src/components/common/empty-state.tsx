@@ -36,7 +36,7 @@ export function EmptyState({
       )}
     >
       {Icon && (
-        <div className="rounded-lg bg-ember-500/10 p-2.5 text-ember-400 ring-1 ring-ember-500/20">
+        <div className="rounded-md border border-border bg-muted/50 p-2.5 text-muted-foreground">
           <Icon className={size === "md" ? "size-5" : "size-4"} aria-hidden="true" />
         </div>
       )}

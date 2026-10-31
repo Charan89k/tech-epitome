@@ -62,9 +62,30 @@ const serverSchema = z.object({
     z.coerce.number().int().positive().optional()
   ),
 
-  CODE_EXECUTION_DRIVER: z.enum(["local", "docker", "remote"]).default("docker"),
+  /**
+   * Who runs learner code. In production only `remote` (Judge0) and `worker`
+   * (our execution worker on its own host) are accepted: `local` has no
+   * isolation, and `docker` would hand the web process a root-equivalent
+   * Docker socket. See docs/EXECUTION.md.
+   */
+  CODE_EXECUTION_DRIVER: z.enum(["local", "docker", "remote", "worker"]).default("docker"),
+  /**
+   * Master switch for running learner code. Unset means on in development
+   * and OFF in production, so a deploy never starts executing untrusted code
+   * until an operator has verified the isolation and set this to "true".
+   */
+  CODE_EXECUTION_ENABLED: z.preprocess(
+    emptyToUndefined,
+    z.enum(["true", "false"]).optional()
+  ),
   CODE_EXECUTION_API_URL: z.preprocess(emptyToUndefined, z.string().url().optional()),
   CODE_EXECUTION_API_KEY: z.preprocess(emptyToUndefined, z.string().optional()),
+  /**
+   * Judge0 language ids, as "PYTHON:71,JAVASCRIPT:63,JAVA:62,CPP:54". They
+   * differ per Judge0 installation; unset means the public server's ids.
+   * Parsed (and refused if malformed) by the Judge0 adapter.
+   */
+  JUDGE0_LANGUAGE_IDS: z.preprocess(emptyToUndefined, z.string().optional()),
 
 
   /**
@@ -92,6 +113,11 @@ const serverSchema = z.object({
     .default("false"),
 
   CRON_SECRET: z.preprocess(emptyToUndefined, z.string().min(24).optional()),
+  /**
+   * Days after an interview ends before the retention job (POST
+   * /api/cron/retention) deletes its transcript and code. Feedback stays.
+   */
+  INTERVIEW_TRANSCRIPT_RETENTION_DAYS: z.coerce.number().int().min(7).max(3650).default(180),
 
   SEED_ADMIN_EMAIL: z.string().email().default("admin@techepitome.local"),
   SEED_ADMIN_PASSWORD: z.string().min(8).default("forge-admin-dev"),
@@ -176,9 +202,17 @@ export function getEnv(): ServerEnv {
         "for the test suite. Set it to 'ollama' or 'anthropic' in production."
     );
   }
-  if (data.CODE_EXECUTION_DRIVER === "remote" && !data.CODE_EXECUTION_API_URL) {
+  if (
+    (data.CODE_EXECUTION_DRIVER === "remote" || data.CODE_EXECUTION_DRIVER === "worker") &&
+    !data.CODE_EXECUTION_API_URL
+  ) {
     throw new Error(
-      "CODE_EXECUTION_DRIVER is 'remote' but CODE_EXECUTION_API_URL is empty."
+      `CODE_EXECUTION_DRIVER is '${data.CODE_EXECUTION_DRIVER}' but CODE_EXECUTION_API_URL is empty.`
+    );
+  }
+  if (data.CODE_EXECUTION_DRIVER === "worker" && (data.CODE_EXECUTION_API_KEY ?? "").length < 32) {
+    throw new Error(
+      "CODE_EXECUTION_DRIVER is 'worker' but CODE_EXECUTION_API_KEY is missing or shorter than 32 characters."
     );
   }
 

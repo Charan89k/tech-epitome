@@ -1,9 +1,16 @@
 import "server-only";
 
 import type { Language } from "@/generated/prisma/enums";
+import {
+  clampCpuSeconds,
+  clampMemoryMb,
+  clampWallSeconds,
+  EXECUTION_LIMITS,
+  FILE_TOO_LARGE,
+} from "./limits";
 import { summarise } from "./local-adapter";
 import {
-  outputMatches,
+  judgeOutput,
   type CodeExecutionService,
   type ExecutionRequest,
   type ExecutionResult,
@@ -16,7 +23,11 @@ import {
  *
  * Serverless hosts have no container runtime and must never run submitted
  * code in-process, so production delegates to Judge0, which sandboxes each
- * run (isolate: namespaces, cgroups, seccomp) on its own machines. One
+ * run with isolate on its own machines: mount, PID, IPC and network
+ * namespaces, a per-box uid, cgroup and rlimit resource limits. isolate does
+ * no general syscall filtering (no seccomp policy), so the kernel is part of
+ * the attack surface and the Judge0 host is the real security boundary;
+ * infra/judge0 treats it as disposable for exactly that reason. One
  * adapter serves every way of reaching Judge0; only configuration changes:
  *
  *   public CE        CODE_EXECUTION_API_URL=https://ce.judge0.com, no key.
@@ -26,26 +37,62 @@ import {
  *   self-hosted      your instance's URL plus its AUTHN token, sent as
  *                    X-Auth-Token.
  *
- * All of a request's tests go up as one batch and are polled together, so a
- * submit costs two or three round trips rather than one per test. Hidden
+ * Language ids differ between Judge0 installations, so they are
+ * configuration (JUDGE0_LANGUAGE_IDS), defaulting to the public server's.
+ *
+ * Limits are clamped to EXECUTION_LIMITS on every request, and networking is
+ * explicitly refused per submission. A self-hosted server enforces the same
+ * ceilings itself (MAX_* and ALLOW_ENABLE_NETWORK=false), so neither side
+ * relies on the other.
+ *
+ * All of a request's tests go up in batches of at most
+ * EXECUTION_LIMITS.maxBatchSize and are polled together, so a submit costs
+ * two or three round trips rather than one per test. Hidden
  * test inputs are sent to the Judge0 host — unavoidable when it runs them —
  * but never returned to the learner: only sample cases carry their input,
  * expected and actual output back.
  */
 
-/** Judge0 CE 1.14 language ids, newest runtime of each. */
-const LANGUAGE_ID: Partial<Record<Language, number>> = {
+export type Judge0LanguageIds = Partial<Record<Language, number>>;
+
+/**
+ * The public server's (ce.judge0.com) ids, newest runtime of each. Used only
+ * when JUDGE0_LANGUAGE_IDS is unset; a self-hosted image has its own.
+ */
+export const PUBLIC_JUDGE0_LANGUAGE_IDS: Judge0LanguageIds = {
   PYTHON: 113, // Python 3.14.0
   JAVASCRIPT: 102, // Node.js 22.08.0
   JAVA: 91, // JDK 17.0.6
   CPP: 105, // GCC 14.1.0
 };
 
+/**
+ * Parses "PYTHON:71,JAVASCRIPT:63,JAVA:62,CPP:54".
+ *
+ * Throws on anything malformed rather than guessing: a wrong id silently
+ * runs the learner's code under a different language.
+ */
+export function parseJudge0LanguageIds(value: string): Judge0LanguageIds {
+  const ids: Judge0LanguageIds = {};
+  for (const pair of value.split(",").map((part) => part.trim()).filter(Boolean)) {
+    const match = /^(PYTHON|JAVASCRIPT|JAVA|CPP):(\d{1,6})$/.exec(pair);
+    if (!match) {
+      throw new Error(
+        `JUDGE0_LANGUAGE_IDS entry "${pair}" is not LANGUAGE:id (PYTHON, JAVASCRIPT, JAVA or CPP).`
+      );
+    }
+    ids[match[1] as Language] = Number(match[2]);
+  }
+  return ids;
+}
+
 // Judge0 status ids. 1 and 2 are still in progress.
 const IN_QUEUE = 1;
 const PROCESSING = 2;
 const TIME_LIMIT = 5;
 const COMPILE_ERROR = 6;
+/** Runtime Error (SIGXFSZ): wrote past max_file_size. stdout is a file there. */
+const FILE_SIZE_EXCEEDED = 8;
 const INTERNAL_ERROR = 13;
 const EXEC_FORMAT_ERROR = 14;
 
@@ -66,6 +113,8 @@ type Judge0Result = {
 export type Judge0Config = {
   url: string;
   key?: string;
+  /** Defaults to PUBLIC_JUDGE0_LANGUAGE_IDS. */
+  languageIds?: Judge0LanguageIds;
   /** Injectable for tests. */
   fetch?: typeof fetch;
 };
@@ -77,9 +126,11 @@ export class Judge0ExecutionAdapter implements CodeExecutionService {
   private readonly base: string;
   private readonly headers: Record<string, string>;
   private readonly fetcher: typeof fetch;
+  private readonly languageIds: Judge0LanguageIds;
 
   constructor(config: Judge0Config) {
     this.base = config.url.replace(/\/+$/, "");
+    this.languageIds = config.languageIds ?? PUBLIC_JUDGE0_LANGUAGE_IDS;
     this.fetcher = config.fetch ?? fetch;
     const host = new URL(this.base).host;
     this.headers = { "content-type": "application/json" };
@@ -106,7 +157,7 @@ export class Judge0ExecutionAdapter implements CodeExecutionService {
   }
 
   async execute(request: ExecutionRequest): Promise<ExecutionResult> {
-    const languageId = LANGUAGE_ID[request.language];
+    const languageId = this.languageIds[request.language];
     if (!languageId) {
       return failure(
         request,
@@ -117,61 +168,33 @@ export class Judge0ExecutionAdapter implements CodeExecutionService {
 
     const started = Date.now();
     // Judge0 takes seconds and kilobytes; it applies the limit per test.
-    const cpuSeconds = Math.max(1, request.timeLimitMs / 1000);
+    // Clamped here so no problem record, bug or forged call can ask the
+    // server for more than EXECUTION_LIMITS allows.
+    const cpuSeconds = clampCpuSeconds(request.timeLimitMs);
     const submissions = request.tests.map((test) => ({
       language_id: languageId,
       source_code: encode(request.program),
       stdin: encode(test.input),
       cpu_time_limit: cpuSeconds,
-      wall_time_limit: cpuSeconds * 3,
-      memory_limit: request.memoryLimitMb * 1024,
+      wall_time_limit: clampWallSeconds(cpuSeconds),
+      memory_limit: clampMemoryMb(request.memoryLimitMb) * 1024,
+      stack_limit: EXECUTION_LIMITS.maxStackKb,
+      max_file_size: EXECUTION_LIMITS.maxOutputKb,
+      max_processes_and_or_threads: EXECUTION_LIMITS.maxProcesses,
+      enable_network: false,
       // The JVM and V8 reserve address space far beyond what they use; let
       // Judge0 enforce memory on the process tree rather than per thread.
       enable_per_process_and_thread_memory_limit: false,
       enable_per_process_and_thread_time_limit: false,
     }));
 
-    let tokens: string[];
-    try {
-      const response = await this.fetcher(
-        `${this.base}/submissions/batch?base64_encoded=true`,
-        {
-          method: "POST",
-          headers: this.headers,
-          body: JSON.stringify({ submissions }),
-          signal: AbortSignal.timeout(15_000),
-        }
+    const finished: Judge0Result[] = [];
+    for (let i = 0; i < submissions.length; i += EXECUTION_LIMITS.maxBatchSize) {
+      const chunk = await this.runBatch(
+        submissions.slice(i, i + EXECUTION_LIMITS.maxBatchSize)
       );
-      if (response.status === 429) {
-        return failure(
-          request,
-          "The code runner is busy right now. Please try again in a minute."
-        );
-      }
-      if (!response.ok) {
-        return failure(
-          request,
-          `The code runner refused the request (HTTP ${response.status}).`
-        );
-      }
-      const created = (await response.json()) as { token?: string; error?: string }[];
-      if (created.some((item) => !item.token)) {
-        return failure(request, "The code runner could not accept this submission.");
-      }
-      tokens = created.map((item) => item.token!);
-    } catch {
-      return failure(
-        request,
-        "The code runner could not be reached. Please try again."
-      );
-    }
-
-    const finished = await this.poll(tokens);
-    if (!finished) {
-      return failure(
-        request,
-        "The code runner took too long to respond. Please try again."
-      );
+      if (typeof chunk === "string") return failure(request, chunk);
+      finished.push(...chunk);
     }
 
     // A compile error is the same for every test; report it once.
@@ -216,7 +239,11 @@ export class Judge0ExecutionAdapter implements CodeExecutionService {
         outcome,
         runtimeMs: Math.round(Number(result.time ?? 0) * 1000),
         ...(test.isSample
-          ? { input: test.input, expected: test.expected, actual: truncate(stdout) }
+          ? {
+              input: test.input,
+              ...(test.expected !== null ? { expected: test.expected } : {}),
+              actual: truncate(stdout),
+            }
           : {}),
         // stderr is learner-visible only for sample cases, matching the
         // other adapters: a hidden case's error can quote its input.
@@ -232,6 +259,40 @@ export class Judge0ExecutionAdapter implements CodeExecutionService {
 
     const summary = summarise(request, results, Date.now() - started);
     return { ...summary, memoryKb: peakMemory || null };
+  }
+
+  /** Creates one batch and waits for it. A string is the learner-facing failure. */
+  private async runBatch(
+    submissions: Record<string, unknown>[]
+  ): Promise<Judge0Result[] | string> {
+    let tokens: string[];
+    try {
+      const response = await this.fetcher(
+        `${this.base}/submissions/batch?base64_encoded=true`,
+        {
+          method: "POST",
+          headers: this.headers,
+          body: JSON.stringify({ submissions }),
+          signal: AbortSignal.timeout(15_000),
+        }
+      );
+      if (response.status === 429 || response.status === 503) {
+        return "The code runner is busy right now. Please try again in a minute.";
+      }
+      if (!response.ok) {
+        return `The code runner refused the request (HTTP ${response.status}).`;
+      }
+      const created = (await response.json()) as { token?: string; error?: string }[];
+      if (created.length !== submissions.length || created.some((item) => !item.token)) {
+        return "The code runner could not accept this submission.";
+      }
+      tokens = created.map((item) => item.token!);
+    } catch {
+      return "The code runner could not be reached. Please try again.";
+    }
+
+    const finished = await this.poll(tokens);
+    return finished ?? "The code runner took too long to respond. Please try again.";
   }
 
   private async poll(tokens: string[]): Promise<Judge0Result[] | null> {
@@ -268,13 +329,18 @@ function classify(
   result: Judge0Result,
   stdout: string,
   stderr: string,
-  expected: string
+  expected: string | null
 ): TestOutcome {
   if (result.status.id === TIME_LIMIT) return "TIMEOUT";
+  if (result.status.id === FILE_SIZE_EXCEEDED) return "OUTPUT_LIMIT";
+  // A runtime that ignores SIGXFSZ (CPython) exits on EFBIG instead.
+  if (result.status.id >= 7 && result.status.id <= 12 && FILE_TOO_LARGE.test(stderr)) {
+    return "OUTPUT_LIMIT";
+  }
   // 3 Accepted and 4 Wrong Answer both mean "ran to completion": Judge0 is
   // not given the expected output, so the comparison is always ours.
   if (result.status.id === 3 || result.status.id === 4) {
-    return outputMatches(stdout, expected) ? "PASSED" : "WRONG_ANSWER";
+    return judgeOutput(stdout, expected);
   }
   if (/MemoryError|OutOfMemoryError|bad_alloc|heap out of memory/i.test(stderr)) {
     return "MEMORY_LIMIT";

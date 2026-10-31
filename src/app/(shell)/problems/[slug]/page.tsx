@@ -7,24 +7,23 @@ import { DifficultyBadge } from "@/components/common/difficulty-badge";
 import { BookmarkButton } from "@/components/library/bookmark-button";
 import { Highlightable } from "@/components/learning/highlightable";
 import { NoteEditor } from "@/components/library/note-editor";
-import { ContentRenderer, type ContentResources } from "@/components/learning/content-renderer";
+import {
+  ContentRenderer,
+  type ContentResources,
+} from "@/components/learning/content-renderer";
 import { StateView } from "@/components/live-visual/state-view";
 import { HintLadder } from "@/components/problems/hint-ladder";
 import { ProblemWorkspace } from "@/components/problems/problem-workspace";
-import {
-  SolutionPanel,
-  type SolutionView,
-} from "@/components/problems/solution-panel";
+import { SolutionPanel, type SolutionView } from "@/components/problems/solution-panel";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { canAccess, FEATURES } from "@/lib/auth/access";
+import { clampCpuSeconds, clampMemoryMb, executionStatus } from "@/lib/code-execution";
 import { labelFor } from "@/lib/tutor/context";
-import {
-  CODE_QUICK_ACTIONS,
-  PROBLEM_QUICK_ACTIONS,
-} from "@/lib/tutor/types";
+import { CODE_QUICK_ACTIONS, PROBLEM_QUICK_ACTIONS } from "@/lib/tutor/types";
 import { loadContextBundle } from "@/services/tutor";
 import { getCurrentUser } from "@/lib/auth/session";
+import { isLikelyMobileRequest } from "@/lib/request-context";
 import { prisma } from "@/lib/db";
 import { parseContent } from "@/lib/validation/content";
 import type { Signature } from "@/lib/code-execution/signature";
@@ -49,9 +48,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function ProblemPage({
-  params,
-}: PageProps<"/problems/[slug]">) {
+export default async function ProblemPage({ params }: PageProps<"/problems/[slug]">) {
   const { slug } = await params;
   const user = await getCurrentUser();
   const problem = await getProblem(slug, user?.id);
@@ -135,12 +132,12 @@ export default async function ProblemPage({
     <div className="mx-auto max-w-2xl space-y-6">
       <header>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-muted-foreground font-mono text-sm tabular-nums">
+          <span className="font-mono text-sm text-muted-foreground tabular-nums">
             #{problem.number}
           </span>
           <DifficultyBadge difficulty={problem.difficulty} />
           {problem.progress.status === "SOLVED" && (
-            <Badge className="border-success/35 bg-success/12 text-success gap-1 border">
+            <Badge className="gap-1 border border-success/35 bg-success/12 text-success">
               <CheckCircle2 className="size-3" aria-hidden="true" />
               Solved
             </Badge>
@@ -165,7 +162,7 @@ export default async function ProblemPage({
               <Link
                 key={pattern.slug}
                 href={route(`/patterns/${pattern.slug}`)}
-                className="border-border text-muted-foreground hover:border-ember-500/40 hover:text-ember-300 rounded-md border px-2 py-0.5 text-xs transition-colors"
+                className="rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:border-brand-500/40 hover:text-brand-300"
               >
                 {pattern.name}
               </Link>
@@ -186,7 +183,6 @@ export default async function ProblemPage({
       </Highlightable>
 
       <div className="space-y-4">
-
         <NoteEditor
           entityType="PROBLEM"
           entityId={problem.id}
@@ -200,11 +196,11 @@ export default async function ProblemPage({
           <h2 id="constraints" className="text-sm font-semibold">
             Constraints
           </h2>
-          <ul className="marker:text-muted-foreground/40 mt-2 list-disc space-y-1 pl-5">
+          <ul className="mt-2 list-disc space-y-1 pl-5 marker:text-muted-foreground/40">
             {problem.constraints.map((constraint) => (
               <li
                 key={constraint}
-                className="text-muted-foreground font-mono text-xs leading-relaxed"
+                className="font-mono text-xs leading-relaxed text-muted-foreground"
               >
                 {constraint}
               </li>
@@ -222,28 +218,28 @@ export default async function ProblemPage({
             {problem.sampleTests.map((test, index) => (
               <div
                 key={test.id}
-                className="border-border bg-card rounded-lg border p-3"
+                className="rounded-lg border border-border bg-card p-3"
               >
-                <p className="text-muted-foreground text-[0.68rem] font-medium tracking-wider uppercase">
+                <p className="text-[0.68rem] font-medium tracking-wider text-muted-foreground uppercase">
                   Example {index + 1}
                 </p>
                 <ExamplePicture signature={problem.signature} input={test.input} />
                 <dl className="mt-2 space-y-1.5">
                   <div className="grid grid-cols-[4.5rem_1fr] gap-2">
-                    <dt className="text-muted-foreground text-xs">Input</dt>
+                    <dt className="text-xs text-muted-foreground">Input</dt>
                     <dd className="font-mono text-xs whitespace-pre-wrap">
                       {test.input || "(empty)"}
                     </dd>
                   </div>
                   <div className="grid grid-cols-[4.5rem_1fr] gap-2">
-                    <dt className="text-muted-foreground text-xs">Output</dt>
-                    <dd className="text-success font-mono text-xs whitespace-pre-wrap">
+                    <dt className="text-xs text-muted-foreground">Output</dt>
+                    <dd className="font-mono text-xs whitespace-pre-wrap text-success">
                       {test.expected || "(empty)"}
                     </dd>
                   </div>
                 </dl>
                 {test.explanation && (
-                  <p className="text-muted-foreground border-border mt-2 border-t pt-2 text-xs leading-relaxed">
+                  <p className="mt-2 border-t border-border pt-2 text-xs leading-relaxed text-muted-foreground">
                     {test.explanation}
                   </p>
                 )}
@@ -273,26 +269,51 @@ export default async function ProblemPage({
       />
 
       {(problem.expectedTime || problem.expectedSpace) && (
-        <section aria-labelledby="target" className="border-border rounded-lg border p-3">
+        <section
+          aria-labelledby="target"
+          className="rounded-lg border border-border p-3"
+        >
           <h2
             id="target"
-            className="text-muted-foreground flex items-center gap-1.5 text-[0.68rem] font-medium tracking-wider uppercase"
+            className="flex items-center gap-1.5 text-[0.68rem] font-medium tracking-wider text-muted-foreground uppercase"
           >
             <Target className="size-3" aria-hidden="true" />
             Target complexity
           </h2>
-          <p className="text-ember-300 mt-1.5 font-mono text-xs">
+          <p className="mt-1.5 font-mono text-xs text-brand-300">
             {problem.expectedTime ?? "—"} time · {problem.expectedSpace ?? "—"} space
           </p>
         </section>
       )}
 
+      <p className="text-xs text-subtle-foreground" data-testid="problem-provenance">
+        {problem.provenance.sourceType === "ORIGINAL" ? (
+          "Written for Tech Epitome."
+        ) : (
+          <>
+            From{" "}
+            {problem.provenance.sourceUrl ? (
+              <a
+                href={problem.provenance.sourceUrl}
+                rel="noreferrer noopener"
+                className="underline"
+              >
+                {problem.provenance.sourceName}
+              </a>
+            ) : (
+              problem.provenance.sourceName
+            )}
+            , used under {problem.provenance.license}. {problem.provenance.attribution}
+          </>
+        )}
+      </p>
+
       {problem.learningObjective && problem.progress.status === "SOLVED" && (
-        <section className="border-success/25 bg-success/5 rounded-lg border p-3">
-          <h2 className="text-success text-[0.68rem] font-medium tracking-wider uppercase">
+        <section className="rounded-lg border border-success/25 bg-success/5 p-3">
+          <h2 className="text-[0.68rem] font-medium tracking-wider text-success uppercase">
             What this problem was teaching
           </h2>
-          <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+          <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
             {problem.learningObjective}
           </p>
         </section>
@@ -306,9 +327,10 @@ export default async function ProblemPage({
   // prompt is worse than no header: it is a confident lie about what the
   // tutor knows.
   const tutorAllowed = canAccess(user, FEATURES.AI_TUTOR);
-  const bundle = user && tutorAllowed
-    ? await loadContextBundle({ kind: "PROBLEM", problemSlug: problem.slug }, user.id)
-    : null;
+  const bundle =
+    user && tutorAllowed
+      ? await loadContextBundle({ kind: "PROBLEM", problemSlug: problem.slug }, user.id)
+      : null;
 
   const tutorLabel = bundle
     ? labelFor(bundle)
@@ -317,13 +339,13 @@ export default async function ProblemPage({
         primary: problem.patterns[0]?.name ?? null,
         secondary: problem.title,
         chips: [
-          problem.difficulty.charAt(0) +
-            problem.difficulty.slice(1).toLowerCase(),
+          problem.difficulty.charAt(0) + problem.difficulty.slice(1).toLowerCase(),
         ],
       };
 
   return (
     <ProblemWorkspace
+      likelyMobile={await isLikelyMobileRequest()}
       slug={problem.slug}
       starterCode={problem.starterCode}
       defaultLanguage="PYTHON"
@@ -334,6 +356,11 @@ export default async function ProblemPage({
         input: test.input,
         expected: test.expected,
       }))}
+      execution={{
+        ...executionStatus(),
+        timeLimitSeconds: clampCpuSeconds(problem.timeLimitMs),
+        memoryLimitMb: clampMemoryMb(problem.memoryLimitMb),
+      }}
       tutor={{
         label: tutorLabel,
         quickActions: [...PROBLEM_QUICK_ACTIONS, ...CODE_QUICK_ACTIONS],
@@ -359,8 +386,11 @@ function ExamplePicture({
   const parsed = parseWireInput(signature, input);
   if (!parsed.ok) return null;
   return (
-    <div className="viz-canvas border-border mt-2 rounded-lg border p-3">
-      <StateView step={inputStep(signature, parsed.args)} paramNames={signature.paramNames} />
+    <div className="viz-canvas mt-2 rounded-lg border border-border p-3">
+      <StateView
+        step={inputStep(signature, parsed.args)}
+        paramNames={signature.paramNames}
+      />
     </div>
   );
 }

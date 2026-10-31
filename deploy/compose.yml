@@ -1,0 +1,113 @@
+# Tech Epitome production stack. Separate from any other application on the host in every
+# way: its own project name, network, volume, database server, credentials
+# and backups. Nothing here touches another application's resources.
+#
+#   docker compose -f deploy/compose.yml --env-file /etc/tech-epitome/compose.env up -d
+#
+# compose.env sets IMAGE (registry/name:tag) and SECRETS_DIR; the app's own
+# configuration is APP_ENV_FILE. Both live outside the repository with mode
+# 600. 
+
+name: tech-epitome
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_superuser_password
+      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=en-US"
+    secrets:
+      - postgres_superuser_password
+      - te_app_db_password
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./postgres-init.sh:/docker-entrypoint-initdb.d/10-app-role.sh:ro
+    # No ports: reachable only from the app on the internal network.
+    networks: [internal]
+    shm_size: 128mb
+    command:
+      - postgres
+      - -c
+      - max_connections=40
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - log_min_duration_statement=1000
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d techepitome"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Half the default CPU weight, so co-hosted workloads win under contention.
+    cpu_shares: 512
+    deploy:
+      resources:
+        limits: { cpus: "0.75", memory: 1g }
+    logging: *logging
+
+  migrate:
+    image: ${MIGRATOR_IMAGE:?set MIGRATOR_IMAGE}
+    profiles: [migrate]
+    env_file: ${APP_ENV_FILE:?set APP_ENV_FILE}
+    networks: [internal]
+    depends_on:
+      db: { condition: service_healthy }
+    logging: *logging
+
+  app:
+    image: ${IMAGE:?set IMAGE}
+    restart: unless-stopped
+    init: true
+    env_file: ${APP_ENV_FILE:?set APP_ENV_FILE}
+    # Public traffic arrives from the reverse proxy over the edge
+    # network (as tech-epitome-app:3000). The localhost port is only for
+    # health checks and the host cron; nothing is published publicly.
+    ports:
+      - "127.0.0.1:${APP_PORT:-3100}:3000"
+    networks:
+      internal: {}
+      edge:
+        aliases: [tech-epitome-app]
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+      - /app/.next/cache:size=256m,uid=1000,gid=1000
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 30s
+    depends_on:
+      db: { condition: service_healthy }
+    # Capped so Tech Epitome at full load still leaves 1 of 2 vCPUs free, and
+    # weighted below the default of 1024 when the host is busy. Measured: 1.5
+    # CPUs saturated at ~17 req/s (20 concurrent).
+    cpu_shares: 512
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 1g }
+    logging: *logging
+
+networks:
+  # No route out: the database cannot reach, or be reached from, anything else.
+  internal:
+    internal: true
+  # Outbound for OAuth, AI and email, and the one network the existing Caddy
+  # joins (docker network connect tech-epitome-edge <proxy-container>). Caddy
+  # can reach only the app here; the database is not on this network.
+  edge:
+    name: tech-epitome-edge
+
+volumes:
+  pgdata:
+
+secrets:
+  postgres_superuser_password:
+    file: ${SECRETS_DIR:?set SECRETS_DIR}/postgres_superuser_password
+  te_app_db_password:
+    file: ${SECRETS_DIR:?set SECRETS_DIR}/te_app_db_password

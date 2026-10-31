@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import NextAuth from "next-auth";
 
 import { authConfig } from "@/lib/auth/config";
+import { isPortalLoginPath, loginPathFor } from "@/lib/auth/login-path";
 
 /**
  * Edge proxy (what earlier Next.js versions called middleware).
@@ -33,12 +34,16 @@ const PROTECTED_PREFIXES = [
   "/onboarding",
   "/ai-tutor",
   "/admin",
+  "/campus",
+  "/prepare",
+  "/roadmaps",
 ];
 
 /** Paths a signed-in user should be bounced away from. */
 const AUTH_PAGES = ["/login", "/signup"];
 
 function isProtected(pathname: string): boolean {
+  if (isPortalLoginPath(pathname)) return false;
   return PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
@@ -50,12 +55,16 @@ export default auth((request) => {
 
   if (!signedIn && isProtected(pathname)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = loginPathFor(pathname);
     url.search = `?next=${encodeURIComponent(pathname + search)}`;
     return NextResponse.redirect(url);
   }
 
-  if (signedIn && AUTH_PAGES.includes(pathname)) {
+  // `ended=1` comes from requireUser when the server has rejected a token
+  // the proxy still sees as valid; showing the login page is the only way
+  // out of that state, so it must not bounce back to the dashboard.
+  const sessionEnded = request.nextUrl.searchParams.get("ended") === "1";
+  if (signedIn && !sessionEnded && AUTH_PAGES.includes(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     url.search = "";

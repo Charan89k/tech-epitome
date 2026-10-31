@@ -11,6 +11,8 @@ type PaginationProps = {
   /** Current query string without the page parameter. */
   baseQuery: string;
   pathname: string;
+  /** What the list holds, singular. */
+  noun?: string;
 };
 
 /**
@@ -25,6 +27,7 @@ export function Pagination({
   total,
   baseQuery,
   pathname,
+  noun = "problem",
 }: PaginationProps) {
   if (totalPages <= 1) return null;
 
@@ -38,14 +41,14 @@ export function Pagination({
   return (
     <nav
       aria-label="Pagination"
-      className="border-border flex items-center justify-between gap-3 border-t px-4 py-3"
+      className="flex items-center justify-between gap-3 border-t border-border px-4 py-3"
     >
-      <p className="text-muted-foreground text-xs">
+      <p className="text-xs text-muted-foreground">
         Page <span className="tabular">{page}</span> of{" "}
         <span className="tabular">{totalPages}</span>
         <span className="hidden sm:inline">
           {" "}
-          · <span className="tabular">{total}</span> problem
+          · <span className="tabular">{total}</span> {noun}
           {total === 1 ? "" : "s"}
         </span>
       </p>
@@ -64,7 +67,7 @@ export function Pagination({
               Previous
             </Link>
           ) : (
-            <span>
+            <span className="contents">
               <ChevronLeft className="size-4" />
               Previous
             </span>
@@ -84,7 +87,7 @@ export function Pagination({
               <ChevronRight className="size-4" />
             </Link>
           ) : (
-            <span>
+            <span className="contents">
               Next
               <ChevronRight className="size-4" />
             </span>

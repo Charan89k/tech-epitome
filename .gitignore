@@ -62,3 +62,6 @@ yarn-error.log*
 /.agents
 /.claude
 /skills-lock.json
+
+# Operational notes: never public
+docs/private/

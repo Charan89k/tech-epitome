@@ -28,7 +28,7 @@ export function ChapterHeader({
     <header className="not-prose">
       <div className="flex items-start justify-between gap-6">
         <div className="min-w-0">
-          <p className="text-ember-400 text-[0.68rem] font-medium tracking-wider uppercase">
+          <p className="text-brand-400 text-[0.68rem] font-medium tracking-wider uppercase">
             {sectionTitle}
           </p>
           <h1 className="tracking-headline mt-2 text-3xl font-bold text-balance sm:text-4xl">
@@ -66,7 +66,7 @@ export function ChapterHeader({
 
       {objectives.length > 0 && (
         <div className="border-border bg-card mt-6 rounded-xl border p-5">
-          <p className="text-ember-400 flex items-center gap-1.5 text-[0.68rem] font-medium tracking-wider uppercase">
+          <p className="text-brand-400 flex items-center gap-1.5 text-[0.68rem] font-medium tracking-wider uppercase">
             <Target className="size-3.5" aria-hidden="true" />
             By the end of this chapter
           </p>
@@ -76,7 +76,7 @@ export function ChapterHeader({
                 key={objective}
                 className="text-foreground/85 flex gap-3 text-[0.95rem] leading-relaxed"
               >
-                <span className="bg-ember-500 mt-[0.6rem] size-1.5 shrink-0 rounded-full" />
+                <span className="bg-brand-500 mt-[0.6rem] size-1.5 shrink-0 rounded-full" />
                 {objective}
               </li>
             ))}

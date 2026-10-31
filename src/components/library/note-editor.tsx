@@ -6,6 +6,7 @@ import { Check, Loader2, NotebookPen } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { saveNoteAction } from "@/app/(shell)/library-actions";
 import type { Annotatable } from "@/services/library";
 
@@ -41,6 +42,9 @@ export function NoteEditor({
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const areaRef = useRef<HTMLTextAreaElement>(null);
+  // Before hydration a click has no handler and typing would be merged with
+  // the restored text, so the controls wait until they can respond.
+  const hydrated = useHydrated();
 
   const dirty = body.trim() !== initialBody.trim();
 
@@ -76,6 +80,7 @@ export function NoteEditor({
         variant="outline"
         size="sm"
         className="h-8 gap-1.5"
+        disabled={!hydrated}
         onClick={() => {
           setOpen(true);
           // Focus after the textarea exists.
@@ -114,6 +119,7 @@ export function NoteEditor({
         id="note-body"
         ref={areaRef}
         value={body}
+        readOnly={!hydrated}
         onChange={(event) => setBody(event.target.value)}
         rows={4}
         maxLength={10_000}
