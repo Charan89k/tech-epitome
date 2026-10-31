@@ -37,7 +37,6 @@ jobs:
       NEXT_PUBLIC_APP_URL: http://127.0.0.1:3100
       AI_PROVIDER: mock
       EMAIL_PROVIDER: console
-      RATE_LIMIT_DISABLED: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
