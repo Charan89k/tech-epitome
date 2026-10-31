@@ -152,7 +152,10 @@ export async function importPlacementRecords(
   csv: string
 ): Promise<{ saved: number; rows: RecordImportRow[] }> {
   assertCan(ctx, "placement.manage");
-  const lines = csv.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const lines = csv
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
   if (lines[0]?.toLowerCase().startsWith("email,")) lines.shift();
   if (lines.length > 2000) {
     throw new InstitutionError("invalid", "Import at most 2000 rows at a time.");
@@ -163,7 +166,9 @@ export async function importPlacementRecords(
       where: { institutionId: ctx.institution.id, role: "STUDENT", status: "ACTIVE" },
       select: { userId: true, user: { select: { email: true } } },
     });
-    const byEmail = new Map(students.map((s) => [normaliseEmail(s.user.email), s.userId]));
+    const byEmail = new Map(
+      students.map((s) => [normaliseEmail(s.user.email), s.userId])
+    );
     const valid: { userId: string; input: RecordInput }[] = [];
 
     const rows = lines.map((text, i): RecordImportRow => {
@@ -179,7 +184,10 @@ export async function importPlacementRecords(
         cgpa: Number(cgpa),
         backlogs: Number(backlogs || 0),
         attendancePercent: attendance ? Number(attendance) : null,
-        skills: (skills ?? "").split(";").map((s) => s.trim()).filter(Boolean),
+        skills: (skills ?? "")
+          .split(";")
+          .map((s) => s.trim())
+          .filter(Boolean),
       });
       if (!parsed.success) {
         const issue = parsed.error.issues[0];
@@ -218,13 +226,18 @@ export async function createCompany(
   if (name.length < 2 || name.length > 120) {
     throw new InstitutionError("invalid", "A company name is 2 to 120 characters.");
   }
+  const website = input.website?.trim() || null;
+  // Rendered as a link, so a javascript: URL here would run in the office's session.
+  if (website && !/^https?:\/\/[^\s]+$/i.test(website)) {
+    throw new InstitutionError("invalid", "A website starts with http:// or https://.");
+  }
   try {
     return await withTenantScope(scopeOf(ctx), async (tx) => {
       const company = await tx.recruiterCompany.create({
         data: {
           institutionId: ctx.institution.id,
           name,
-          website: input.website?.trim() || null,
+          website,
           industry: input.industry?.trim() || null,
         },
         select: { id: true },
@@ -238,7 +251,10 @@ export async function createCompany(
       return company;
     });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
       throw new InstitutionError("conflict", "That company is already listed.");
     }
     throw error;
@@ -255,7 +271,13 @@ export async function getCompany(ctx: MemberContext, companyId: string) {
         notes: { orderBy: { createdAt: "desc" }, take: 100 },
         drives: {
           orderBy: { createdAt: "desc" },
-          select: { id: true, title: true, status: true, packageLpa: true, deadline: true },
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            packageLpa: true,
+            deadline: true,
+          },
         },
       },
     })
@@ -337,7 +359,10 @@ export const driveSchema = z.object({
 });
 export type DriveInput = z.infer<typeof driveSchema>;
 
-export async function createDrive(ctx: MemberContext, input: DriveInput): Promise<{ id: string }> {
+export async function createDrive(
+  ctx: MemberContext,
+  input: DriveInput
+): Promise<{ id: string }> {
   assertCan(ctx, "placement.manage");
   const data = driveSchema.parse(input);
   return withTenantScope(scopeOf(ctx), async (tx) => {
@@ -385,7 +410,10 @@ export async function setDriveStatus(
     });
     if (!drive) throw new InstitutionError("not_found", "No such drive.");
     if (!STATUS_MOVES[drive.status]?.includes(status)) {
-      throw new InstitutionError("conflict", `A ${drive.status} drive cannot become ${status}.`);
+      throw new InstitutionError(
+        "conflict",
+        `A ${drive.status} drive cannot become ${status}.`
+      );
     }
     await tx.placementDrive.update({ where: { id: driveId }, data: { status } });
     await writeAudit(tx, ctx.institution.id, ctx.user, {
@@ -428,7 +456,11 @@ export async function getOfficeDrive(ctx: MemberContext, driveId: string) {
     const criteria = toCriteria(drive);
     const eligibleCount = members.filter(
       (m) =>
-        evaluateEligibility(criteria, byUser.get(m.userId) ?? null, placedIds.has(m.userId)).eligible
+        evaluateEligibility(
+          criteria,
+          byUser.get(m.userId) ?? null,
+          placedIds.has(m.userId)
+        ).eligible
     ).length;
     return { drive, eligibleCount, studentCount: members.length };
   });
@@ -456,11 +488,18 @@ export async function moveApplication(
   await withTenantScope(scopeOf(ctx), async (tx) => {
     const application = await tx.placementApplication.findFirst({
       where: { id: applicationId, institutionId: ctx.institution.id },
-      select: { stage: true, drive: { select: { title: true } }, user: { select: { email: true } } },
+      select: {
+        stage: true,
+        drive: { select: { title: true } },
+        user: { select: { email: true } },
+      },
     });
     if (!application) throw new InstitutionError("not_found", "No such application.");
     if (!canOfficeMove(application.stage, to)) {
-      throw new InstitutionError("conflict", `Cannot move from ${application.stage} to ${to}.`);
+      throw new InstitutionError(
+        "conflict",
+        `Cannot move from ${application.stage} to ${to}.`
+      );
     }
     if (to === "OFFERED" && (extra.offerLpa === undefined || extra.offerLpa === null)) {
       throw new InstitutionError("invalid", "An offer needs a package.");
@@ -474,7 +513,8 @@ export async function moveApplication(
         ...(extra.interviewAt ? { interviewAt: extra.interviewAt } : {}),
       },
     });
-    if (claimed.count !== 1) throw new InstitutionError("conflict", "It has already moved on.");
+    if (claimed.count !== 1)
+      throw new InstitutionError("conflict", "It has already moved on.");
     await writeAudit(tx, ctx.institution.id, ctx.user, {
       action: "placement.application_moved",
       targetType: "placement_application",
@@ -508,11 +548,22 @@ export async function getStudentPlacement(ctx: MemberContext) {
   return withTenantScope(scopeOf(ctx), async (tx) => {
     const [record, applications, drives] = await Promise.all([
       tx.placementRecord.findUnique({
-        where: { institutionId_userId: { institutionId: ctx.institution.id, userId: ctx.user.id } },
+        where: {
+          institutionId_userId: {
+            institutionId: ctx.institution.id,
+            userId: ctx.user.id,
+          },
+        },
       }),
       tx.placementApplication.findMany({
         where: { institutionId: ctx.institution.id, userId: ctx.user.id },
-        select: { id: true, driveId: true, stage: true, offerLpa: true, interviewAt: true },
+        select: {
+          id: true,
+          driveId: true,
+          stage: true,
+          offerLpa: true,
+          interviewAt: true,
+        },
       }),
       tx.placementDrive.findMany({
         where: { institutionId: ctx.institution.id, status: { not: "DRAFT" } },
@@ -553,7 +604,11 @@ export async function getStudentPlacement(ctx: MemberContext) {
 }
 
 /** Refuses on the server, against server time, whatever the page showed. */
-export async function applyToDrive(ctx: MemberContext, driveId: string, now = new Date()) {
+export async function applyToDrive(
+  ctx: MemberContext,
+  driveId: string,
+  now = new Date()
+) {
   if (ctx.role !== "STUDENT") {
     throw new InstitutionError("forbidden", "Only students apply to drives.");
   }
@@ -565,11 +620,17 @@ export async function applyToDrive(ctx: MemberContext, driveId: string, now = ne
     if (drive.deadline <= now) {
       throw new InstitutionError("conflict", "The deadline for this drive has passed.");
     }
-    const key = { institutionId_userId: { institutionId: ctx.institution.id, userId: ctx.user.id } };
+    const key = {
+      institutionId_userId: { institutionId: ctx.institution.id, userId: ctx.user.id },
+    };
     const [record, accepted] = await Promise.all([
       tx.placementRecord.findUnique({ where: key }),
       tx.placementApplication.count({
-        where: { institutionId: ctx.institution.id, userId: ctx.user.id, stage: "ACCEPTED" },
+        where: {
+          institutionId: ctx.institution.id,
+          userId: ctx.user.id,
+          stage: "ACCEPTED",
+        },
       }),
     ]);
     const decision = evaluateEligibility(
@@ -591,7 +652,8 @@ export async function applyToDrive(ctx: MemberContext, driveId: string, now = ne
       ],
       skipDuplicates: true,
     });
-    if (created.count === 0) throw new InstitutionError("conflict", "You have already applied.");
+    if (created.count === 0)
+      throw new InstitutionError("conflict", "You have already applied.");
     await writeAudit(tx, ctx.institution.id, ctx.user, {
       action: "placement.applied",
       targetType: "placement_drive",
@@ -611,7 +673,11 @@ async function ownMove(
   try {
     await withTenantScope(scopeOf(ctx), async (tx) => {
       const application = await tx.placementApplication.findFirst({
-        where: { id: applicationId, institutionId: ctx.institution.id, userId: ctx.user.id },
+        where: {
+          id: applicationId,
+          institutionId: ctx.institution.id,
+          userId: ctx.user.id,
+        },
         select: { stage: true },
       });
       if (!application) throw new InstitutionError("not_found", "No such application.");
@@ -622,7 +688,8 @@ async function ownMove(
         where: { id: applicationId, userId: ctx.user.id, stage: application.stage },
         data: { stage: to },
       });
-      if (claimed.count !== 1) throw new InstitutionError("conflict", "It has already moved on.");
+      if (claimed.count !== 1)
+        throw new InstitutionError("conflict", "It has already moved on.");
       await writeAudit(tx, ctx.institution.id, ctx.user, {
         action,
         targetType: "placement_application",
@@ -632,7 +699,10 @@ async function ownMove(
     });
   } catch (error) {
     // The partial unique index: a second acceptance lost the race.
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
       throw new InstitutionError("conflict", "You have already accepted an offer.");
     }
     throw error;
@@ -673,7 +743,9 @@ export async function getPlacementReport(ctx: MemberContext) {
           drive: { select: { companyName: true, isInternship: true } },
         },
       }),
-      tx.placementDrive.count({ where: { institutionId: ctx.institution.id, status: "OPEN" } }),
+      tx.placementDrive.count({
+        where: { institutionId: ctx.institution.id, status: "OPEN" },
+      }),
     ]);
 
     const accepted = applications.filter((a) => a.stage === "ACCEPTED");
@@ -709,7 +781,9 @@ export async function getPlacementReport(ctx: MemberContext) {
       highestLpa: packages.length > 0 ? Math.max(...packages) : null,
       medianLpa: median(packages),
       averageLpa:
-        packages.length > 0 ? packages.reduce((a, b) => a + b, 0) / packages.length : null,
+        packages.length > 0
+          ? packages.reduce((a, b) => a + b, 0) / packages.length
+          : null,
       byDepartment: [...departments.entries()]
         .map(([department, row]) => ({ department, ...row }))
         .sort((a, b) => a.department.localeCompare(b.department)),

@@ -14,7 +14,10 @@ type Ctx = NonNullable<Awaited<ReturnType<typeof resolveMemberContext>>>;
 
 const tag = `plc${Date.now()}${Math.floor(Math.random() * 1e6)}`;
 const FUTURE = new Date("2099-01-01T00:00:00Z");
-const users: Record<string, { id: string; email: string; name: string | null; role: "USER" }> = {};
+const users: Record<
+  string,
+  { id: string; email: string; name: string | null; role: "USER" }
+> = {};
 const institutions: Record<string, string> = {};
 const ctx = async (who: string, college: string): Promise<Ctx> =>
   (await resolveMemberContext(users[who]!, `${tag}-${college}`))!;
@@ -90,11 +93,17 @@ describe("the placement cell", () => {
   it("refuses faculty and students everything in the office", async () => {
     for (const who of ["faculty", "alice"]) {
       const c = await ctx(who, "a");
-      await expect(placement.listCompanies(c)).rejects.toMatchObject({ code: "forbidden" });
-      await expect(placement.createCompany(c, { name: "X Corp" })).rejects.toMatchObject({
+      await expect(placement.listCompanies(c)).rejects.toMatchObject({
         code: "forbidden",
       });
-      await expect(placement.getPlacementReport(c)).rejects.toMatchObject({ code: "forbidden" });
+      await expect(
+        placement.createCompany(c, { name: "X Corp" })
+      ).rejects.toMatchObject({
+        code: "forbidden",
+      });
+      await expect(placement.getPlacementReport(c)).rejects.toMatchObject({
+        code: "forbidden",
+      });
     }
   });
 
@@ -105,7 +114,10 @@ describe("the placement cell", () => {
     const { id: companyId } = await placement.createCompany(office, { name: "Acme" });
     await placement.addContact(office, companyId, { name: "Recruiter One" });
     await placement.addCompanyNote(office, companyId, "Called about the 2027 batch.");
-    const { id: driveId } = await placement.createDrive(office, driveInput(companyId, "SDE"));
+    const { id: driveId } = await placement.createDrive(
+      office,
+      driveInput(companyId, "SDE")
+    );
 
     // A draft is invisible, and cannot be applied to.
     expect((await placement.getStudentPlacement(alice)).drives).toHaveLength(0);
@@ -131,7 +143,9 @@ describe("the placement cell", () => {
     await expect(
       placement.moveApplication(office, application.id, "OFFERED")
     ).rejects.toMatchObject({ code: "invalid" });
-    await placement.moveApplication(office, application.id, "OFFERED", { offerLpa: 12 });
+    await placement.moveApplication(office, application.id, "OFFERED", {
+      offerLpa: 12,
+    });
 
     // The office can never accept for the student.
     await expect(
@@ -140,8 +154,15 @@ describe("the placement cell", () => {
     await placement.respondToOffer(alice, application.id, true);
 
     const report = await placement.getPlacementReport(office);
-    expect(report).toMatchObject({ placed: 1, highestLpa: 12, medianLpa: 12, students: 2 });
-    expect(report.byDepartment).toEqual([{ department: "CSE", students: 1, placed: 1 }]);
+    expect(report).toMatchObject({
+      placed: 1,
+      highestLpa: 12,
+      medianLpa: 12,
+      students: 2,
+    });
+    expect(report.byDepartment).toEqual([
+      { department: "CSE", students: 1, placed: 1 },
+    ]);
     expect(await placement.exportPlacementCsv(office)).toContain("Acme");
 
     // Placed now, so a drive excluding the placed refuses them, with the reason.
@@ -155,17 +176,39 @@ describe("the placement cell", () => {
   it("refuses an ineligible student, a passed deadline and a non-student on the server", async () => {
     const office = await ctx("officer", "a");
     const weak = await ctx("weak", "a");
-    await placement.upsertPlacementRecord(office, users.weak!.id, { ...student, cgpa: 5 });
+    await placement.upsertPlacementRecord(office, users.weak!.id, {
+      ...student,
+      cgpa: 5,
+    });
     const { id: companyId } = await placement.createCompany(office, { name: "Beta" });
-    const { id } = await placement.createDrive(office, driveInput(companyId, "Analyst"));
+    const { id } = await placement.createDrive(
+      office,
+      driveInput(companyId, "Analyst")
+    );
     await placement.setDriveStatus(office, id, "OPEN");
 
-    await expect(placement.applyToDrive(weak, id)).rejects.toMatchObject({ code: "forbidden" });
+    await expect(placement.applyToDrive(weak, id)).rejects.toMatchObject({
+      code: "forbidden",
+    });
     await placement.upsertPlacementRecord(office, users.weak!.id, student);
-    await expect(placement.applyToDrive(weak, id, new Date("2100-01-01"))).rejects.toMatchObject({
+    await expect(
+      placement.applyToDrive(weak, id, new Date("2100-01-01"))
+    ).rejects.toMatchObject({
       code: "conflict",
     });
-    await expect(placement.applyToDrive(office, id)).rejects.toMatchObject({ code: "forbidden" });
+    await expect(placement.applyToDrive(office, id)).rejects.toMatchObject({
+      code: "forbidden",
+    });
+  });
+
+  it("refuses a recruiter website that is not http or https", async () => {
+    const office = await ctx("officer", "a");
+    await expect(
+      placement.createCompany(office, {
+        name: "Bad Link",
+        website: "javascript:alert(1)",
+      })
+    ).rejects.toMatchObject({ code: "invalid" });
   });
 
   it("refuses a record for someone who is not a student here", async () => {
@@ -240,11 +283,13 @@ describe("the placement cell", () => {
 
     it("stops a student writing their own record at the database", async () => {
       await expect(
-        withTenantScope({ institutionId: institutions.a!, userId: users.weak!.id }, (tx) =>
-          tx.placementRecord.updateMany({
-            where: { userId: users.weak!.id },
-            data: { cgpa: 10 },
-          })
+        withTenantScope(
+          { institutionId: institutions.a!, userId: users.weak!.id },
+          (tx) =>
+            tx.placementRecord.updateMany({
+              where: { userId: users.weak!.id },
+              data: { cgpa: 10 },
+            })
         )
       ).resolves.toMatchObject({ count: 0 });
     });
@@ -254,7 +299,9 @@ describe("the placement cell", () => {
     it("records one application from many simultaneous requests", async () => {
       const office = await ctx("officer", "a");
       const weak = await ctx("weak", "a");
-      const { id: companyId } = await placement.createCompany(office, { name: "Gamma" });
+      const { id: companyId } = await placement.createCompany(office, {
+        name: "Gamma",
+      });
       const { id } = await placement.createDrive(office, driveInput(companyId, "Race"));
       await placement.setDriveStatus(office, id, "OPEN");
 
@@ -262,13 +309,17 @@ describe("the placement cell", () => {
         Array.from({ length: 8 }, () => placement.applyToDrive(weak, id))
       );
       expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
-      expect(await prisma.placementApplication.count({ where: { driveId: id } })).toBe(1);
+      expect(await prisma.placementApplication.count({ where: { driveId: id } })).toBe(
+        1
+      );
     });
 
     it("lets a student accept only one of two offers, however they race", async () => {
       const office = await ctx("officer", "a");
       const weak = await ctx("weak", "a");
-      const { id: companyId } = await placement.createCompany(office, { name: "Delta" });
+      const { id: companyId } = await placement.createCompany(office, {
+        name: "Delta",
+      });
       const ids: string[] = [];
       for (const title of ["One", "Two"]) {
         const { id } = await placement.createDrive(office, {
@@ -281,7 +332,9 @@ describe("the placement cell", () => {
           where: { driveId: id },
         });
         await placement.moveApplication(office, application.id, "SHORTLISTED");
-        await placement.moveApplication(office, application.id, "OFFERED", { offerLpa: 10 });
+        await placement.moveApplication(office, application.id, "OFFERED", {
+          offerLpa: 10,
+        });
         ids.push(application.id);
       }
       const results = await Promise.allSettled(
