@@ -39,6 +39,12 @@ const TRACK_COPY: Record<
     metaDescription:
       "Reason about large systems: scale, latency, replication, partitioning, consistency and the trade-offs between them.",
   },
+  GENERAL: {
+    heading: "More courses",
+    description: "Programming, computer science and career courses, written for Tech Epitome.",
+    metaTitle: "Courses",
+    metaDescription: "Original courses in programming, computer science and career skills.",
+  },
   LLD: {
     heading: "Low-Level Design",
     description:
