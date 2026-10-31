@@ -26,14 +26,21 @@ const student: StudentRecord = {
   attendancePercent: 80,
   skills: ["Python", "SQL"],
 };
-const failed = (criteria: Partial<EligibilityCriteria>, record = student, placed = false) =>
+const failed = (
+  criteria: Partial<EligibilityCriteria>,
+  record = student,
+  placed = false
+) =>
   evaluateEligibility({ ...open, ...criteria }, record, placed)
     .checks.filter((c) => !c.passed)
     .map((c) => c.rule);
 
 describe("evaluateEligibility", () => {
   it("passes a drive with no rules", () => {
-    expect(evaluateEligibility(open, student, false)).toEqual({ eligible: true, checks: [] });
+    expect(evaluateEligibility(open, student, false)).toEqual({
+      eligible: true,
+      checks: [],
+    });
   });
 
   it("refuses without a record, and says why", () => {
@@ -52,9 +59,9 @@ describe("evaluateEligibility", () => {
   });
 
   it("does not pass an attendance rule on a missing figure", () => {
-    expect(failed({ minAttendance: 1 }, { ...student, attendancePercent: null })).toEqual([
-      "Attendance",
-    ]);
+    expect(
+      failed({ minAttendance: 1 }, { ...student, attendancePercent: null })
+    ).toEqual(["Attendance"]);
   });
 
   it("matches department and skills regardless of case", () => {

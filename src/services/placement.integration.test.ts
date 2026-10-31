@@ -143,6 +143,11 @@ describe("the placement cell", () => {
     await expect(
       placement.moveApplication(office, application.id, "OFFERED")
     ).rejects.toMatchObject({ code: "invalid" });
+    for (const offerLpa of [Number.NaN, -1, 100000]) {
+      await expect(
+        placement.moveApplication(office, application.id, "OFFERED", { offerLpa })
+      ).rejects.toMatchObject({ code: "invalid" });
+    }
     await placement.moveApplication(office, application.id, "OFFERED", {
       offerLpa: 12,
     });

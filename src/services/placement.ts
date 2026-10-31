@@ -217,6 +217,9 @@ export async function listCompanies(ctx: MemberContext) {
   );
 }
 
+/** The largest package DECIMAL(7,2) columns hold, in whole LPA. */
+const MAX_LPA = 99999;
+
 export async function createCompany(
   ctx: MemberContext,
   input: { name: string; website?: string; industry?: string }
@@ -346,7 +349,7 @@ export const driveSchema = z.object({
   companyId: z.string().min(1).max(64),
   title: z.string().trim().min(3).max(160),
   description: z.string().trim().min(1).max(5000),
-  packageLpa: z.number().min(0).max(100000).nullable(),
+  packageLpa: z.number().min(0).max(MAX_LPA).nullable(),
   isInternship: z.boolean(),
   deadline: z.date(),
   minCgpa: z.number().min(0).max(10).nullable(),
@@ -501,7 +504,10 @@ export async function moveApplication(
         `Cannot move from ${application.stage} to ${to}.`
       );
     }
-    if (to === "OFFERED" && (extra.offerLpa === undefined || extra.offerLpa === null)) {
+    if (
+      to === "OFFERED" &&
+      !z.number().min(0).max(MAX_LPA).safeParse(extra.offerLpa).success
+    ) {
       throw new InstitutionError("invalid", "An offer needs a package.");
     }
     // The stage in the filter makes two simultaneous moves resolve to one.

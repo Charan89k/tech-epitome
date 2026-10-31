@@ -145,7 +145,10 @@ export async function previewRoster(
       if (seen.has(email)) return row("error", `Duplicate of line ${seen.get(email)}.`);
       seen.set(email, line);
       if (!ROLES.includes(role)) {
-        return row("error", "Role must be STUDENT, FACULTY, INSTITUTION_ADMIN or PLACEMENT_OFFICER.");
+        return row(
+          "error",
+          "Role must be STUDENT, FACULTY, INSTITUTION_ADMIN or PLACEMENT_OFFICER."
+        );
       }
       if (!canInviteRole(ctx, role)) return row("error", "You cannot grant that role.");
 
