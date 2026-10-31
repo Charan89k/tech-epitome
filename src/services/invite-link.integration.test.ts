@@ -43,7 +43,9 @@ describe("an invitation when no email can be sent", () => {
 
   afterAll(async () => {
     resetEmailProviderForTests();
-    await prisma.institution.deleteMany({ where: { id: institutionId } });
+    // The institution and its append-only audit log stay, as in the other suites.
+    await prisma.institutionInvitation.deleteMany({ where: { institutionId } });
+    await prisma.institutionMembership.deleteMany({ where: { institutionId } });
     await prisma.user.deleteMany({ where: { email: { startsWith: tag } } });
   });
 
