@@ -33,7 +33,7 @@ const STATUS_VARIANT = {
 export default async function AdminChapterPage({
   params,
 }: PageProps<"/admin/courses/[courseId]/chapters/[chapterId]">) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const { courseId, chapterId } = await params;
   const chapter = await getChapterForEditing(chapterId);
   if (!chapter || chapter.section.course.id !== courseId) notFound();
@@ -233,34 +233,41 @@ export default async function AdminChapterPage({
                       className="[&>div]:mt-0"
                     />
                   )}
-                  {revision.status === "IN_REVIEW" && (
-                    <>
-                      <CmsForm
-                        action={publishRevisionAction.bind(null, revision.id)}
-                        submitLabel="Publish"
-                        savedLabel="Published."
-                        size="sm"
-                        className="[&>div]:mt-0"
-                      />
-                      <CmsForm
-                        action={rejectRevisionAction.bind(null, revision.id)}
-                        submitLabel="Send back"
-                        savedLabel="Sent back."
-                        size="sm"
-                        variant="outline"
-                      >
-                        <label htmlFor={`note-${revision.id}`} className="sr-only">
-                          What needs to change
-                        </label>
-                        <Input
-                          id={`note-${revision.id}`}
-                          name="note"
-                          placeholder="What needs to change"
-                          maxLength={2000}
+                  {revision.status === "IN_REVIEW" &&
+                    revision.author.email === admin.email && (
+                      <p className="text-xs text-muted-foreground">
+                        Waiting for a different admin to review your version.
+                      </p>
+                    )}
+                  {revision.status === "IN_REVIEW" &&
+                    revision.author.email !== admin.email && (
+                      <>
+                        <CmsForm
+                          action={publishRevisionAction.bind(null, revision.id)}
+                          submitLabel="Publish"
+                          savedLabel="Published."
+                          size="sm"
+                          className="[&>div]:mt-0"
                         />
-                      </CmsForm>
-                    </>
-                  )}
+                        <CmsForm
+                          action={rejectRevisionAction.bind(null, revision.id)}
+                          submitLabel="Send back"
+                          savedLabel="Sent back."
+                          size="sm"
+                          variant="outline"
+                        >
+                          <label htmlFor={`note-${revision.id}`} className="sr-only">
+                            What needs to change
+                          </label>
+                          <Input
+                            id={`note-${revision.id}`}
+                            name="note"
+                            placeholder="What needs to change"
+                            maxLength={2000}
+                          />
+                        </CmsForm>
+                      </>
+                    )}
                   {(revision.status === "PUBLISHED" ||
                     revision.status === "REJECTED") && (
                     <CmsForm

@@ -25,6 +25,7 @@ import { getQuiz } from "./quiz";
 
 const tag = `cms-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 let admin: CmsActor;
+let reviewer: CmsActor;
 let courseId = "";
 let sectionId = "";
 let chapterId = "";
@@ -48,6 +49,10 @@ describe("the course CMS", () => {
       select: { id: true, email: true, role: true },
     });
     admin = user;
+    reviewer = await prisma.user.create({
+      data: { email: `${tag}-reviewer@techepitome.test`, role: "ADMIN" },
+      select: { id: true, email: true, role: true },
+    });
     courseId = await createCourse(admin, {
       title: "Python Basics",
       slug: tag,
@@ -71,9 +76,11 @@ describe("the course CMS", () => {
   });
 
   afterAll(async () => {
-    await prisma.auditLog.deleteMany({ where: { actorId: admin.id } });
+    await prisma.auditLog.deleteMany({
+      where: { actorId: { in: [admin.id, reviewer.id] } },
+    });
     await prisma.course.deleteMany({ where: { id: courseId } });
-    await prisma.user.deleteMany({ where: { id: admin.id } });
+    await prisma.user.deleteMany({ where: { id: { in: [admin.id, reviewer.id] } } });
   });
 
   it("refuses anyone who is not a platform admin", async () => {
@@ -135,9 +142,9 @@ describe("the course CMS", () => {
     expect((await getChapterForEditing(chapterId))!.revisions).toHaveLength(1);
 
     const revision = await latest();
-    await expect(publishRevision(admin, revision.id)).rejects.toThrow(/in review/);
+    await expect(publishRevision(reviewer, revision.id)).rejects.toThrow(/in review/);
     await submitForReview(admin, revision.id);
-    await publishRevision(admin, revision.id);
+    await publishRevision(reviewer, revision.id);
 
     const live = await chapter();
     expect(live.status).toBe("PUBLISHED");
@@ -154,7 +161,13 @@ describe("the course CMS", () => {
   it("records a rejection with its note and leaves the chapter alone", async () => {
     const revision = await latest();
     await submitForReview(admin, revision.id);
-    await rejectRevision(admin, revision.id, "Needs an example");
+    await expect(rejectRevision(admin, revision.id, "Mine")).rejects.toThrow(
+      /different admin/
+    );
+    await expect(publishRevision(admin, revision.id)).rejects.toThrow(
+      /different admin/
+    );
+    await rejectRevision(reviewer, revision.id, "Needs an example");
     expect(await latest()).toMatchObject({
       status: "REJECTED",
       reviewNote: "Needs an example",
@@ -175,8 +188,8 @@ describe("the course CMS", () => {
     const revision = await latest();
     await submitForReview(admin, revision.id);
     const results = await Promise.allSettled([
-      publishRevision(admin, revision.id),
-      publishRevision(admin, revision.id),
+      publishRevision(reviewer, revision.id),
+      publishRevision(reviewer, revision.id),
     ]);
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
   });
@@ -227,7 +240,7 @@ describe("the course CMS", () => {
       const revision = (await getChapterForEditing(draftChapter))!.revisions[0]!;
       await submitForReview(admin, revision.id);
       expect(await getQuiz(quiz.slug)).toBeNull();
-      await publishRevision(admin, revision.id);
+      await publishRevision(reviewer, revision.id);
 
       const live = await getQuiz(quiz.slug);
       expect(live?.questions).toHaveLength(1);
@@ -272,7 +285,7 @@ describe("the course CMS", () => {
     await saveDraft(admin, chapterWithDraft, draft("## Later\n\nText"));
     const revision = (await getChapterForEditing(chapterWithDraft))!.revisions[0]!;
     await submitForReview(admin, revision.id);
-    await publishRevision(admin, revision.id);
+    await publishRevision(reviewer, revision.id);
     const after = await prisma.course.findUniqueOrThrow({
       where: { id: courseId },
       select: { updatedAt: true },

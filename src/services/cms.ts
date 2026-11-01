@@ -457,6 +457,21 @@ export async function saveDraft(
   });
 }
 
+/** Nobody approves or sends back their own words: a second person reads them. */
+async function assertNotAuthor(
+  tx: Prisma.TransactionClient,
+  actor: CmsActor,
+  revisionId: string
+): Promise<void> {
+  const revision = await tx.chapterRevision.findUnique({
+    where: { id: revisionId },
+    select: { authorId: true },
+  });
+  if (revision?.authorId === actor.id) {
+    throw new CmsError("conflict", "A different admin must review your own version.");
+  }
+}
+
 async function moveRevision(
   actor: CmsActor,
   revisionId: string,
@@ -467,6 +482,7 @@ async function moveRevision(
 ): Promise<void> {
   assertAdmin(actor);
   await prisma.$transaction(async (tx) => {
+    if (to === "REJECTED") await assertNotAuthor(tx, actor, revisionId);
     const claimed = await tx.chapterRevision.updateMany({
       where: { id: revisionId, status: from },
       data: {
@@ -501,6 +517,7 @@ export async function publishRevision(
 ): Promise<void> {
   assertAdmin(actor);
   await prisma.$transaction(async (tx) => {
+    await assertNotAuthor(tx, actor, revisionId);
     const claimed = await tx.chapterRevision.updateMany({
       where: { id: revisionId, status: "IN_REVIEW" },
       data: { status: "PUBLISHED", reviewerId: actor.id, publishedAt: new Date() },
