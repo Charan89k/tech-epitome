@@ -61,6 +61,11 @@ export async function startChapter(
       where: { userId, chapterId, status: "NOT_STARTED" },
       data: { status: "IN_PROGRESS", startedAt: new Date() },
     });
+    // Reopening counts as recent, for Continue learning and Recently viewed.
+    await prisma.userChapterProgress.updateMany({
+      where: { userId, chapterId },
+      data: { updatedAt: new Date() },
+    });
     return true;
   }
   await recordEvent(userId, "lesson_started", { chapterId });

@@ -17,7 +17,7 @@ A slice is done when its backend, interface, persistence, permissions, error sta
 | 1.3 | Campus shell: role navigation and dashboards | None | Distinct student, faculty, officer and admin views; dense tables | College page done. Campus navigation and home unchanged |
 | 1.4 | Coding workspace dark by default, shortcuts, full-screen | None | Keyboard accessible; editor space preserved | Done on problems. LLD and system design workspaces unchanged |
 | 1.5 | Visualizer as a laboratory, new modules | None | Queues, hash tables, MST; explanations per step | Three modules done. Layout unchanged |
-| 3.3 | Library: tags, topics, body search, recently viewed | 3.1 | Filters only over real metadata | Planned |
+| 3.3 | Library: tags, topics, body search, recently viewed | 3.1 | Filters only over real metadata | Body search and recently viewed done. Tags and topics not started |
 | 4.1 | SQL playground, in the browser | None | Isolated by design; resets; exercises tracked | Planned |
 | 5.1 | Aptitude in the database, public, timed, analytics | 3.1 | Authoring screen; provenance; weak topics | Planned |
 | 5.2 | Contest journey tests, history, ratings | Execution for submissions | Browser journey; honest disabled state until then | Planned |

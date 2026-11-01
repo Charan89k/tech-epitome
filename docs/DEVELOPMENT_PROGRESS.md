@@ -4,7 +4,7 @@ The durable log for the build mission. A new session reads this first, then cont
 
 ## Current position
 
-- **Branch:** `feat/visualizer-lab`, stacked on `feat/campus-shell` (PR #7). Each later slice stacks on the last until the PRs are merged.
+- **Branch:** `feat/library-metadata`, stacked on `feat/visualizer-lab` (PR #8). Each later slice stacks on the last until the PRs are merged.
 - **Phase:** 1 (shell and design).
 - **Next exact task:** see the bottom of this file.
 
@@ -64,6 +64,8 @@ Merging PRs #3, #4, #5. Any deployment or production change. Publishing courses.
 
 **Disk:** 4.4 GB free at the last check, still above the 2 GB stop line.
 
+**Library search and recents.** On `feat/library-metadata`. Search reads the prose and code fields of published lessons, with wildcards treated as text and block structure ignored. `/learn` shows Recently viewed from progress rows, and reopening a lesson now counts as recent. No migration.
+
 ## Next exact task
 
-Library metadata (roadmap 3.3): tags, topics, body search and recently viewed, with filters only over real metadata. Then the SQL playground (4.1).
+SQL playground in the browser (roadmap 4.1): isolated by design, resettable, exercises tracked. Course tags and topics (rest of 3.3) need a migration and a CMS field, so they follow.
