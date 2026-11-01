@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/db";
 
-import { computeStandings, contestPhase } from "./contest-scoring";
+import { computeStandings, contestPhase, type ContestPhase } from "./contest-scoring";
 
 export { computeStandings, contestPhase } from "./contest-scoring";
 
@@ -95,6 +95,92 @@ export async function getStandings(contest: {
     ...row,
     name: names.get(row.userId) ?? "Entrant",
   }));
+}
+
+export type MyContest = {
+  slug: string;
+  title: string;
+  startsAt: Date;
+  phase: ContestPhase;
+  rank: number | null;
+  entrants: number;
+  solved: number;
+  score: number;
+};
+
+const MY_CONTESTS_SHOWN = 10;
+
+/** This learner's own contests, newest first, with where they finished. */
+export async function getMyContests(
+  userId: string,
+  now = new Date()
+): Promise<MyContest[]> {
+  const entries = await prisma.contestEntry.findMany({
+    where: { userId },
+    orderBy: { contest: { startsAt: "desc" } },
+    take: MY_CONTESTS_SHOWN,
+    select: {
+      contest: {
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          startsAt: true,
+          endsAt: true,
+          penaltyMinutes: true,
+          problems: { select: { problemId: true, points: true } },
+        },
+      },
+    },
+  });
+
+  // Sequential: each one reads standings, which is two queries.
+  const mine: MyContest[] = [];
+  for (const { contest } of entries) {
+    const standings = await getStandings(contest);
+    const row = standings.find((entry) => entry.userId === userId);
+    mine.push({
+      slug: contest.slug,
+      title: contest.title,
+      startsAt: contest.startsAt,
+      phase: contestPhase(contest, now),
+      rank: row?.rank ?? null,
+      entrants: standings.length,
+      solved: row?.solved ?? 0,
+      score: row?.score ?? 0,
+    });
+  }
+  return mine;
+}
+
+export type CancelContestResult = "cancelled" | "started" | "missing";
+
+/** Only before it starts: afterwards entrants' results depend on it. */
+export async function cancelContest(
+  admin: { id: string; email: string },
+  slug: string,
+  now = new Date()
+): Promise<CancelContestResult> {
+  const contest = await prisma.contest.findUnique({
+    where: { slug },
+    select: { id: true, startsAt: true, endsAt: true },
+  });
+  if (!contest) return "missing";
+  if (contestPhase(contest, now) !== "upcoming") return "started";
+  await prisma.$transaction(async (tx) => {
+    await tx.contest.delete({ where: { id: contest.id } });
+    await tx.auditLog.create({
+      data: {
+        actorId: admin.id,
+        actorEmail: admin.email,
+        action: "contest.cancelled",
+        entity: "contest",
+        entityId: contest.id,
+        summary: `Cancelled contest ${slug}`,
+      },
+    });
+  });
+  return "cancelled";
 }
 
 export const contestInputSchema = z
