@@ -91,7 +91,8 @@ export const contentBlockSchema: z.ZodType<ContentBlock> =
       title: z.string().optional(),
       input: z.string().min(1),
       steps: z
-        .array(z.object({ state: z.string().min(1), note: z.string().min(1) }))
+        // A step can speak for itself: an empty note is authored, not malformed.
+        .array(z.object({ state: z.string().min(1), note: z.string() }))
         .min(1),
       output: z.string().min(1),
     }),
