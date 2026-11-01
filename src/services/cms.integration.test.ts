@@ -239,6 +239,27 @@ describe("the course CMS", () => {
     });
   });
 
+  it("keeps lessons and sections in the order they were added", async () => {
+    await createSection(admin, courseId, { title: "Second", slug: "second" });
+    const second = await prisma.courseSection.findFirstOrThrow({
+      where: { courseId, slug: "second" },
+    });
+    const first = await prisma.courseSection.findUniqueOrThrow({
+      where: { id: sectionId },
+    });
+    expect(second.order).toBeGreaterThan(first.order);
+
+    for (const slug of ["one", "two", "three"]) {
+      await createChapter(admin, second.id, { title: slug, slug });
+    }
+    const orders = await prisma.chapter.findMany({
+      where: { sectionId: second.id },
+      orderBy: { order: "asc" },
+      select: { slug: true },
+    });
+    expect(orders.map((c) => c.slug)).toEqual(["one", "two", "three"]);
+  });
+
   it("marks the course updated when a chapter is published", async () => {
     const before = await prisma.course.findUniqueOrThrow({
       where: { id: courseId },
