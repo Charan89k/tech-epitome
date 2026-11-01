@@ -45,7 +45,8 @@ from the database on every request, so changing a URL grants nothing. See
 | Course CMS: authoring, review, publishing, version history | Live | Admin-only. Markdown lessons, or raw blocks for older chapters. An author cannot approve their own version, so publishing needs two admins. Knowledge checks are written with `npm run courses:author`; there is no screen for them, and one cannot be replaced once live |
 | Download your data, delete your account | Live | From `/settings`. Deletion is refused for platform admins, authors, and anyone with college records, pending an approved privacy policy |
 | Original courses | Partial | Programming Foundations, Database Foundations and Core Algorithms: 27 lessons, 27 knowledge checks, every example run by a test. Written and tested; they reach a site only when an operator runs `npm run courses:author` there. More subjects are not written yet |
-| SQL problems and playground | Planned | |
+| SQL playground | Live | `/sql`: real PostgreSQL (PGlite) in the browser, loaded from a public CDN. 8 exercises on an invented library. Reset, 10 second limit. Ticks saved in this browser only |
+| SQL problems in the judged catalogue | Planned | |
 | Code playground | Planned | |
 | Discussions and community | Planned | |
 | Contest ratings | Planned | |

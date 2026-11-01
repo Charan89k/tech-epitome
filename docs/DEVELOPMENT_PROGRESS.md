@@ -4,7 +4,7 @@ The durable log for the build mission. A new session reads this first, then cont
 
 ## Current position
 
-- **Branch:** `feat/library-metadata`, stacked on `feat/visualizer-lab` (PR #8). Each later slice stacks on the last until the PRs are merged.
+- **Branch:** `feat/sql-playground`, stacked on `feat/library-metadata` (PR #9). Each later slice stacks on the last until the PRs are merged.
 - **Phase:** 1 (shell and design).
 - **Next exact task:** see the bottom of this file.
 
@@ -66,6 +66,10 @@ Merging PRs #3, #4, #5. Any deployment or production change. Publishing courses.
 
 **Library search and recents.** On `feat/library-metadata`. Search reads the prose and code fields of published lessons, with wildcards treated as text and block structure ignored. `/learn` shows Recently viewed from progress rows, and reopening a lesson now counts as recent. No migration.
 
+**SQL playground.** `/sql` on `feat/sql-playground`: PGlite in the existing locked-down trace worker policy, 8 exercises, reset, 10 second stop. A browser test proves no non-GET request leaves while a query runs. PGlite in `devDependencies` is for tests only; browsers fetch the same pinned version from the CDN.
+
+**Dark pane fix.** `.dark` under a light page inherited light tokens, so the workspace pane from `f0b3329` was dark only in Monaco. `.dark` now declares the dark tokens, with a regression check.
+
 ## Next exact task
 
-SQL playground in the browser (roadmap 4.1): isolated by design, resettable, exercises tracked. Course tags and topics (rest of 3.3) need a migration and a CMS field, so they follow.
+Aptitude in the database, public, timed, with analytics (roadmap 5.1). Course tags and topics (rest of 3.3) need a migration and a CMS field, so do them alongside it.

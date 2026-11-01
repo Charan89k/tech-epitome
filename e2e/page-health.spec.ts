@@ -28,6 +28,7 @@ const ROUTES = [
   "/visualize/binary-search",
   "/visualize/breadth-first-search",
   "/visualize/write-pointer",
+  "/sql",
 ];
 
 /** Errors a healthy page may still emit, and why they are not our problem. */

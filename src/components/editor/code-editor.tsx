@@ -25,7 +25,7 @@ export function CodeEditor({
   highlight = null,
   theme,
 }: {
-  language: Language;
+  language: Language | "SQL";
   value: string;
   onChange: (value: string) => void;
   readOnly?: boolean;
@@ -124,7 +124,7 @@ export function CodeEditor({
     <div className="h-full w-full">
       <Editor
         height="100%"
-        language={MONACO_LANGUAGE[language]}
+        language={language === "SQL" ? "sql" : MONACO_LANGUAGE[language]}
         value={value}
         onChange={(next) => onChange(next ?? "")}
         beforeMount={beforeMount}

@@ -231,6 +231,12 @@ test("the workspace runs by shortcut, focuses, and is dark unless light was chos
   const editor = page.locator(".monaco-editor").first();
   await expect(editor).toBeVisible({ timeout: 60_000 });
   await expect(editor).toHaveClass(/vs-dark/);
+  // The whole pane, not only Monaco: dark tokens must beat a light page.
+  expect(
+    await editor.evaluate(
+      (element) => getComputedStyle(element.closest(".dark")!).backgroundColor
+    )
+  ).toBe("rgb(8, 13, 25)");
 
   await page.locator(".monaco-editor .view-lines").first().click();
   await page.keyboard.press("ControlOrMeta+a");
