@@ -2,7 +2,7 @@
 
 > **Purpose:** Evidence-based delivery tracker. This file records what exists, what is incomplete and what must be verified. It is not a marketing page.
 >
-> **Last verified:** Not yet reconciled against the current repository, production deployment and CI by the maintainer. The entries below are a cautious starting inventory from the recent project handover. The next coding session must verify and correct them before implementation.
+> **Last verified:** 2026-11-01, partially. Section 2 and the rows marked "Reconciled 2026-11-01" were checked against the repository, CI and the public site. Every other row is still the handover's starting inventory. Production was only read through public URLs; no server was accessed.
 >
 > **Product requirements:** [PRODUCT_VISION.md](./PRODUCT_VISION.md)
 
