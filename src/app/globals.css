@@ -108,7 +108,8 @@
    foreground, muted-foreground (secondary), subtle-foreground (meta). Every
    text pair is >= 4.5:1, measured; see docs/DESIGN.md.
    -------------------------------------------------------------------------- */
-:root {
+:root,
+.dark {
   --background: #080d19;
   --foreground: #f3f6ff;
 
@@ -186,7 +187,8 @@
   --radius: 0.375rem;
 }
 
-/* Explicit .dark keeps shadcn's `dark:` variants working while dark is also
+/* .dark also carries the tokens above, so a pane can stay dark inside a light
+   page. It keeps shadcn's `dark:` variants working while dark is also
    the :root default, so a themed component behaves the same either way.
    Only the tokens .light overrides need repeating. */
 .dark {
