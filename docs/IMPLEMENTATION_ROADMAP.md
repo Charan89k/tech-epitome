@@ -10,9 +10,9 @@ A slice is done when its backend, interface, persistence, permissions, error sta
 | --- | --- | --- | --- | --- |
 | 0.1 | Fix racing browser specs | None | Repeat runs pass with no retries | Done |
 | 1.1 | Learn surface: tokens and type | None | Contrast test; Campus and workspace unchanged | Done |
-| 2.1 | Account export and deletion | None | Export holds only the owner's data, with no secrets. Deletion needs re-authentication and protects college records. Browser journey passes | Next |
-| 3.1 | CMS reviewer role | None | An author cannot approve their own revision. Permission tests | Planned |
-| 3.2 | DSA chapters: trees, heaps, graphs, sorting, greedy, dynamic programming | 3.1 preferred | Original, examples run in tests, knowledge checks, practice links | Planned |
+| 2.1 | Account export and deletion | None | Export holds only the owner's data, with no secrets. Deletion needs re-authentication and protects college records. Browser journey passes | Done |
+| 3.1 | CMS review separation | None | An author cannot approve their own revision. Permission tests. A dedicated reviewer role is still to come | Done |
+| 3.2 | DSA chapters: trees, heaps, graphs, sorting, greedy, dynamic programming | 3.1 preferred | Original, examples run in tests, knowledge checks, practice links | Done |
 | 1.2 | Learn dashboard and information architecture | 1.1 | Real data only; daily, contests, activity calendar; responsive | Planned |
 | 1.3 | Campus shell: role navigation and dashboards | None | Distinct student, faculty, officer and admin views; dense tables | Planned |
 | 1.4 | Coding workspace dark by default, shortcuts, full-screen | None | Keyboard accessible; editor space preserved | Planned |

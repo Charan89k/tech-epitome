@@ -36,8 +36,14 @@ Merging PRs #3, #4, #5. Any deployment or production change. Publishing courses.
 
 **`a492482` feat(learn): warm editorial surface.** `surfaceForPath`, `ShellSurface`, token sets in `globals.css`, `contrast.test.ts`, serif headings. Vitest 172 passed in the affected files. Playwright `page-health`, `portals`, `catalogue`, `highlights` on both projects with no retries: 89 passed, 3 skipped, 0 failed. Screens checked in light and dark. Only tokens and type changed so far: **the Learn information architecture and dashboard are not redesigned yet.**
 
-**Known, not fixed:** `authored-courses.spec` failed once earlier, with cause unknown.
+**`a112c94` feat(account): export and deletion.** `src/services/account.ts`, `/settings/export`, a "Your data" section, `/account-deleted`. A test compares the exported tables with the schema. Integration 8 passed. Browser `e2e/account` on both projects with no retries: 6 passed.
+
+**`d503fc7` feat(cms): review separation.** Publishing or sending back needs a different admin. The editor tells the author it is waiting, and `courses:author` takes `--reviewer`. Integration 14 passed. Browser `cms`, `authored-courses`, `admin` on both projects with no retries: passed after one test-setup fix. **Publishing now needs two admin accounts wherever it is used.**
+
+**Core Algorithms course.** 9 lessons, 9 knowledge checks, 33 Python examples run by the test suite. Authored locally through the CMS with a second admin as reviewer. Course tests 140 passed. **Not in production.** No person has reviewed the teaching yet.
+
+**Known, not fixed:** `authored-courses.spec` failed once earlier, with cause unknown. It has passed every run since, including 3 more in this session.
 
 ## Next exact task
 
-Account export and deletion: `src/services/account.ts`, a section in `/settings`, integration and browser tests. Then: CMS reviewer role, DSA chapters for trees, heaps, graphs, sorting, greedy and dynamic programming, then the Learn dashboard redesign.
+Learn dashboard and information architecture (roadmap 1.2): real data only, daily challenge, upcoming contests, activity calendar from `StudyDay`, per-course progress. Then the Campus shell (1.3), then the coding workspace (1.4).
