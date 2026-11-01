@@ -18,13 +18,7 @@ import {
 
 type Params = { topic?: string | string[]; difficulty?: string | string[] };
 
-async function Performance({
-  userId,
-  basePath,
-}: {
-  userId: string;
-  basePath: string;
-}) {
+async function Performance({ userId, basePath }: { userId: string; basePath: string }) {
   const performance = await getAptitudePerformance(userId);
   if (performance.length === 0) return null;
   const recent = await listRecentAptitudeSets(userId);
