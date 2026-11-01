@@ -52,6 +52,8 @@ export type CourseSeed = {
   subtitle: string;
   description: string;
   icon: string;
+  /** The subject the library files it under. */
+  category: string;
   estimatedHours: number;
   sections: SectionSeed[];
 };
