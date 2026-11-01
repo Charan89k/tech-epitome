@@ -5,6 +5,7 @@ import { loadEnv } from "./load-env";
 
 import { PrismaClient } from "../src/generated/prisma/client";
 import { ACHIEVEMENTS } from "../src/data/achievements";
+import { APTITUDE_TOPICS } from "../src/data/aptitude";
 import {
   BEHAVIORAL_CATEGORIES,
   BEHAVIORAL_QUESTION_COUNT,
@@ -269,6 +270,25 @@ async function seedLLDExercises() {
   console.log(`  lld            ${LLD_EXERCISES.length} exercises`);
 }
 
+/** Updates a seeded question in place, and never touches admin-authored ones. */
+async function seedAptitude() {
+  for (const topic of APTITUDE_TOPICS) {
+    for (const { id, ...question } of topic.questions) {
+      const data = {
+        ...question,
+        options: [...question.options],
+        topic: topic.key,
+        status: "PUBLISHED" as const,
+      };
+      await prisma.aptitudeQuestion.upsert({
+        where: { slug: `${topic.key}-${id}` },
+        create: { slug: `${topic.key}-${id}`, ...data },
+        update: data,
+      });
+    }
+  }
+}
+
 async function main() {
   /**
    * Behavioural interview questions.
@@ -436,6 +456,7 @@ async function main() {
   await seedLLDExercises();
   await seedBehavioral();
   await seedPrepTracks();
+  await seedAptitude();
 
   console.log("Seed complete.");
 }
