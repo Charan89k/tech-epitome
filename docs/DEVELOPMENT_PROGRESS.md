@@ -4,7 +4,7 @@ The durable log for the build mission. A new session reads this first, then cont
 
 ## Current position
 
-- **Branch:** `feat/aptitude`, stacked on `feat/sql-playground` (PR #10). Each later slice stacks on the last until the PRs are merged.
+- **Branch:** `feat/contest-history`, stacked on `feat/aptitude` (PR #11). Each later slice stacks on the last until the PRs are merged.
 - **Phase:** 1 (shell and design).
 - **Next exact task:** see the bottom of this file.
 
@@ -72,6 +72,10 @@ Merging PRs #3, #4, #5. Any deployment or production change. Publishing courses.
 
 **Aptitude.** `feat/aptitude`: questions move to `aptitude_questions`, `/aptitude` is public, with an optional timer, per-topic performance and `/admin/aptitude` for authoring with a second admin. **Release note: the migration must be followed by `db:seed:prod`, or `/campus/aptitude` shows no questions.** The original 24 questions default to Medium; nobody has graded them.
 
+**One failure, not reproduced.** At `b3291ab`, `placement.spec.ts:63` failed once on chromium. Then 10 of 10 alone and the whole chunk passed. Its output was overwritten, so the cause is unknown. Watch for it.
+
+**Contests.** `feat/contest-history`: a browser journey from entering to a real submission reaching the standings, Your contests with rank and score, and admin cancel before the start. No migration. Ratings are not built.
+
 ## Next exact task
 
-Contest journey tests, history and ratings (roadmap 5.2), with an honest disabled state until execution exists. Course tags and topics (rest of 3.3) still need a migration and a CMS field.
+Tutor feedback, deletion, retention and study plans (roadmap 5.3), working with a local provider and an honest unavailable state. Course tags and topics (rest of 3.3) still need a migration and a CMS field.
