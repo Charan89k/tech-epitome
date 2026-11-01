@@ -72,9 +72,11 @@ Merging PRs #3, #4, #5. Any deployment or production change. Publishing courses.
 
 **Aptitude.** `feat/aptitude`: questions move to `aptitude_questions`, `/aptitude` is public, with an optional timer, per-topic performance and `/admin/aptitude` for authoring with a second admin. **Release note: the migration must be followed by `db:seed:prod`, or `/campus/aptitude` shows no questions.** The original 24 questions default to Medium; nobody has graded them.
 
-**One failure, not reproduced.** At `b3291ab`, `placement.spec.ts:63` failed once on chromium. Then 10 of 10 alone and the whole chunk passed. Its output was overwritten, so the cause is unknown. Watch for it.
+**Timing failures, fixed.** `placement.spec.ts:63` failed at two gates and `campus-learning.spec.ts:60` once, each on a default 5 s wait just after a click to a new page, with the old page still showing. The most likely cause is the dev server compiling a route on first visit under load; that was not measured directly. `playwright.config.ts` now waits 15 s for every assertion, and what is asserted is unchanged. Slow pages can no longer fail a test until 15 s.
 
 **Contests.** `feat/contest-history`: a browser journey from entering to a real submission reaching the standings, Your contests with rank and score, and admin cancel before the start. No migration. Ratings are not built.
+
+**Full gate at the contest branch, no retries.** Playwright 382 passed, 26 skipped, 0 failed. Vitest 1,958 passed, 35 skipped. Build exit 0.
 
 ## Next exact task
 
