@@ -16,6 +16,7 @@ import {
   saveDraft,
   setCoursePublished,
   submitForReview,
+  updateCourse,
   type CmsActor,
   type DraftInput,
 } from "./cms";
@@ -81,6 +82,33 @@ describe("the course CMS", () => {
     await expect(setCoursePublished(learner, courseId, true)).rejects.toThrow(
       /platform admin/
     );
+  });
+
+  it("clears optional course fields left empty on edit", async () => {
+    const base = {
+      title: "Python Basics",
+      slug: tag,
+      description: "An original course for testing the CMS.",
+      category: "Programming",
+      level: "BEGINNER" as const,
+      estimatedHours: 3,
+      outcomes: ["Write a script"],
+      prerequisites: [],
+      featured: false,
+    };
+    await updateCourse(admin, courseId, {
+      ...base,
+      subtitle: "Old",
+      license: "CC-BY-4.0",
+      attribution: "Someone",
+    });
+    await updateCourse(admin, courseId, base);
+    expect(
+      await prisma.course.findUniqueOrThrow({
+        where: { id: courseId },
+        select: { subtitle: true, license: true, attribution: true },
+      })
+    ).toEqual({ subtitle: null, license: null, attribution: null });
   });
 
   it("will not publish a course with nothing in it", async () => {

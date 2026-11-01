@@ -106,7 +106,20 @@ describe("markdownToBlocks", () => {
     });
   });
 
+  it("closes a fence only on one at least as long, with nothing after it", () => {
+    expect(markdownToBlocks("````md\n```python\nx\n```\n````\nafter")).toMatchObject([
+      { type: "code", language: "md", code: "```python\nx\n```" },
+      { type: "paragraph" },
+    ]);
+    expect(markdownToBlocks("```\n```python\n```")).toMatchObject([
+      { type: "code", code: "```python" },
+    ]);
+  });
+
   it.each([
+    ["## ", /no text/],
+    ["### ", /no text/],
+    ["text\n\n##  ", /Line 3: This heading has no text/],
     ["# Title", /page owns the title/],
     ["```python\nnever closed", /never closed/],
     [":::nonsense x", /Unknown directive/],

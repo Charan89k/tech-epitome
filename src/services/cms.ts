@@ -189,7 +189,16 @@ export async function updateCourse(
   assertAdmin(actor);
   try {
     await prisma.$transaction(async (tx) => {
-      await tx.course.update({ where: { id }, data: input });
+      await tx.course.update({
+        where: { id },
+        data: {
+          ...input,
+          // The form sends an emptied field as undefined, which Prisma would skip.
+          subtitle: input.subtitle ?? null,
+          license: input.license ?? null,
+          attribution: input.attribution ?? null,
+        },
+      });
       await audit(tx, actor, "course.updated", "course", id, `Updated ${input.slug}`);
     });
   } catch (error) {

@@ -74,6 +74,10 @@ export function markdownToBlocks(source: string): ContentBlock[] {
       continue;
     }
 
+    if (/^#{1,6}\s+$/.test(line)) {
+      throw new MarkdownError(i + 1, "This heading has no text.");
+    }
+
     const heading = /^(#{1,6}) (.+)$/.exec(line);
     if (heading) {
       if (heading[1]!.length !== 2 && heading[1]!.length !== 3) {
@@ -91,11 +95,13 @@ export function markdownToBlocks(source: string): ContentBlock[] {
       continue;
     }
 
-    if (line.startsWith("```")) {
-      const language = line.slice(3).trim() || "text";
+    const fence = /^(`{3,})(.*)$/.exec(line);
+    if (fence) {
+      const language = fence[2]!.trim() || "text";
+      const closer = new RegExp(`^\`{${fence[1]!.length},}\\s*$`);
       const start = i + 1;
       let end = start;
-      while (end < lines.length && !lines[end]!.startsWith("```")) end += 1;
+      while (end < lines.length && !closer.test(lines[end]!)) end += 1;
       if (end === lines.length)
         throw new MarkdownError(i + 1, "This code fence is never closed.");
       blocks.push({ type: "code", language, code: lines.slice(start, end).join("\n") });
