@@ -2,13 +2,16 @@ import { balancedBracketsViz } from "./algorithms/balanced-brackets";
 import { binarySearchViz } from "./algorithms/binary-search";
 import { bstInsertViz } from "./algorithms/bst-insert";
 import { dijkstraViz } from "./algorithms/dijkstra";
+import { hashTableViz } from "./algorithms/hash-table";
 import { insertionSortViz } from "./algorithms/insertion-sort";
+import { kruskalViz } from "./algorithms/kruskal";
 import { lcsViz } from "./algorithms/longest-common-subsequence";
 import { minHeapViz } from "./algorithms/min-heap";
 import { nQueensViz } from "./algorithms/n-queens";
 import { breadthFirstViz } from "./algorithms/breadth-first";
 import { depthFirstViz } from "./algorithms/depth-first";
 import { linkedListReversalViz } from "./algorithms/linked-list-reversal";
+import { queueViz } from "./algorithms/queue";
 import { slidingWindowViz } from "./algorithms/sliding-window";
 import { twoPointersViz } from "./algorithms/two-pointers";
 import { writePointerViz } from "./algorithms/write-pointer";
@@ -36,6 +39,9 @@ export const VISUALIZATIONS: Record<string, ErasedVisualization> = {
   [dijkstraViz.key]: erase(dijkstraViz),
   [nQueensViz.key]: erase(nQueensViz),
   [lcsViz.key]: erase(lcsViz),
+  [queueViz.key]: erase(queueViz),
+  [hashTableViz.key]: erase(hashTableViz),
+  [kruskalViz.key]: erase(kruskalViz),
 };
 
 export const VISUALIZATION_KEYS = Object.keys(VISUALIZATIONS);

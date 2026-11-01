@@ -4,7 +4,9 @@ import { VISUALIZATIONS } from "../registry";
 import { balancedBracketsViz } from "./balanced-brackets";
 import { bstInsertViz } from "./bst-insert";
 import { dijkstraViz } from "./dijkstra";
+import { bucketFor, hashTableViz } from "./hash-table";
 import { insertionSortViz } from "./insertion-sort";
+import { kruskalViz } from "./kruskal";
 import { lcsViz } from "./longest-common-subsequence";
 import { minHeapViz } from "./min-heap";
 import { nQueensViz } from "./n-queens";
@@ -12,6 +14,7 @@ import { binarySearchViz } from "./binary-search";
 import { breadthFirstViz } from "./breadth-first";
 import { depthFirstViz } from "./depth-first";
 import { linkedListReversalViz } from "./linked-list-reversal";
+import { queueViz } from "./queue";
 import { slidingWindowViz } from "./sliding-window";
 import { twoPointersViz } from "./two-pointers";
 import { writePointerViz } from "./write-pointer";
@@ -60,6 +63,53 @@ describe("the algorithm traces reach the right answers", () => {
   it("Dijkstra finds the shortest distances", () => {
     const { dist } = last(dijkstraViz.buildFrames(dijkstraViz.defaultInput)).state;
     expect(dist).toEqual({ A: 0, B: 3, C: 1, D: 8, E: 11 });
+  });
+
+  it("the queue removes in arrival order, wraps, and refuses when full", () => {
+    const frames = queueViz.buildFrames([1, 2, 3, 4, 5, 6, "dequeue", "dequeue", 7]);
+    const end = last(frames).state;
+    expect(end.removed).toEqual([1, 2]);
+    expect(end.slots).toEqual([7, null, 3, 4, 5]);
+    expect(frames.some((f) => f.operation.includes("6 is refused"))).toBe(true);
+    expect(last(queueViz.buildFrames(["dequeue"])).operation).toContain("empty");
+  });
+
+  it("the hash table holds each distinct key once, in its own bucket", () => {
+    const input = [15, 8, 22, -6, 4, 15];
+    const { buckets } = last(hashTableViz.buildFrames(input)).state;
+    expect(buckets.flat().sort((a, b) => a - b)).toEqual([-6, 4, 8, 15, 22]);
+    buckets.forEach((chain, index) =>
+      chain.forEach((key) => expect(bucketFor(key)).toBe(index))
+    );
+    expect(bucketFor(-6)).toBe(1);
+  });
+
+  it("Kruskal's total matches an exhaustive search of spanning trees", () => {
+    const edges = kruskalViz.defaultInput;
+    const nodes = new Set(edges.flatMap(([a, b]) => [a, b]));
+    let best = Infinity;
+    for (let mask = 0; mask < 1 << edges.length; mask++) {
+      const chosen = edges.filter((_, i) => mask & (1 << i));
+      if (chosen.length !== nodes.size - 1) continue;
+      const reached = new Set([edges[0]![0]]);
+      for (let pass = 0; pass < nodes.size; pass++) {
+        for (const [a, b] of chosen) {
+          if (reached.has(a) || reached.has(b)) {
+            reached.add(a);
+            reached.add(b);
+          }
+        }
+      }
+      if (reached.size === nodes.size) {
+        best = Math.min(
+          best,
+          chosen.reduce((sum, [, , w]) => sum + w, 0)
+        );
+      }
+    }
+    const end = last(kruskalViz.buildFrames(edges)).state;
+    expect(end.total).toBe(best);
+    expect(end.groups).toBe(1);
   });
 
   it("N-Queens ends on a valid board, for every offered size", () => {

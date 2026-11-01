@@ -4,7 +4,7 @@ The durable log for the build mission. A new session reads this first, then cont
 
 ## Current position
 
-- **Branch:** `feat/campus-shell`, stacked on `feat/foundation-stabilize` (PR #6). Each later slice stacks on the last until the PRs are merged.
+- **Branch:** `feat/visualizer-lab`, stacked on `feat/campus-shell` (PR #7). Each later slice stacks on the last until the PRs are merged.
 - **Phase:** 1 (shell and design).
 - **Next exact task:** see the bottom of this file.
 
@@ -60,6 +60,10 @@ Merging PRs #3, #4, #5. Any deployment or production change. Publishing courses.
 
 **Vercel preview** fails on PRs #3, #4, #5 and #6. Part of the open Vercel decision; not investigated further.
 
+**Visualizer modules.** Circular queue, hash table with chaining and Kruskal, on `feat/visualizer-lab`. Traces are checked against independent answers, including an exhaustive spanning tree search. The visualizer now has 17 algorithms.
+
+**Disk:** 4.4 GB free at the last check, still above the 2 GB stop line.
+
 ## Next exact task
 
-Visualizer as a laboratory (roadmap 1.5): queues, hash tables and minimum spanning tree, with an explanation per step. Then library metadata (3.3), then the SQL playground (4.1).
+Library metadata (roadmap 3.3): tags, topics, body search and recently viewed, with filters only over real metadata. Then the SQL playground (4.1).

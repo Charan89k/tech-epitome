@@ -78,16 +78,22 @@ const TONE_FILL: Record<GraphNodeTone, string> = {
   visited: "var(--viz-done)",
 };
 
+export function edgeKey(a: string, b: string): string {
+  return [a, b].sort().join("-");
+}
+
 export function GraphView({
   adjacency,
   layout,
   tones,
   height,
+  highlightedEdges = [],
 }: {
   adjacency: Map<string, string[]>;
   layout: GraphLayout;
   tones: Record<string, GraphNodeTone>;
   height: number;
+  highlightedEdges?: string[];
 }) {
   const nodes = [...adjacency.keys()];
   const drawn = new Set<string>();
@@ -103,7 +109,7 @@ export function GraphView({
       {/* Edges first so nodes sit on top of them. */}
       {nodes.flatMap((node) =>
         (adjacency.get(node) ?? []).map((neighbour) => {
-          const key = [node, neighbour].sort().join("-");
+          const key = edgeKey(node, neighbour);
           if (drawn.has(key)) return null;
           drawn.add(key);
 
@@ -118,8 +124,10 @@ export function GraphView({
               y1={a.y}
               x2={b.x}
               y2={b.y}
-              stroke="var(--border)"
-              strokeWidth={0.7}
+              stroke={
+                highlightedEdges.includes(key) ? "var(--brand-500)" : "var(--border)"
+              }
+              strokeWidth={highlightedEdges.includes(key) ? 1.8 : 0.7}
             />
           );
         })
@@ -166,7 +174,10 @@ export function parseGraph(
   const [edgePart, startPart] = raw.split("/");
   const edges: [string, string][] = [];
 
-  for (const pair of (edgePart ?? "").trim().split(/[\s,]+/).filter(Boolean)) {
+  for (const pair of (edgePart ?? "")
+    .trim()
+    .split(/[\s,]+/)
+    .filter(Boolean)) {
     const [a, b] = pair.split("-");
     if (!a || !b) {
       return { ok: false, error: `"${pair}" is not an edge. Use the form A-B.` };

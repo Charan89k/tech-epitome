@@ -36,7 +36,7 @@ from the database on every request, so changing a URL grants nothing. See
 | Problem provenance and licensed import | Live | `npm run problems:import`; no licensed set has been imported |
 | Courses, chapters, quizzes, notes, highlights | Live | 3 seeded courses with 77 chapters, plus the authored courses below |
 | Course library: search, filters, sorting | Live | Subject, level, chapter difficulty, course length and your own progress, all in the URL. No filter by topic or tag, because courses do not have them |
-| Live Visualizer, guided algorithms | Live | 14 algorithms; every frame comes from running the algorithm |
+| Live Visualizer, guided algorithms | Live | 17 algorithms; every frame comes from running the algorithm |
 | Live Visualizer, your own code | Live | Python and JavaScript, traced in your browser |
 | Daily challenge and streak | Live | Solves are recorded only once Submit is configured |
 | Contests and standings | Partial | Admin-created, scored ICPC-style. No ratings or virtual contests. Needs Submit |
