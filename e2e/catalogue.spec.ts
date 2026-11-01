@@ -62,6 +62,25 @@ test("filters combine, are removable one at a time, and clear together", async (
   await expect(page.getByRole("link", { name: "Clear all" })).toHaveCount(0);
 });
 
+test("a signed-in learner sees the lesson they opened under Recently viewed", async ({
+  page,
+}) => {
+  await signUp(page, `recent-${unique()}@techepitome.test`);
+  await page.goto("/learn");
+  await expect(page.getByRole("heading", { name: "Recently viewed" })).toHaveCount(0);
+
+  // Opening is recorded by a server action once the page hydrates.
+  const recorded = page.waitForResponse(
+    (response) => response.request().method() === "POST" && response.ok()
+  );
+  await page.goto("/learn/dsa/dsa-foundations/complexity-analysis/big-o-notation");
+  await recorded;
+
+  await page.goto("/learn");
+  const recent = page.getByRole("region", { name: "Recently viewed" });
+  await expect(recent.getByRole("link", { name: "Big O Notation" })).toBeVisible();
+});
+
 test("search works with filters, and a chapter opens from the results", async ({
   page,
 }) => {

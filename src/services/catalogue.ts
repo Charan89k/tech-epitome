@@ -93,6 +93,37 @@ export const listSubjects = cache(async (): Promise<string[]> => {
   return rows.flatMap((row) => (row.category ? [row.category] : []));
 });
 
+/** Prose and example fields of a lesson. Keys such as `type` would match every search. */
+const BODY_PATHS = [
+  "$.**.value",
+  "$.**.text",
+  "$.**.code",
+  "$.**.title",
+  "$.**.caption",
+  "$.**.note",
+  "$.**.input",
+  "$.**.output",
+  "$.**.prompt",
+];
+const MAX_BODY_MATCHES = 500;
+
+/** Published chapters whose lesson body mentions the search. `Chapter.content` is never a draft. */
+async function chaptersMentioning(search: string): Promise<string[]> {
+  const pattern = `%${search.replace(/[\\%_]/g, "\\$&")}%`;
+  const rows = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT c.id
+    FROM chapters c
+    WHERE c.status = 'PUBLISHED'
+      AND EXISTS (
+        SELECT 1
+        FROM unnest(${BODY_PATHS}::text[]) AS path,
+             jsonb_path_query(c.content, path::jsonpath) AS node
+        WHERE jsonb_typeof(node) = 'string' AND node #>> '{}' ILIKE ${pattern}
+      )
+    LIMIT ${MAX_BODY_MATCHES}`;
+  return rows.map((row) => row.id);
+}
+
 /** The course-level filters, which narrow both lists the same way. */
 function courseFilters(query: LibraryQuery): Prisma.CourseWhereInput[] {
   return [
@@ -138,6 +169,7 @@ function statusOf(
 
 async function courseWhere(
   query: LibraryQuery,
+  bodyMatches: string[],
   userId?: string
 ): Promise<Prisma.CourseWhereInput> {
   const search = query.q;
@@ -180,6 +212,7 @@ async function courseWhere(
                           OR: [
                             { title: insensitive(search) },
                             { summary: insensitive(search) },
+                            { id: { in: bodyMatches } },
                           ],
                         },
                       },
@@ -197,7 +230,11 @@ async function courseWhere(
   };
 }
 
-function chapterWhere(query: LibraryQuery, userId?: string): Prisma.ChapterWhereInput {
+function chapterWhere(
+  query: LibraryQuery,
+  bodyMatches: string[],
+  userId?: string
+): Prisma.ChapterWhereInput {
   const search = query.q;
   const wanted = query.status;
   return {
@@ -211,7 +248,15 @@ function chapterWhere(query: LibraryQuery, userId?: string): Prisma.ChapterWhere
       },
       ...(query.difficulty.length ? [{ difficulty: { in: query.difficulty } }] : []),
       ...(search
-        ? [{ OR: [{ title: insensitive(search) }, { summary: insensitive(search) }] }]
+        ? [
+            {
+              OR: [
+                { title: insensitive(search) },
+                { summary: insensitive(search) },
+                { id: { in: bodyMatches } },
+              ],
+            },
+          ]
         : []),
       ...(userId && wanted.length
         ? [
@@ -443,9 +488,10 @@ export async function queryLibrary(
   query: LibraryQuery,
   userId?: string
 ): Promise<LibraryResult> {
+  const bodyMatches = query.q ? await chaptersMentioning(query.q) : [];
   const [coursesWhere, chaptersWhere] = [
-    await courseWhere(query, userId),
-    chapterWhere(query, userId),
+    await courseWhere(query, bodyMatches, userId),
+    chapterWhere(query, bodyMatches, userId),
   ];
   const courses = await prisma.course.count({ where: coursesWhere });
   const chapters = await prisma.chapter.count({ where: chaptersWhere });
@@ -480,4 +526,58 @@ export async function queryLibrary(
     totalPages,
     items: await courseItems(coursesWhere, query, userId, skip, take),
   };
+}
+
+export type RecentChapter = {
+  id: string;
+  title: string;
+  courseTitle: string;
+  href: string;
+  completed: boolean;
+};
+
+/** The lessons this learner opened last. Retired lessons drop out. */
+export async function listRecentChapters(
+  userId: string,
+  take = 5
+): Promise<RecentChapter[]> {
+  const rows = await prisma.userChapterProgress.findMany({
+    where: {
+      userId,
+      chapter: {
+        ...visibleChapter,
+        section: { status: "PUBLISHED", course: { status: "PUBLISHED" } },
+      },
+    },
+    orderBy: { updatedAt: "desc" },
+    take,
+    select: {
+      status: true,
+      chapter: {
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          section: {
+            select: {
+              slug: true,
+              course: { select: { slug: true, title: true, track: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+  return rows.map(({ status, chapter }) => ({
+    id: chapter.id,
+    title: chapter.title,
+    courseTitle: chapter.section.course.title,
+    href: chapterHref(
+      chapter.section.course.track,
+      chapter.section.course.slug,
+      chapter.section.slug,
+      chapter.slug
+    ),
+    completed: status === "COMPLETED",
+  }));
 }

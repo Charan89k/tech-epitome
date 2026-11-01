@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Search } from "lucide-react";
 
 import { PageHeader } from "@/components/common/page-header";
@@ -18,7 +19,8 @@ import {
   librarySearchParams,
   parseLibraryQuery,
 } from "@/lib/catalogue/filters";
-import { listSubjects } from "@/services/catalogue";
+import { route } from "@/lib/utils";
+import { listRecentChapters, listSubjects } from "@/services/catalogue";
 
 export const metadata: Metadata = {
   title: "Courses",
@@ -36,6 +38,8 @@ export default async function LibraryPage({ searchParams }: PageProps<"/learn">)
   const user = await getCurrentUser();
   const query = parseLibraryQuery(await searchParams, Boolean(user));
   const subjects = await listSubjects();
+  const browsing = !query.q && activeFilterCount(query) === 0 && query.page === 1;
+  const recent = user && browsing ? await listRecentChapters(user.id) : [];
 
   // Searching keeps the filters and sort; they travel as hidden fields.
   const kept = [...librarySearchParams({ ...query, q: "", page: 1 }).entries()];
@@ -71,6 +75,33 @@ export default async function LibraryPage({ searchParams }: PageProps<"/learn">)
           Search
         </Button>
       </form>
+
+      {recent.length > 0 && (
+        <section aria-labelledby="recent-heading" className="mt-6">
+          <h2 id="recent-heading" className="text-sm font-semibold">
+            Recently viewed
+          </h2>
+          <ul className="mt-2 divide-y divide-border border-y border-border">
+            {recent.map((chapter) => (
+              <li
+                key={chapter.id}
+                className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-2 text-sm"
+              >
+                <Link
+                  href={route(chapter.href)}
+                  className="font-medium text-info transition-colors hover:text-brand-300"
+                >
+                  {chapter.title}
+                </Link>
+                <span className="text-xs text-muted-foreground">
+                  {chapter.courseTitle}
+                  {chapter.completed ? " · Completed" : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="mt-6 gap-10 lg:grid lg:grid-cols-[13rem_minmax(0,1fr)]">
         <aside aria-label="Filters">

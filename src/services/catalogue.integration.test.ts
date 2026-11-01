@@ -5,7 +5,12 @@ vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 import { parseLibraryQuery } from "@/lib/catalogue/filters";
 import { prisma } from "@/lib/db";
 
-import { CHAPTERS_PER_PAGE, listSubjects, queryLibrary } from "./catalogue";
+import {
+  CHAPTERS_PER_PAGE,
+  listRecentChapters,
+  listSubjects,
+  queryLibrary,
+} from "./catalogue";
 
 const tag = `lib${Date.now()}x${Math.floor(Math.random() * 1e6)}`;
 const subject = `Subject ${tag}`;
@@ -128,6 +133,57 @@ beforeAll(async () => {
 afterAll(async () => {
   await prisma.course.deleteMany({ where: { slug: { startsWith: tag } } });
   await prisma.user.deleteMany({ where: { id: { in: [userId, otherId] } } });
+});
+
+describe("searching inside lessons", () => {
+  const body = (value: string) => [
+    { type: "paragraph", content: [{ type: "text", value }] },
+  ];
+  const results = (q: string) => titles({ view: "chapters", q });
+
+  beforeAll(async () => {
+    await prisma.chapter.update({
+      where: { id: ids[`Loops ${tag}`]! },
+      data: { content: body(`The zebrafish${tag} 100%_rule appears here.`) },
+    });
+    await prisma.chapter.update({
+      where: { id: ids[`Hidden ${tag}`]! },
+      data: { content: body(`The draftonly${tag} word.`) },
+    });
+  });
+
+  it("finds a phrase in a published lesson body", async () => {
+    expect(await results(`zebrafish${tag}`)).toEqual([`Loops ${tag}`]);
+  });
+
+  it("keeps a draft's body out of the results", async () => {
+    expect(await results(`draftonly${tag}`)).toEqual([]);
+  });
+
+  it("treats wildcards as text and ignores block structure", async () => {
+    expect(await results(`${tag} 100%_rule`)).toEqual([`Loops ${tag}`]);
+    expect(await results(`${tag} 100%%rule`)).toEqual([]);
+    const paragraphOnly = await results(`paragraph`);
+    expect(paragraphOnly).not.toContain(`Loops ${tag}`);
+  });
+});
+
+describe("recently viewed", () => {
+  it("lists only this learner's lessons, latest first, without drafts", async () => {
+    await prisma.userChapterProgress.update({
+      where: { userId_chapterId: { userId, chapterId: ids[`Joins ${tag}`]! } },
+      data: { updatedAt: new Date(Date.now() + 60_000) },
+    });
+
+    const recent = await listRecentChapters(userId);
+
+    expect(recent.map((chapter) => chapter.title)).toEqual([
+      `Joins ${tag}`,
+      `Variables ${tag}`,
+    ]);
+    expect(recent[0]!.completed).toBe(true);
+    await expect(listRecentChapters(otherId)).resolves.toEqual([]);
+  });
 });
 
 describe("the library", () => {
