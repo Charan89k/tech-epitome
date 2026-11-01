@@ -13,6 +13,7 @@ describe("surfaceForPath", () => {
     ["/system-design/chat", "workspace"],
     ["/lld/parking", "workspace"],
     ["/visualize", "lab"],
+    ["/sql", "lab"],
     ["/visualize/binary-search", "lab"],
     ["/campus/x/placement", "campus"],
     ["/interviews", "campus"],

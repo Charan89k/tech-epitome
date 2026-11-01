@@ -10,6 +10,7 @@ import {
   ChartColumn,
   ClipboardList,
   Compass,
+  Database,
   FileText,
   GraduationCap,
   Highlighter,
@@ -112,6 +113,12 @@ export const primaryNav: NavGroup[] = [
         icon: PlayCircle,
         feature: FEATURES.VISUALIZE,
         description: "Step through algorithms frame by frame, or your own code",
+      },
+      {
+        title: "SQL Playground",
+        href: "/sql",
+        icon: Database,
+        description: "Real PostgreSQL in your browser, with exercises",
       },
     ],
   },
@@ -240,6 +247,7 @@ const WORKSPACE_PATHS = /^\/(problems|system-design|lld)\/[^/]+/;
 export function surfaceForPath(pathname: string): Surface {
   if (productForPath(pathname) === "campus") return "campus";
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return "admin";
+  if (pathname === "/sql") return "lab";
   if (pathname === "/visualize" || pathname.startsWith("/visualize/")) return "lab";
   return WORKSPACE_PATHS.test(pathname) ? "workspace" : "learn";
 }
