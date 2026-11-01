@@ -4,8 +4,8 @@ The durable log for the build mission. A new session reads this first, then cont
 
 ## Current position
 
-- **Branch:** `feat/foundation-stabilize`, stacked on `feat/learn-library` (PR #5). Each later slice stacks on the last until the PRs are merged.
-- **Phase:** 1 (shell and design), moving into 2 (account privacy).
+- **Branch:** `feat/campus-shell`, stacked on `feat/foundation-stabilize` (PR #6). Each later slice stacks on the last until the PRs are merged.
+- **Phase:** 1 (shell and design).
 - **Next exact task:** see the bottom of this file.
 
 ## Working rules
@@ -42,8 +42,14 @@ Merging PRs #3, #4, #5. Any deployment or production change. Publishing courses.
 
 **Core Algorithms course.** 9 lessons, 9 knowledge checks, 33 Python examples run by the test suite. Authored locally through the CMS with a second admin as reviewer. Course tests 140 passed. **Not in production.** No person has reviewed the teaching yet.
 
-**Known, not fixed:** `authored-courses.spec` failed once earlier, with cause unknown. It has passed every run since, including 3 more in this session.
+**`54ca938` feat(dashboard).** Year calendar from `StudyDay` in UTC days, per-course progress, daily challenge, open contests. Vitest 1,922 passed, 35 skipped. Browser specs touching the dashboard pass on both projects with no retries. No sideways overflow on desktop or mobile.
+
+**`88650e9` test(e2e).** The full suite at `02f9576` gave 338 passed, 24 skipped, 2 failed: the catalogue spec assumed one course per subject, which Core Algorithms broke. It now checks a course from another subject is excluded.
+
+**PR #6.** `feat/foundation-stabilize` pushed, opened against `feat/learn-library`. Not merged. Check its CI at the start of the next session.
+
+**Known, not fixed:** `authored-courses.spec` failed once earlier, with cause unknown. It has passed every run since. The full browser suite and production build have not been re-run at `54ca938`.
 
 ## Next exact task
 
-Learn dashboard and information architecture (roadmap 1.2): real data only, daily challenge, upcoming contests, activity calendar from `StudyDay`, per-course progress. Then the Campus shell (1.3), then the coding workspace (1.4).
+Campus shell (roadmap 1.3): role navigation and dashboards, with distinct student, faculty, officer and admin views. Then the coding workspace (1.4).

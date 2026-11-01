@@ -29,6 +29,7 @@ from the database on every request, so changing a URL grants nothing. See
 
 | Feature | Status | Notes |
 | --- | --- | --- |
+| Dashboard: year calendar, your courses, daily challenge, open contests | Live | Calendar days are UTC. Solves appear only once Submit is configured |
 | Problem library, filters, search | Live | 150 original problems, in Python, JavaScript, Java and C++ |
 | Run and Submit | Needs configuration | Requires an isolated worker; see [EXECUTION.md](EXECUTION.md) |
 | Submission history, hints, solutions | Live | Solutions are original |
