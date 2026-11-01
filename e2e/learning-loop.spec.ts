@@ -301,6 +301,21 @@ test("the visualization player steps through real algorithm frames", async ({
   await expect(page.getByText("lo = 0, hi = n - 1")).toBeVisible();
 });
 
+for (const [key, firstStep] of [
+  ["circular-queue", "Put 4 in slot 0"],
+  ["hash-table", "15 mod 7 is 1"],
+  ["kruskal", "Are A and C already in one group?"],
+] as const) {
+  test(`the ${key} visualization explains its first step`, async ({ page }) => {
+    await page.goto(`/visualize/${key}`);
+    await page
+      .getByRole("button", { name: /next|step forward/i })
+      .first()
+      .click();
+    await expect(page.getByText(firstStep)).toBeVisible();
+  });
+}
+
 test("stepping the write-pointer visualization compacts the array on screen", async ({
   page,
 }) => {
