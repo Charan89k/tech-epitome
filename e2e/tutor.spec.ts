@@ -262,9 +262,9 @@ test("code-aware tutor: the failing run reaches the tutor", async ({ page }) => 
 
   await page.getByRole("button", { name: "Run", exact: true }).click();
   await showPane(page, "Results");
-  await expect(page.getByText(/passed|failed|error/i).first()).toBeVisible({
-    timeout: 120_000,
-  });
+  // The run's own summary, not any text on the page that happens to say
+  // "error": the tutor only receives a run that has finished.
+  await expect(page.getByText(/^\d+\/\d+ tests$/)).toBeVisible({ timeout: 120_000 });
 
   await openTutor(page);
   await page.getByRole("button", { name: "Why is my solution wrong?" }).first().click();
