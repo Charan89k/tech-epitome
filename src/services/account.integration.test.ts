@@ -146,7 +146,10 @@ describe("deleting an account", () => {
   it("confirms a passwordless account by its email", async () => {
     const provider = await newUser({ passwordless: true });
     expect(
-      await deleteAccount(provider.id, { phrase: DELETE_PHRASE, email: "not@mine.test" })
+      await deleteAccount(provider.id, {
+        phrase: DELETE_PHRASE,
+        email: "not@mine.test",
+      })
     ).toEqual({ ok: false, reason: "credentials" });
     expect(
       await deleteAccount(provider.id, {
@@ -183,8 +186,8 @@ describe("deleting an account", () => {
     expect(
       await deleteAccount(user.id, { phrase: DELETE_PHRASE, password: PASSWORD })
     ).toEqual({ ok: false, reason: "blocked" });
-    expect(await prisma.institutionMembership.count({ where: { userId: user.id } })).toBe(
-      1
-    );
+    expect(
+      await prisma.institutionMembership.count({ where: { userId: user.id } })
+    ).toBe(1);
   });
 });

@@ -45,9 +45,9 @@ async function signUp(page: Page, tag: string): Promise<string> {
 async function earnAReview(page: Page): Promise<void> {
   await page.goto(CHAPTER_URL);
   await page.getByRole("button", { name: "Mark chapter complete" }).click();
-  await expect(
-    page.getByRole("button", { name: "Mark as not complete" })
-  ).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "Mark as not complete" })).toBeVisible({
+    timeout: 30_000,
+  });
 }
 
 async function callCron(

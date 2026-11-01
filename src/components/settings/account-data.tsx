@@ -54,8 +54,8 @@ export function AccountData({
       <div className="border-t border-border pt-5">
         <h3 className="text-sm font-medium">Delete your account</h3>
         <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-          This permanently removes your account and everything above. It cannot be undone,
-          so download your data first if you want a copy.
+          This permanently removes your account and everything above. It cannot be
+          undone, so download your data first if you want a copy.
         </p>
 
         {blockers.length > 0 ? (
@@ -93,7 +93,9 @@ export function AccountData({
               </div>
             )}
             <div className="space-y-1.5">
-              <Label htmlFor="delete-phrase">Type &quot;{phrase}&quot; to confirm</Label>
+              <Label htmlFor="delete-phrase">
+                Type &quot;{phrase}&quot; to confirm
+              </Label>
               <Input id="delete-phrase" name="phrase" autoComplete="off" required />
             </div>
             <Button type="submit" variant="destructive" size="sm" disabled={pending}>

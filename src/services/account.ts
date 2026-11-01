@@ -32,7 +32,8 @@ const OWN_ROWS = {
   StudyDay: (args: FindArgs) => prisma.studyDay.findMany(args),
   UserAchievement: (args: FindArgs) => prisma.userAchievement.findMany(args),
   AIUsageRecord: (args: FindArgs) => prisma.aIUsageRecord.findMany(args),
-  SystemDesignSubmission: (args: FindArgs) => prisma.systemDesignSubmission.findMany(args),
+  SystemDesignSubmission: (args: FindArgs) =>
+    prisma.systemDesignSubmission.findMany(args),
   LLDSubmission: (args: FindArgs) => prisma.lLDSubmission.findMany(args),
   BehavioralStory: (args: FindArgs) => prisma.behavioralStory.findMany(args),
   Notification: (args: FindArgs) => prisma.notification.findMany(args),
@@ -40,7 +41,8 @@ const OWN_ROWS = {
   ContestEntry: (args: FindArgs) => prisma.contestEntry.findMany(args),
   AptitudeAttempt: (args: FindArgs) => prisma.aptitudeAttempt.findMany(args),
   ShareLink: (args: FindArgs) => prisma.shareLink.findMany(args),
-  InstitutionMembership: (args: FindArgs) => prisma.institutionMembership.findMany(args),
+  InstitutionMembership: (args: FindArgs) =>
+    prisma.institutionMembership.findMany(args),
   CohortMember: (args: FindArgs) => prisma.cohortMember.findMany(args),
   PlacementRecord: (args: FindArgs) => prisma.placementRecord.findMany(args),
   PlacementApplication: (args: FindArgs) => prisma.placementApplication.findMany(args),
@@ -65,7 +67,8 @@ const EXPORT_ROW_LIMIT = 50_000;
 /** Drops credential-like fields at any depth: a second line behind the selects. */
 function withoutSecrets(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(withoutSecrets);
-  if (value instanceof Date || value === null || typeof value !== "object") return value;
+  if (value instanceof Date || value === null || typeof value !== "object")
+    return value;
   return Object.fromEntries(
     Object.entries(value)
       .filter(([key]) => !SECRET_KEY.test(key))
@@ -73,7 +76,9 @@ function withoutSecrets(value: unknown): unknown {
   );
 }
 
-export async function exportAccountData(userId: string): Promise<Record<string, unknown>> {
+export async function exportAccountData(
+  userId: string
+): Promise<Record<string, unknown>> {
   const account = await prisma.user.findUniqueOrThrow({
     where: { id: userId },
     select: {
@@ -134,7 +139,9 @@ export async function exportAccountData(userId: string): Promise<Record<string, 
 export type DeletionBlocker = "platform-admin" | "college-records" | "authored-content";
 
 /** Why this account cannot delete itself, if anything. */
-export async function accountDeletionBlockers(userId: string): Promise<DeletionBlocker[]> {
+export async function accountDeletionBlockers(
+  userId: string
+): Promise<DeletionBlocker[]> {
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: userId },
     select: { role: true },
@@ -161,8 +168,7 @@ export async function accountDeletionBlockers(userId: string): Promise<DeletionB
 export const DELETE_PHRASE = "delete my account";
 
 export type DeleteResult =
-  | { ok: true }
-  | { ok: false; reason: "phrase" | "credentials" | "blocked" };
+  { ok: true } | { ok: false; reason: "phrase" | "credentials" | "blocked" };
 
 /**
  * Permanently deletes the account after re-checking who is asking. An account

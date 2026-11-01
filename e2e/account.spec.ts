@@ -29,9 +29,9 @@ test("a learner downloads their data, then deletes their account", async ({ page
   await page.getByLabel("Your password").fill("not my password");
   await page.getByLabel(/Type "delete my account"/).fill("delete my account");
   await page.getByRole("button", { name: "Delete my account permanently" }).click();
-  await expect(page.getByRole("alert").filter({ hasText: "does not match" })).toBeVisible(
-    { timeout: 30_000 }
-  );
+  await expect(
+    page.getByRole("alert").filter({ hasText: "does not match" })
+  ).toBeVisible({ timeout: 30_000 });
 
   await page.getByLabel("Your password").fill(PASSWORD);
   await page.getByLabel(/Type "delete my account"/).fill("delete my account");

@@ -117,7 +117,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             {/* First tab stop on every page. */}
             <a
               href="#main"
-              className="bg-background focus:ring-ring sr-only rounded-md px-4 py-2 text-sm font-medium focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:ring-2"
+              className="sr-only rounded-md bg-background px-4 py-2 text-sm font-medium focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:ring-2 focus:ring-ring"
             >
               Skip to content
             </a>
