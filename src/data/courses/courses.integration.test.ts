@@ -29,15 +29,18 @@ const allLessons = AUTHORED_COURSES.flatMap((course) =>
   lessons(course).map((lesson) => ({ course, lesson }))
 );
 
-describe.each(AUTHORED_COURSES.map((c) => [c.slug, c] as const))("%s", (_slug, course) => {
-  it("has a complete description", () => {
-    expect(course.outcomes.length).toBeGreaterThanOrEqual(3);
-    expect(course.prerequisites.length).toBeGreaterThan(0);
-    expect(courseHours(course)).toBeGreaterThan(0);
-    const slugs = lessons(course).map((l) => l.slug);
-    expect(new Set(slugs).size).toBe(slugs.length);
-  });
-});
+describe.each(AUTHORED_COURSES.map((c) => [c.slug, c] as const))(
+  "%s",
+  (_slug, course) => {
+    it("has a complete description", () => {
+      expect(course.outcomes.length).toBeGreaterThanOrEqual(3);
+      expect(course.prerequisites.length).toBeGreaterThan(0);
+      expect(courseHours(course)).toBeGreaterThan(0);
+      const slugs = lessons(course).map((l) => l.slug);
+      expect(new Set(slugs).size).toBe(slugs.length);
+    });
+  }
+);
 
 describe.each(
   allLessons.map(
@@ -89,21 +92,20 @@ it("does not give answers away by always putting them in one place", () => {
 describe("the examples are true", () => {
   const PY_WITH_OUTPUT = /```python\n([\s\S]*?)\n```(?:\n\n```text\n([\s\S]*?)\n```)?/g;
 
-  it.each(allLessons.map(({ course, lesson }) => [lesson.slug, course, lesson] as const))(
-    "%s: Python prints what the lesson says",
-    (_name, course, lesson) => {
-      for (const [, code, expected] of lessonMarkdown(course, lesson).matchAll(
-        PY_WITH_OUTPUT
-      )) {
-        const stdout = execFileSync("python3", ["-I", "-c", code!], {
-          encoding: "utf8",
-          timeout: 20_000,
-        });
-        expect(expected, `no output shown for:\n${code}`).toBeDefined();
-        expect(stdout.trim(), code).toBe(expected!.trim());
-      }
+  it.each(
+    allLessons.map(({ course, lesson }) => [lesson.slug, course, lesson] as const)
+  )("%s: Python prints what the lesson says", (_name, course, lesson) => {
+    for (const [, code, expected] of lessonMarkdown(course, lesson).matchAll(
+      PY_WITH_OUTPUT
+    )) {
+      const stdout = execFileSync("python3", ["-I", "-c", code!], {
+        encoding: "utf8",
+        timeout: 20_000,
+      });
+      expect(expected, `no output shown for:\n${code}`).toBeDefined();
+      expect(stdout.trim(), code).toBe(expected!.trim());
     }
-  );
+  });
 
   /** A ```sql fence, and the results table that follows it if there is one. */
   const SQL_WITH_RESULT = /```sql\n([\s\S]*?)\n```(?:\n\n((?:\|.*\n)+))?/g;

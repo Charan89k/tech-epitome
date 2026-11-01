@@ -63,7 +63,9 @@ function FilterGroup({
                   aria-hidden="true"
                   className={cn(
                     "grid size-4 shrink-0 place-items-center rounded-[3px] border",
-                    on ? "border-primary bg-primary text-primary-foreground" : "border-input"
+                    on
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-input"
                   )}
                 >
                   {on && <Check className="size-3" strokeWidth={3} />}
@@ -92,13 +94,20 @@ export function FilterPanel({
     value,
     label: value,
   }));
-  const labelled = <T extends string>(values: readonly T[], labels: Record<T, string>) =>
-    values.map((value) => ({ value, label: labels[value] }));
+  const labelled = <T extends string>(
+    values: readonly T[],
+    labels: Record<T, string>
+  ) => values.map((value) => ({ value, label: labels[value] }));
 
   return (
     <div className="space-y-6">
       {subjectOptions.length > 0 && (
-        <FilterGroup title="Subject" query={query} filter="subject" options={subjectOptions} />
+        <FilterGroup
+          title="Subject"
+          query={query}
+          filter="subject"
+          options={subjectOptions}
+        />
       )}
       <FilterGroup
         title="Level"
@@ -127,7 +136,10 @@ export function FilterPanel({
         />
       ) : (
         <p className="text-xs leading-relaxed text-muted-foreground">
-          <Link href="/login" className="underline underline-offset-4 hover:text-foreground">
+          <Link
+            href="/login"
+            className="underline underline-offset-4 hover:text-foreground"
+          >
             Sign in
           </Link>{" "}
           to filter by your progress.

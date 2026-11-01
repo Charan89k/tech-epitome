@@ -323,11 +323,7 @@ export const PROGRAMMING_FOUNDATIONS: CourseSource = {
             choice(
               "Why can a function with no return be a problem when used in further code?",
               "It gives back None, so there is no result to use",
-              [
-                "Python refuses to run it",
-                "It deletes its arguments",
-                "It runs twice",
-              ],
+              ["Python refuses to run it", "It deletes its arguments", "It runs twice"],
               "A function that only prints shows a person the answer but gives the program nothing."
             ),
             choice(
@@ -362,11 +358,7 @@ export const PROGRAMMING_FOUNDATIONS: CourseSource = {
             choice(
               "When a traceback appears, where is the best place to start reading?",
               "The last line, which names the error",
-              [
-                "The first line",
-                "The middle",
-                "Skip it and re-run the program",
-              ],
+              ["The first line", "The middle", "Skip it and re-run the program"],
               "The bottom says what went wrong, and the lines above show how the program got there."
             ),
             choice(

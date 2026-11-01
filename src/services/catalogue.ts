@@ -4,7 +4,11 @@ import { cache } from "react";
 
 import type { Prisma } from "@/generated/prisma/client";
 import type { CourseLevel, Difficulty, Track } from "@/generated/prisma/enums";
-import type { LibraryLength, LibraryQuery, LibraryStatus } from "@/lib/catalogue/filters";
+import type {
+  LibraryLength,
+  LibraryQuery,
+  LibraryStatus,
+} from "@/lib/catalogue/filters";
 import { prisma } from "@/lib/db";
 import { chapterHref, courseHref } from "@/lib/tracks";
 
@@ -61,7 +65,9 @@ const visibleChapter = {
 const visibleCourse = {
   status: "PUBLISHED",
   // A course whose chapters were all retired has nothing to open.
-  sections: { some: { status: "PUBLISHED", chapters: { some: { status: "PUBLISHED" } } } },
+  sections: {
+    some: { status: "PUBLISHED", chapters: { some: { status: "PUBLISHED" } } },
+  },
 } satisfies Prisma.CourseWhereInput;
 
 const insensitive = (search: string) => ({
@@ -319,9 +325,17 @@ async function courseItems(
               select: courseSelect,
             })
         )
-      : await prisma.course.findMany({ where, orderBy, skip, take, select: courseSelect });
+      : await prisma.course.findMany({
+          where,
+          orderBy,
+          skip,
+          take,
+          select: courseSelect,
+        });
 
-  const chapterIds = rows.flatMap((c) => c.sections.flatMap((s) => s.chapters.map((x) => x.id)));
+  const chapterIds = rows.flatMap((c) =>
+    c.sections.flatMap((s) => s.chapters.map((x) => x.id))
+  );
   const progress = userId
     ? await prisma.userChapterProgress.findMany({
         where: {
@@ -337,7 +351,9 @@ async function courseItems(
   return rows.map((course) => {
     const ids = course.sections.flatMap((s) => s.chapters.map((c) => c.id));
     const started = ids.filter((id) => statusByChapter.has(id)).length;
-    const completed = ids.filter((id) => statusByChapter.get(id) === "COMPLETED").length;
+    const completed = ids.filter(
+      (id) => statusByChapter.get(id) === "COMPLETED"
+    ).length;
     return {
       id: course.id,
       title: course.title,
@@ -419,8 +435,7 @@ async function chapterItems(
     ),
     status:
       ((row as { progress?: { status: LibraryStatus }[] }).progress?.[0]?.status as
-        | LibraryStatus
-        | undefined) ?? "NOT_STARTED",
+        LibraryStatus | undefined) ?? "NOT_STARTED",
   }));
 }
 

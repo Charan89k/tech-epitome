@@ -102,7 +102,9 @@ const STATUS_TEXT: Record<LibraryStatus, string> = {
 
 function StatusIcon({ status }: { status: LibraryStatus }) {
   if (status === "COMPLETED")
-    return <CheckCircle2 aria-hidden="true" className="size-3.5 shrink-0 text-success" />;
+    return (
+      <CheckCircle2 aria-hidden="true" className="size-3.5 shrink-0 text-success" />
+    );
   if (status === "IN_PROGRESS")
     return <CircleDot aria-hidden="true" className="size-3.5 shrink-0 text-primary" />;
   return null;
@@ -159,7 +161,9 @@ function CourseRow({ course }: { course: LibraryCourse }) {
             {LEVEL_LABELS[course.level]}
           </span>
           <span aria-hidden="true">·</span>
-          <span className="tabular-nums">{plural(course.totalChapters, "chapter")}</span>
+          <span className="tabular-nums">
+            {plural(course.totalChapters, "chapter")}
+          </span>
           {course.estimatedHours > 0 && (
             <>
               <span aria-hidden="true">·</span>
@@ -185,7 +189,10 @@ function CourseRow({ course }: { course: LibraryCourse }) {
               aria-valuenow={percent}
               className="mt-2 block h-1 overflow-hidden rounded-full bg-muted"
             >
-              <span className="block h-full bg-primary" style={{ width: `${percent}%` }} />
+              <span
+                className="block h-full bg-primary"
+                style={{ width: `${percent}%` }}
+              />
             </span>
             <p className="mt-1.5 font-mono text-[11px] text-subtle-foreground tabular-nums">
               {course.completedChapters} of {course.totalChapters}
@@ -278,14 +285,19 @@ export async function LibraryResults({
       ) : (
         <section aria-label={`Matching ${noun}s`}>
           <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 py-2">
-            <p className="text-sm text-muted-foreground tabular-nums" aria-live="polite">
+            <p
+              className="text-sm text-muted-foreground tabular-nums"
+              aria-live="polite"
+            >
               {plural(result.total, noun)}
             </p>
             <SortLinks query={query} />
           </div>
           <ul className="divide-y divide-border border-y border-border">
             {result.view === "courses"
-              ? result.items.map((course) => <CourseRow key={course.id} course={course} />)
+              ? result.items.map((course) => (
+                  <CourseRow key={course.id} course={course} />
+                ))
               : result.items.map((chapter) => (
                   <ChapterRow key={chapter.id} chapter={chapter} />
                 ))}

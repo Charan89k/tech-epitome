@@ -559,7 +559,12 @@ export const chapterQuizSchema = z
           prompt: z.string().trim().min(5).max(2000),
           code: z.string().max(4000).optional(),
           options: z
-            .array(z.object({ id: z.string().min(1).max(8), text: z.string().min(1).max(500) }))
+            .array(
+              z.object({
+                id: z.string().min(1).max(8),
+                text: z.string().min(1).max(500),
+              })
+            )
             .min(2)
             .max(6),
           answer: z.string().min(1).max(8),

@@ -55,7 +55,10 @@ async function authorLesson(
     (await createChapter(admin, sectionId, { title: lesson.title, slug: lesson.slug }));
 
   const slug = quizSlug(course, lesson);
-  const quiz = await prisma.quiz.findUnique({ where: { slug }, select: { status: true } });
+  const quiz = await prisma.quiz.findUnique({
+    where: { slug },
+    select: { status: true },
+  });
   if (quiz?.status !== "PUBLISHED") {
     await saveChapterQuiz(admin, chapterId, {
       slug,

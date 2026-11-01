@@ -60,7 +60,11 @@ export const DATABASE_FOUNDATIONS: CourseSource = {
             choice(
               "In a table of books, what is one row?",
               "One book",
-              ["One fact about all books", "The design of the table", "One type of data"],
+              [
+                "One fact about all books",
+                "The design of the table",
+                "One type of data",
+              ],
               "A table holds one kind of thing, a row is one of those things, and a column is one fact about it."
             ),
           ],

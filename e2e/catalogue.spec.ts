@@ -14,7 +14,10 @@ const filter = (page: Page, name: string) =>
 /** On a phone the filters fold away; opening them is part of using them. */
 async function openFilters(page: Page) {
   const toggle = page.getByRole("button", { name: /^Filters/ });
-  if ((await toggle.isVisible()) && (await toggle.getAttribute("aria-expanded")) === "false") {
+  if (
+    (await toggle.isVisible()) &&
+    (await toggle.getAttribute("aria-expanded")) === "false"
+  ) {
     await toggle.click();
   }
 }
@@ -24,7 +27,9 @@ async function choose(page: Page, name: string) {
   await filter(page, name).click();
 }
 
-test("filters combine, are removable one at a time, and clear together", async ({ page }) => {
+test("filters combine, are removable one at a time, and clear together", async ({
+  page,
+}) => {
   await page.goto("/learn");
   await expect(page.getByRole("heading", { name: "Courses", level: 1 })).toBeVisible();
   const results = page.getByRole("region", { name: "Matching courses" });
@@ -57,7 +62,9 @@ test("filters combine, are removable one at a time, and clear together", async (
   await expect(page.getByRole("link", { name: "Clear all" })).toHaveCount(0);
 });
 
-test("search works with filters, and a chapter opens from the results", async ({ page }) => {
+test("search works with filters, and a chapter opens from the results", async ({
+  page,
+}) => {
   await page.goto("/learn?subject=Data+Structures+%26+Algorithms");
   await page.getByLabel("Search courses and chapters").fill("binary");
   await page.getByRole("search").getByRole("button", { name: "Search" }).click();

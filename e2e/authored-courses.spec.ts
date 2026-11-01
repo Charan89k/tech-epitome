@@ -20,7 +20,14 @@ test.afterAll(async () => {
 const author = (email: string, ...flags: string[]) =>
   execFileSync(
     "npx",
-    ["tsx", "--conditions=react-server", "scripts/author-courses.ts", "--admin", email, ...flags],
+    [
+      "tsx",
+      "--conditions=react-server",
+      "scripts/author-courses.ts",
+      "--admin",
+      email,
+      ...flags,
+    ],
     { encoding: "utf8", stdio: "pipe" }
   );
 
@@ -29,7 +36,10 @@ test("a learner finds an authored course, works a lesson and keeps their progres
   page,
   isMobile,
 }) => {
-  test.skip(isMobile, "One full journey is enough; the library's phone layout has its own test.");
+  test.skip(
+    isMobile,
+    "One full journey is enough; the library's phone layout has its own test."
+  );
   test.setTimeout(240_000);
 
   // Someone who is not a platform admin cannot author anything.
@@ -70,7 +80,9 @@ test("a learner finds an authored course, works a lesson and keeps their progres
   // Open the first lesson, and answer its knowledge check.
   const lesson = DATABASE_FOUNDATIONS.sections[0]!.lessons[0]!;
   await page.getByRole("link", { name: lesson.title }).first().click();
-  await expect(page.getByRole("heading", { name: lesson.title, level: 1 })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: lesson.title, level: 1 })
+  ).toBeVisible();
   const lessonUrl = page.url();
 
   for (const question of lesson.questions) {
@@ -89,7 +101,9 @@ test("a learner finds an authored course, works a lesson and keeps their progres
   // On to the next lesson, in reading order.
   const nextLesson = DATABASE_FOUNDATIONS.sections[0]!.lessons[1]!;
   await page.getByRole("link", { name: `Continue: ${nextLesson.title}` }).click();
-  await expect(page.getByRole("heading", { name: nextLesson.title, level: 1 })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: nextLesson.title, level: 1 })
+  ).toBeVisible();
 
   // The library now reports it, and the state survives a reload.
   await page.goto("/learn?status=IN_PROGRESS&subject=Databases");
@@ -101,7 +115,9 @@ test("a learner finds an authored course, works a lesson and keeps their progres
   await expect(row.getByText("1 of 9")).toBeVisible();
 
   await page.goto(lessonUrl);
-  await expect(page.getByRole("button", { name: "Mark as not complete" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Mark as not complete" })
+  ).toBeVisible();
 
   await page.goto("/learn?status=COMPLETED&subject=Databases");
   await expect(page.getByText("No courses match")).toBeVisible();

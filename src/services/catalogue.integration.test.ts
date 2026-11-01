@@ -15,10 +15,7 @@ const ids: Record<string, string> = {};
 
 type Params = Parameters<typeof parseLibraryQuery>[0];
 const run = (params: Params, user?: string) =>
-  queryLibrary(
-    parseLibraryQuery({ subject, ...params }, Boolean(user)),
-    user
-  );
+  queryLibrary(parseLibraryQuery({ subject, ...params }, Boolean(user)), user);
 const titles = async (params: Params, user?: string) => {
   const result = await run(params, user);
   return result.items.map((i) => i.title);
@@ -31,7 +28,11 @@ async function course(
     estimatedHours?: number;
     status?: "PUBLISHED" | "DRAFT";
     description?: string;
-    chapters: { title: string; difficulty?: "EASY" | "MEDIUM" | "HARD"; draft?: boolean }[];
+    chapters: {
+      title: string;
+      difficulty?: "EASY" | "MEDIUM" | "HARD";
+      draft?: boolean;
+    }[];
   }
 ) {
   const row = await prisma.course.create({
@@ -62,7 +63,10 @@ async function course(
         },
       },
     },
-    select: { id: true, sections: { select: { chapters: { select: { id: true, title: true } } } } },
+    select: {
+      id: true,
+      sections: { select: { chapters: { select: { id: true, title: true } } } },
+    },
   });
   ids[key] = row.id;
   for (const chapter of row.sections[0]!.chapters) ids[chapter.title] = chapter.id;
@@ -70,15 +74,24 @@ async function course(
 
 beforeAll(async () => {
   const [u, o] = await Promise.all([
-    prisma.user.create({ data: { email: `${tag}-a@techepitome.test` }, select: { id: true } }),
-    prisma.user.create({ data: { email: `${tag}-b@techepitome.test` }, select: { id: true } }),
+    prisma.user.create({
+      data: { email: `${tag}-a@techepitome.test` },
+      select: { id: true },
+    }),
+    prisma.user.create({
+      data: { email: `${tag}-b@techepitome.test` },
+      select: { id: true },
+    }),
   ]);
   userId = u.id;
   otherId = o.id;
 
   await course("Alpha", {
     estimatedHours: 2,
-    chapters: [{ title: `Variables ${tag}` }, { title: `Loops ${tag}`, difficulty: "HARD" }],
+    chapters: [
+      { title: `Variables ${tag}` },
+      { title: `Loops ${tag}`, difficulty: "HARD" },
+    ],
   });
   await course("Bravo", {
     level: "INTERMEDIATE",
@@ -89,7 +102,10 @@ beforeAll(async () => {
   await course("Charlie", {
     level: "ADVANCED",
     estimatedHours: 20,
-    chapters: [{ title: `Indexes ${tag}`, difficulty: "HARD" }, { title: `Hidden ${tag}`, draft: true }],
+    chapters: [
+      { title: `Indexes ${tag}`, difficulty: "HARD" },
+      { title: `Hidden ${tag}`, draft: true },
+    ],
   });
   await course("Secret", {
     status: "DRAFT",
@@ -98,7 +114,12 @@ beforeAll(async () => {
 
   await prisma.userChapterProgress.createMany({
     data: [
-      { userId, chapterId: ids[`Variables ${tag}`]!, status: "COMPLETED", percent: 100 },
+      {
+        userId,
+        chapterId: ids[`Variables ${tag}`]!,
+        status: "COMPLETED",
+        percent: 100,
+      },
       { userId, chapterId: ids[`Joins ${tag}`]!, status: "COMPLETED", percent: 100 },
     ],
   });
@@ -111,7 +132,11 @@ afterAll(async () => {
 
 describe("the library", () => {
   it("never shows a draft course or chapter", async () => {
-    expect(await titles({})).toEqual(["Alpha course", "Bravo course", "Charlie course"]);
+    expect(await titles({})).toEqual([
+      "Alpha course",
+      "Bravo course",
+      "Charlie course",
+    ]);
     const chapters = await titles({ view: "chapters" });
     expect(chapters).not.toContain(`Hidden ${tag}`);
     expect(chapters).not.toContain(`Draft course lesson ${tag}`);
@@ -145,9 +170,9 @@ describe("the library", () => {
       "Alpha course",
       "Charlie course",
     ]);
-    expect(await titles({ level: ["BEGINNER", "ADVANCED"], difficulty: "EASY" })).toEqual([
-      "Alpha course",
-    ]);
+    expect(
+      await titles({ level: ["BEGINNER", "ADVANCED"], difficulty: "EASY" })
+    ).toEqual(["Alpha course"]);
     expect(await titles({ level: "BEGINNER", length: "long" })).toEqual([]);
   });
 
@@ -238,7 +263,9 @@ describe("the library", () => {
     const all = { subject: undefined, view: "chapters", difficulty: "EASY" };
     const first = await run(all);
     expect(first.items.length).toBeLessThanOrEqual(CHAPTERS_PER_PAGE);
-    expect(first.items.every((c) => "difficulty" in c && c.difficulty === "EASY")).toBe(true);
+    expect(first.items.every((c) => "difficulty" in c && c.difficulty === "EASY")).toBe(
+      true
+    );
     if (first.totalPages > 1) {
       const second = await run({ ...all, page: "2" });
       const seen = new Set(first.items.map((i) => i.id));

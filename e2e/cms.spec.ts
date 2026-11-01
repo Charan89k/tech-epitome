@@ -34,7 +34,9 @@ test("no college role reaches the course editor", async ({ page }) => {
     ]);
     await page.goto("/admin/courses");
     await expect(page.getByText("You do not have access to this"), role).toBeVisible();
-    await expect(page.getByRole("button", { name: "Create course" }), role).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Create course" }), role).toHaveCount(
+      0
+    );
   }
 });
 

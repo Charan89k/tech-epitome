@@ -7,8 +7,16 @@ import type { CourseLevel, Difficulty } from "@/generated/prisma/enums";
  * reported, so a stale or edited link still shows a sensible page.
  */
 
-export const LEVELS = ["BEGINNER", "INTERMEDIATE", "ADVANCED"] as const satisfies readonly CourseLevel[];
-export const DIFFICULTIES = ["EASY", "MEDIUM", "HARD"] as const satisfies readonly Difficulty[];
+export const LEVELS = [
+  "BEGINNER",
+  "INTERMEDIATE",
+  "ADVANCED",
+] as const satisfies readonly CourseLevel[];
+export const DIFFICULTIES = [
+  "EASY",
+  "MEDIUM",
+  "HARD",
+] as const satisfies readonly Difficulty[];
 export const LENGTHS = ["short", "medium", "long"] as const;
 export const STATUSES = ["NOT_STARTED", "IN_PROGRESS", "COMPLETED"] as const;
 export const SORTS = ["best", "updated", "title", "shortest", "easiest"] as const;
@@ -70,7 +78,10 @@ type RawParams = Record<string, string | string[] | undefined>;
 const all = (value: string | string[] | undefined) =>
   value === undefined ? [] : Array.isArray(value) ? value : [value];
 
-function allowed<T extends string>(value: string | string[] | undefined, known: readonly T[]) {
+function allowed<T extends string>(
+  value: string | string[] | undefined,
+  known: readonly T[]
+) {
   const values = new Set(all(value));
   return known.filter((option) => values.has(option));
 }
@@ -108,7 +119,10 @@ export function librarySearchParams(query: LibraryQuery): URLSearchParams {
 }
 
 /** A link to `query` with `change` applied. Any change returns to page one. */
-export function libraryHref(query: LibraryQuery, change: Partial<LibraryQuery> = {}): string {
+export function libraryHref(
+  query: LibraryQuery,
+  change: Partial<LibraryQuery> = {}
+): string {
   const search = librarySearchParams({ ...query, page: 1, ...change }).toString();
   return search ? `/learn?${search}` : "/learn";
 }

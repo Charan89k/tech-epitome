@@ -1,4 +1,4 @@
-import type {Difficulty} from "@/generated/prisma/enums";
+import type { Difficulty } from "@/generated/prisma/enums";
 import type { Diagram, NodeKind } from "@/lib/diagram/types";
 import type { ContentBlock, InlineNode } from "@/types/content";
 

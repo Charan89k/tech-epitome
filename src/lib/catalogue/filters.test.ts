@@ -63,7 +63,15 @@ describe("parseLibraryQuery", () => {
     const query = parseLibraryQuery(
       {
         q: `  ${"x".repeat(500)}  `,
-        subject: ["a", "a", " ", "y".repeat(500), ...Array(40).fill(0).map((_, i) => `s${i}`)],
+        subject: [
+          "a",
+          "a",
+          " ",
+          "y".repeat(500),
+          ...Array(40)
+            .fill(0)
+            .map((_, i) => `s${i}`),
+        ],
       },
       false
     );
@@ -75,13 +83,21 @@ describe("parseLibraryQuery", () => {
 
   it("ignores the progress filter without an account", () => {
     expect(parseLibraryQuery({ status: "COMPLETED" }, false).status).toEqual([]);
-    expect(parseLibraryQuery({ status: "COMPLETED" }, true).status).toEqual(["COMPLETED"]);
+    expect(parseLibraryQuery({ status: "COMPLETED" }, true).status).toEqual([
+      "COMPLETED",
+    ]);
   });
 });
 
 describe("links", () => {
   const query = parseLibraryQuery(
-    { q: "sql joins", level: ["BEGINNER"], subject: "Data & Storage", sort: "title", page: "3" },
+    {
+      q: "sql joins",
+      level: ["BEGINNER"],
+      subject: "Data & Storage",
+      sort: "title",
+      page: "3",
+    },
     true
   );
 
